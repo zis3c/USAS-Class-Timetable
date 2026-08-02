@@ -1,11 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { fetchCampusNewsAPI } from '../services/usasApi';
+import type { CampusNewsItem } from '../types/usas';
 import { X, Megaphone, Calendar, ChevronRight, RotateCw, Sparkles } from 'lucide-react';
 
-export default function CampusNewsModal({ isOpen, onClose }) {
+type CampusNewsModalProps = {
+  isOpen: boolean;
+  onClose: () => void;
+};
+
+export default function CampusNewsModal({ isOpen, onClose }: CampusNewsModalProps) {
   const { session } = useAuth();
-  const [newsList, setNewsList] = useState([]);
+  const [newsList, setNewsList] = useState<CampusNewsItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

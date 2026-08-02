@@ -8,7 +8,7 @@ export default function FacilityHelpDeskModal({ isOpen, onClose }) {
   const [lokasi, setLokasi] = useState('Makmal Komputer FTMK (MK3)');
   const [kategori, setKategori] = useState('Penyaman Udara / Aircon');
   const [butiran, setButiran] = useState('');
-  const [submittedTicket, setSubmittedTicket] = useState(null);
+  const [submittedTicket, setSubmittedTicket] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   if (!isOpen) return null;

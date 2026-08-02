@@ -1,13 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { fetchAttendanceHistoryAPI } from '../services/usasApi';
+import type { AttendanceHistoryItem, TimetableItem } from '../types/usas';
 import { X, CalendarCheck, CheckCircle2, XCircle, RotateCw } from 'lucide-react';
 
-export default function AttendanceHistoryModal({ isOpen, onClose, course }) {
+type AttendanceHistoryModalProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  course: TimetableItem | null;
+};
+
+export default function AttendanceHistoryModal({ isOpen, onClose, course }: AttendanceHistoryModalProps) {
   const { session } = useAuth();
   const { theme } = useTheme();
-  const [history, setHistory] = useState([]);
+  const [history, setHistory] = useState<AttendanceHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   const isLight = theme === 'light';
@@ -40,7 +47,7 @@ export default function AttendanceHistoryModal({ isOpen, onClose, course }) {
 
   if (!shouldRender || !course) return null;
 
-  const normalizeGroup = (groupStr) => {
+  const normalizeGroup = (groupStr?: string) => {
     if (!groupStr) return 'G1';
     return groupStr.replace(/^GRP/i, 'G');
   };

@@ -21,7 +21,7 @@ async function captureElement(elementRef, scale = 2, backgroundColor = '#FFFFFF'
     windowHeight: elementRef.scrollHeight || elementRef.offsetHeight || window.innerHeight,
     onclone: (clonedDoc) => {
       if (!exportRootId) return;
-      const clonedRoot = clonedDoc.querySelector(`[data-export-root="${exportRootId}"]`);
+      const clonedRoot = clonedDoc.querySelector(`[data-export-root="${exportRootId}"]`) as HTMLElement | null;
       if (!clonedRoot) return;
       clonedRoot.style.transform = 'none';
       clonedRoot.style.transition = 'none';

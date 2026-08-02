@@ -33,7 +33,7 @@ export default function ExamScheduleModal({ isOpen, onClose, courses = [] }) {
     const dayStr = examDate.toLocaleDateString('ms-MY', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
     
     // Countdown days
-    const diffTime = Math.abs(examDate - new Date());
+    const diffTime = Math.abs(examDate.getTime() - Date.now());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     return {

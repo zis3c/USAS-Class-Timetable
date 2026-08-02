@@ -1,11 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { fetchAcademicCalendarAPI } from '../services/usasApi';
+import type { AcademicCalendarItem } from '../types/usas';
 import { X, Calendar, CheckCircle2, Clock, RotateCw } from 'lucide-react';
 
-export default function AcademicCalendarModal({ isOpen, onClose }) {
+type AcademicCalendarModalProps = {
+  isOpen: boolean;
+  onClose: () => void;
+};
+
+export default function AcademicCalendarModal({ isOpen, onClose }: AcademicCalendarModalProps) {
   const { session } = useAuth();
-  const [calendarEvents, setCalendarEvents] = useState([]);
+  const [calendarEvents, setCalendarEvents] = useState<AcademicCalendarItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

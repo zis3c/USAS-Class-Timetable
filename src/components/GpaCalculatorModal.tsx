@@ -11,7 +11,7 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }) {
   };
 
   // State mapping course id to { credits, grade }
-  const [courseTargets, setCourseTargets] = useState(() => {
+  const [courseTargets, setCourseTargets] = useState<Record<string, { credits: number; grade: string }>>(() => {
     const initial = {};
     courses.forEach(c => {
       const id = c.course_id || c.kod_kursus;
@@ -37,7 +37,7 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }) {
   let totalCredits = 0;
 
   Object.values(courseTargets).forEach(item => {
-    const cred = parseInt(item.credits, 10) || 0;
+    const cred = Number(item.credits) || 0;
     const pts = gradePoints[item.grade] || 4.0;
     totalPoints += pts * cred;
     totalCredits += cred;

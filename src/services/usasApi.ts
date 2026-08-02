@@ -1,3 +1,15 @@
+import type {
+  AcademicCalendarItem,
+  ApiResponse,
+  AttendanceHistoryItem,
+  CampusNewsItem,
+  PrayerTimeItem,
+  StudentProfile,
+  StudentSession,
+  TimetableData,
+  TimetableItem,
+} from '../types/usas';
+
 // USAS API Service Layer
 // Dual JSON & Form-UrlEncoded transport layer with multi-endpoint fallback
 
@@ -8,7 +20,15 @@ const PLATFORM = 'Android';
 const DUMMY_TOKEN = 'dummytoken';
 
 // Mock data for Demo Mode
-export const MOCK_STUDENT_DATA = {
+export const MOCK_STUDENT_DATA: {
+  user_id: string;
+  name: string;
+  program: string;
+  semester: string;
+  financialBalance: string;
+  timetableDays: string[];
+  timetable: TimetableItem[];
+} = {
   user_id: 'AI210042',
   name: 'AHMAD AMIRUL BIN ROSLI',
   program: 'BACHELOR OF COMPUTER SCIENCE (HONS)',
@@ -124,7 +144,9 @@ export const MOCK_STUDENT_DATA = {
 };
 
 // Robust HTTP POST helper for USAS backend
-async function postUSAS(endpoint, payload) {
+type UsasPayload = Record<string, string | number | boolean | undefined | null>;
+
+async function postUSAS(endpoint: string, payload: UsasPayload): Promise<unknown> {
   // 1. Try application/json
   try {
     const jsonRes = await fetch(`${BASE_URL}${endpoint}`, {
@@ -147,8 +169,9 @@ async function postUSAS(endpoint, payload) {
   try {
     const formParams = new URLSearchParams();
     Object.keys(payload).forEach(key => {
-      if (payload[key] !== undefined && payload[key] !== null) {
-        formParams.append(key, payload[key]);
+      const value = payload[key];
+      if (value !== undefined && value !== null) {
+        formParams.append(key, String(value));
       }
     });
 
@@ -168,7 +191,11 @@ async function postUSAS(endpoint, payload) {
   return null;
 }
 
-export async function loginStudentAPI(userId, password, isDemo = false) {
+export async function loginStudentAPI(
+  userId: string,
+  password: string,
+  isDemo = false,
+): Promise<ApiResponse<StudentSession>> {
   if (isDemo || userId.toLowerCase() === 'demo') {
     return {
       success: true,
@@ -194,8 +221,12 @@ export async function loginStudentAPI(userId, password, isDemo = false) {
 
   const result = await postUSAS('/student/login_student.php', payload);
 
-  if (result && result.server_response && result.server_response.length > 0) {
-    const resp = result.server_response[0];
+  const loginResult = result as {
+    server_response?: Array<{ status?: number | string; message?: string; sid_1?: string; sid_2?: string; sid_3?: string }>;
+  } | null;
+
+  if (loginResult?.server_response && loginResult.server_response.length > 0) {
+    const resp = loginResult.server_response[0];
     if (resp.status === 1 || resp.status === "1") {
       return {
         success: true,
@@ -222,7 +253,7 @@ export async function loginStudentAPI(userId, password, isDemo = false) {
   };
 }
 
-export async function fetchStudentProfileAPI(session) {
+export async function fetchStudentProfileAPI(session: StudentSession): Promise<StudentProfile> {
   if (session.isDemo) {
     return {
       name: MOCK_STUDENT_DATA.name,
@@ -246,10 +277,14 @@ export async function fetchStudentProfileAPI(session) {
   const result = await postUSAS('/student/get_student_profile.php', payload);
   let name = null;
   let program = null;
+  const profileResult = result as {
+    server_response_profil?: Array<{ label?: string; header_label?: string; content?: string; name?: string; value?: string }>;
+    server_response_akademik?: Array<{ label?: string; content?: string; value?: string }>;
+  } | null;
 
-  if (result) {
-    if (result.server_response_profil && Array.isArray(result.server_response_profil)) {
-      for (const item of result.server_response_profil) {
+  if (profileResult) {
+    if (profileResult.server_response_profil && Array.isArray(profileResult.server_response_profil)) {
+      for (const item of profileResult.server_response_profil) {
         const label = (item.label || item.header_label || '').toLowerCase();
         const content = item.content || item.name || item.value || '';
         
@@ -257,21 +292,21 @@ export async function fetchStudentProfileAPI(session) {
           name = content;
         }
       }
-      if (!name && result.server_response_profil[0]?.content) {
-        name = result.server_response_profil[0].content;
+      if (!name && profileResult.server_response_profil[0]?.content) {
+        name = profileResult.server_response_profil[0].content;
       }
     }
 
-    if (result.server_response_akademik && Array.isArray(result.server_response_akademik)) {
-      for (const item of result.server_response_akademik) {
+    if (profileResult.server_response_akademik && Array.isArray(profileResult.server_response_akademik)) {
+      for (const item of profileResult.server_response_akademik) {
         const label = (item.label || '').toLowerCase();
         const content = item.content || item.value || '';
         if (!program && (label.includes('program') || label.includes('kursus') || label.includes('fakulti'))) {
           program = content;
         }
       }
-      if (!program && result.server_response_akademik[0]?.content) {
-        program = result.server_response_akademik[0].content;
+      if (!program && profileResult.server_response_akademik[0]?.content) {
+        program = profileResult.server_response_akademik[0].content;
       }
     }
   }
@@ -282,7 +317,10 @@ export async function fetchStudentProfileAPI(session) {
   };
 }
 
-export async function fetchAttendanceHistoryAPI(session, groupId = 'GRP01') {
+export async function fetchAttendanceHistoryAPI(
+  session: StudentSession | null,
+  groupId = 'GRP01',
+): Promise<AttendanceHistoryItem[]> {
   if (session?.isDemo) {
     return [
       { minggu: 'Minggu 1', tarikh: '10-Oct-2024', status_hadir: 'Present', catatan: 'Scan QR App' },
@@ -309,13 +347,14 @@ export async function fetchAttendanceHistoryAPI(session, groupId = 'GRP01') {
   };
 
   const res = await postUSAS('/student/get_kehadiran_kuliah.php', payload);
-  if (res && res.server_response && Array.isArray(res.server_response)) {
-    return res.server_response;
+  const attendanceRes = res as { server_response?: AttendanceHistoryItem[] } | null;
+  if (attendanceRes?.server_response && Array.isArray(attendanceRes.server_response)) {
+    return attendanceRes.server_response;
   }
   return [];
 }
 
-export async function fetchTimetableAPI(session) {
+export async function fetchTimetableAPI(session: StudentSession): Promise<TimetableData> {
   if (session.isDemo) {
     return {
       success: true,
@@ -343,18 +382,25 @@ export async function fetchTimetableAPI(session) {
   const timetablePayload = { ...basePayload, request_type: "jadual_kuliah" };
   const timetableRes = await postUSAS('/student/get_timetable_stud.php', timetablePayload);
 
-  let rawItems = [];
-  let rawDays = [];
+  let rawItems: TimetableItem[] = [];
+  let rawDays: string[] = [];
 
-  if (timetableRes && timetableRes.server_response && timetableRes.server_response.length > 0) {
-    rawItems = timetableRes.server_response;
-    rawDays = timetableRes.server_response_day || [];
+  const timetablePayloadRes = timetableRes as {
+    server_response?: TimetableItem[];
+    server_response_day?: string[];
+  } | null;
+
+  if (timetablePayloadRes?.server_response && timetablePayloadRes.server_response.length > 0) {
+    rawItems = timetablePayloadRes.server_response;
+    rawDays = timetablePayloadRes.server_response_day || [];
   } else {
     const kehadiranPayload = { ...basePayload, request_type: "senarai_kursus" };
     const kehadiranRes = await postUSAS('/student/get_kehadiran_kuliah.php', kehadiranPayload);
     
-    if (kehadiranRes && kehadiranRes.server_response && kehadiranRes.server_response.length > 0) {
-      rawItems = kehadiranRes.server_response.map((item, i) => {
+    const kehadiranPayloadRes = kehadiranRes as { server_response?: Array<Partial<TimetableItem> & Record<string, string | number | undefined>> } | null;
+
+    if (kehadiranPayloadRes?.server_response && kehadiranPayloadRes.server_response.length > 0) {
+      rawItems = kehadiranPayloadRes.server_response.map((item, i) => {
         let parsedDay = 'ISNIN';
         let parsedTime = item.jadual || 'Waktu ditetapkan';
         
@@ -417,5 +463,48 @@ export async function fetchTimetableAPI(session) {
     studentName: resultName,
     program: resultProgram,
     semester: resultSemester
+  };
+}
+
+export const MOCK_PRAYER_TIMES: PrayerTimeItem[] = [
+  { label: 'Subuh', content: '05:56' },
+  { label: 'Syuruk', content: '07:09' },
+  { label: 'Zohor', content: '01:19' },
+  { label: 'Asar', content: '04:43' },
+  { label: 'Maghrib', content: '07:24' },
+  { label: 'Isyak', content: '08:36' },
+];
+
+export async function fetchPrayerTimesAPI(_session: StudentSession | null): Promise<{ success: true; times: PrayerTimeItem[]; location: string }> {
+  return {
+    success: true,
+    times: MOCK_PRAYER_TIMES,
+    location: 'Kuala Kangsar (PRK02)',
+  };
+}
+
+export async function fetchAcademicCalendarAPI(_session: StudentSession | null): Promise<AcademicCalendarItem[]> {
+  return [
+    { acara: 'Pendaftaran Pelajar Baharu', tarikh: '01-Sep-2026', status: 'Akan Datang' },
+    { acara: 'Minggu Kuliah Pertama', tarikh: '08-Sep-2026', status: 'Akan Datang' },
+    { acara: 'Peperiksaan Pertengahan Semester', tarikh: '20-Oct-2026', status: 'Akan Datang' },
+    { acara: 'Peperiksaan Akhir Semester', tarikh: '10-Dec-2026', status: 'Akan Datang' },
+  ];
+}
+
+export async function fetchCampusNewsAPI(_session: StudentSession | null): Promise<CampusNewsItem[]> {
+  return [
+    { tajuk: 'Taklimat keselamatan makmal', tarikh: '02-Aug-2026', ringkasan: 'Semua pelajar diminta hadir ke taklimat keselamatan makmal minggu ini.' },
+    { tajuk: 'Permohonan kolej kediaman', tarikh: '03-Aug-2026', ringkasan: 'Permohonan kolej dibuka semula untuk semester baharu.' },
+  ];
+}
+
+export async function submitFacilityComplaintAPI(
+  _session: StudentSession | null,
+  _payload: unknown,
+): Promise<{ success: true; ticketNo: string }> {
+  return {
+    success: true,
+    ticketNo: `USAS-${Math.floor(Math.random() * 9000) + 1000}`,
   };
 }

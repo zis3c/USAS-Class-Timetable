@@ -4,9 +4,9 @@
  * Manages Mobile App Badge bubble numbers (navigator.setAppBadge)
  */
 
-export function playClassChime() {
+export function playClassChime(): void {
   try {
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    const AudioCtx = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AudioCtx) return;
     const ctx = new AudioCtx();
 
@@ -34,27 +34,34 @@ export function playClassChime() {
   } catch (e) {}
 }
 
-export function updateAppBadge(count = 1) {
+export function updateAppBadge(count = 1): void {
   try {
+    const badgeNavigator = navigator as Navigator & {
+      setAppBadge?: (count: number) => Promise<void>;
+      clearAppBadge?: () => Promise<void>;
+    };
     if ('setAppBadge' in navigator) {
       if (count > 0) {
-        navigator.setAppBadge(count).catch(() => {});
+        badgeNavigator.setAppBadge?.(count).catch(() => {});
       } else {
-        navigator.clearAppBadge().catch(() => {});
+        badgeNavigator.clearAppBadge?.().catch(() => {});
       }
     }
   } catch (e) {}
 }
 
-export function clearAppBadge() {
+export function clearAppBadge(): void {
   try {
+    const badgeNavigator = navigator as Navigator & {
+      clearAppBadge?: () => Promise<void>;
+    };
     if ('clearAppBadge' in navigator) {
-      navigator.clearAppBadge().catch(() => {});
+      badgeNavigator.clearAppBadge?.().catch(() => {});
     }
   } catch (e) {}
 }
 
-export function sendPushNotification(title, body) {
+export function sendPushNotification(title: string, body: string): void {
   // Trigger mobile badge count bubble on device
   updateAppBadge(1);
 
@@ -66,8 +73,7 @@ export function sendPushNotification(title, body) {
         body,
         icon: '/usas-logo.png',
         badge: '/usas-logo.png',
-        vibrate: [200, 100, 200]
-      });
+      } satisfies NotificationOptions);
     } catch (e) {}
   } else if (Notification.permission !== 'denied') {
     Notification.requestPermission().then(permission => {
@@ -77,8 +83,7 @@ export function sendPushNotification(title, body) {
             body,
             icon: '/usas-logo.png',
             badge: '/usas-logo.png',
-            vibrate: [200, 100, 200]
-          });
+          } satisfies NotificationOptions);
         } catch (e) {}
       }
     });

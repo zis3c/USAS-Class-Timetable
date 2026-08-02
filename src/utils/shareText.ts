@@ -1,4 +1,6 @@
-function parseTimeToMinutes(timeStr) {
+import type { TimetableItem } from '../types/usas';
+
+function parseTimeToMinutes(timeStr: string | undefined): number {
   if (!timeStr) return 0;
   const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
   if (!match) return 0;
@@ -10,33 +12,33 @@ function parseTimeToMinutes(timeStr) {
   return h * 60 + m;
 }
 
-function normalizeGroup(groupStr) {
+function normalizeGroup(groupStr: string | undefined): string {
   if (!groupStr) return 'G1';
   return groupStr.replace(/^GRP/i, 'G');
 }
 
-function buildDayGroups(timetable = []) {
-  const dayGroups = {};
+function buildDayGroups(timetable: TimetableItem[] = []): Record<string, TimetableItem[]> {
+  const dayGroups: Record<string, TimetableItem[]> = {};
 
-  timetable.forEach(item => {
+  timetable.forEach((item: TimetableItem) => {
     const day = item.day?.toUpperCase() || 'LAIN';
     if (!dayGroups[day]) dayGroups[day] = [];
     dayGroups[day].push(item);
   });
 
-  Object.values(dayGroups).forEach(classes => {
+  Object.values(dayGroups).forEach((classes) => {
     classes.sort((a, b) => parseTimeToMinutes(a.start_time) - parseTimeToMinutes(b.start_time));
   });
 
   return dayGroups;
 }
 
-function formatTimeRange(startTime, endTime) {
+function formatTimeRange(startTime: string | undefined, endTime: string | undefined): string {
   if (!startTime) return 'TBA';
   return endTime ? `${startTime}-${endTime}` : startTime;
 }
 
-function buildFullShareText(timetable = [], studentName = '', matricNo = '') {
+function buildFullShareText(timetable: TimetableItem[] = [], studentName = '', matricNo = '') {
   if (!timetable || timetable.length === 0) return '';
 
   const dayOrder = ['ISNIN', 'SELASA', 'RABU', 'KHAMIS', 'JUMAAT', 'SABTU', 'AHAD'];
@@ -77,7 +79,7 @@ function buildFullShareText(timetable = [], studentName = '', matricNo = '') {
   return text;
 }
 
-function buildCompactShareText(timetable = [], matricNo = '') {
+function buildCompactShareText(timetable: TimetableItem[] = [], matricNo = '') {
   if (!timetable || timetable.length === 0) return '';
 
   const dayOrder = ['ISNIN', 'SELASA', 'RABU', 'KHAMIS', 'JUMAAT', 'SABTU', 'AHAD'];

@@ -11,7 +11,7 @@ export default function LoginForm() {
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [isFocused, setIsFocused] = useState(null);
+  const [isFocused, setIsFocused] = useState<string | null>(null);
 
   const isLight = theme === 'light';
 

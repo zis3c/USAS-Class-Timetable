@@ -1,24 +1,30 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import type { ThemeContextValue, ThemeName } from '../types/usas';
 
-const ThemeContext = createContext(null);
+const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-export const THEMES = {
+export const THEMES: Record<string, ThemeName> = {
   NAVY: 'navy',       // USAS Royal Navy & Gold (Default)
   OLED: 'oled',       // OLED Pure Black
   EMERALD: 'emerald', // USAS Emerald Green
   LIGHT: 'light'      // Clean Light Mode
 };
 
-export function ThemeProvider({ children }) {
-  const [theme, setTheme] = useState(() => {
+type ThemeProviderProps = {
+  children: ReactNode;
+};
+
+export function ThemeProvider({ children }: ThemeProviderProps) {
+  const [theme, setTheme] = useState<ThemeName>(() => {
     try {
-      return localStorage.getItem('usas_theme') || THEMES.LIGHT;
+      const savedTheme = localStorage.getItem('usas_theme') as ThemeName | null;
+      return savedTheme || THEMES.LIGHT;
     } catch (e) {
       return THEMES.LIGHT;
     }
   });
 
-  const changeTheme = (newTheme) => {
+  const changeTheme = (newTheme: ThemeName) => {
     setTheme(newTheme);
     try {
       localStorage.setItem('usas_theme', newTheme);

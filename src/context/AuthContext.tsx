@@ -1,16 +1,21 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { loginStudentAPI, fetchTimetableAPI } from '../services/usasApi';
+import type { AuthContextValue, StudentSession, TimetableData } from '../types/usas';
 
-const AuthContext = createContext(null);
+const AuthContext = createContext<AuthContextValue | null>(null);
 
 const CACHE_KEY_SESSION = 'usas_student_session_cache';
 const CACHE_KEY_TIMETABLE = 'usas_student_timetable_cache';
 
-export function AuthProvider({ children }) {
-  const [session, setSession] = useState(null);
-  const [timetableData, setTimetableData] = useState(null);
+type AuthProviderProps = {
+  children: ReactNode;
+};
+
+export function AuthProvider({ children }: AuthProviderProps) {
+  const [session, setSession] = useState<StudentSession | null>(null);
+  const [timetableData, setTimetableData] = useState<TimetableData | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
   // Track network status for PWA offline mode
@@ -34,7 +39,7 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  const login = async (userId, password, isDemo = false) => {
+  const login = async (userId: string, password: string, isDemo = false) => {
     setLoading(true);
     setError(null);
     try {
@@ -47,18 +52,16 @@ export function AuthProvider({ children }) {
 
         // Fetch timetable data
         const timetableRes = await fetchTimetableAPI(res.data);
-        if (timetableRes.success) {
-          setTimetableData(timetableRes);
-          try {
-            localStorage.setItem(CACHE_KEY_TIMETABLE, JSON.stringify(timetableRes));
-          } catch (e) {}
-        } else {
-          setError(timetableRes.error || "Gagal memuat jadual.");
-        }
+        setTimetableData(timetableRes);
+        try {
+          localStorage.setItem(CACHE_KEY_TIMETABLE, JSON.stringify(timetableRes));
+        } catch (e) {}
         setLoading(false);
         return true;
       } else {
-        setError(res.error);
+        if ('error' in res) {
+          setError(res.error);
+        }
         setLoading(false);
         return false;
       }
@@ -83,13 +86,12 @@ export function AuthProvider({ children }) {
     if (!session) return;
     setLoading(true);
     const res = await fetchTimetableAPI(session);
-    if (res.success) {
-      setTimetableData(res);
-      try {
-        localStorage.setItem(CACHE_KEY_TIMETABLE, JSON.stringify(res));
-      } catch (e) {}
-    } else {
-      setError(res.error);
+    setTimetableData(res);
+    try {
+      localStorage.setItem(CACHE_KEY_TIMETABLE, JSON.stringify(res));
+    } catch (e) {}
+    if (!res) {
+      setError('Gagal memuat jadual.');
     }
     setLoading(false);
   };

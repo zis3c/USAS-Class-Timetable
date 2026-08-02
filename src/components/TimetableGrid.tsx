@@ -8,6 +8,7 @@ import LecturerModal from './LecturerModal';
 import MatrixGridView from './MatrixGridView';
 import AttendanceHistoryModal from './AttendanceHistoryModal';
 import ScheduleClashDetector from './ScheduleClashDetector';
+import type { TimetableItem } from '../types/usas';
 import { 
   Clock, MapPin, User, BookOpen, Search, 
   GraduationCap, StickyNote, Edit3, Save,
@@ -16,7 +17,7 @@ import {
 } from 'lucide-react';
 
 // Day color system
-const getCardDayColor = (day, isLight) => {
+const getCardDayColor = (day: string | undefined, isLight: boolean) => {
   const darkColors = {
     'ISNIN':  { dot: 'bg-emerald-400', text: 'text-emerald-400 font-bold', accent: 'border-l-emerald-400', bg: 'bg-emerald-500/[0.18]', border: 'border-emerald-500/40', badge: 'bg-emerald-500/30 text-emerald-300 border border-emerald-500/50 font-bold' },
     'SELASA': { dot: 'bg-blue-400',    text: 'text-blue-400 font-bold',    accent: 'border-l-blue-400',    bg: 'bg-blue-500/[0.18]',    border: 'border-blue-500/40',    badge: 'bg-blue-500/30 text-blue-300 border border-blue-500/50 font-bold' },
@@ -39,7 +40,7 @@ const getCardDayColor = (day, isLight) => {
 };
 
 // Helper for converting 12-hour clock AM/PM to 24-hour style range format (e.g. 8-11, 13-16)
-const parseTo24hHour = (timeStr) => {
+const parseTo24hHour = (timeStr?: string) => {
   if (!timeStr) return null;
   const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
   if (!match) {
@@ -56,7 +57,7 @@ const parseTo24hHour = (timeStr) => {
   return hour;
 };
 
-const getShortTimeRange = (startTime, endTime) => {
+const getShortTimeRange = (startTime?: string, endTime?: string) => {
   const startHour = parseTo24hHour(startTime);
   const endHour = parseTo24hHour(endTime);
   if (startHour === null) return startTime || '';
@@ -74,22 +75,22 @@ export default function TimetableGrid() {
   const [selectedDay, setSelectedDay] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('cards');
-  const [expandedCards, setExpandedCards] = useState({});
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
   const [expandAll, setExpandAll] = useState(false);
   const [showClashPanel, setShowClashPanel] = useState(false);
   
   // Modals
-  const [selectedLecturer, setSelectedLecturer] = useState(null);
-  const [selectedAttendanceCourse, setSelectedAttendanceCourse] = useState(null);
+  const [selectedLecturer, setSelectedLecturer] = useState<string | null>(null);
+  const [selectedAttendanceCourse, setSelectedAttendanceCourse] = useState<TimetableItem | null>(null);
 
   // Notes
   const [courseNotes, setCourseNotes] = useState(() => {
     try { return JSON.parse(localStorage.getItem('usas_course_notes') || '{}'); } catch (e) { return {}; }
   });
-  const [editingCourseId, setEditingCourseId] = useState(null);
+  const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
   const [noteInput, setNoteInput] = useState('');
 
-  const normalizeGroup = (groupStr) => {
+  const normalizeGroup = (groupStr?: string) => {
     if (!groupStr) return 'G1';
     return groupStr.replace(/^GRP/i, 'G');
   };
