@@ -56,7 +56,7 @@ describe('timetableTime', () => {
       },
     ] as TimetableItem[];
 
-    const now = new Date('2026-08-03T00:30:00Z');
+    const now = new Date('2026-08-03T08:30:00');
     const highlights = getActiveCourseHighlights(timetable, now);
 
     expect(getDayKeyFromDate(now)).toBe('ISNIN');
