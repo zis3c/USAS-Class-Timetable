@@ -1,8 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { X, User, Mail, Building, Clock, Copy, Check } from 'lucide-react';
 
-export default function LecturerModal({ lecturerName, isOpen, onClose }) {
+type LecturerModalProps = {
+  lecturerName: string | null;
+  isOpen: boolean;
+  onClose: () => void;
+};
+
+export default function LecturerModal({ lecturerName, isOpen, onClose }: LecturerModalProps) {
   const [copied, setCopied] = useState(false);
   const { theme } = useTheme();
 
@@ -22,7 +28,8 @@ export default function LecturerModal({ lecturerName, isOpen, onClose }) {
       setShouldRender(true);
       // Double rAF ensures the browser has painted the hidden state (scale-95/opacity-0)
       // before starting the enter animation — fixes skipped transition on first open
-      let raf1, raf2;
+      let raf1: number;
+      let raf2: number;
       raf1 = requestAnimationFrame(() => {
         raf2 = requestAnimationFrame(() => setAnimate(true));
       });
@@ -49,7 +56,7 @@ export default function LecturerModal({ lecturerName, isOpen, onClose }) {
   const email = `${emailName || 'pensyarah'}@usas.edu.my`;
 
   const handleCopyEmail = () => {
-    navigator.clipboard.writeText(email);
+    void navigator.clipboard.writeText(email);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

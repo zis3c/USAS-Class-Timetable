@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { fetchCampusNewsAPI } from '../services/usasApi';
 import type { CampusNewsItem } from '../types/usas';
-import { X, Megaphone, Calendar, ChevronRight, RotateCw, Sparkles } from 'lucide-react';
+import { X, Megaphone, Calendar, RotateCw } from 'lucide-react';
 
 type CampusNewsModalProps = {
   isOpen: boolean;

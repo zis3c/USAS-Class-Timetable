@@ -1,17 +1,27 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
 import { playClassChime, sendPushNotification } from '../utils/audioNotifier';
-import { Clock, MapPin, CheckCircle2, Bell, BellOff, Volume2 } from 'lucide-react';
+import { Clock, CheckCircle2, Bell, BellOff, Volume2 } from 'lucide-react';
+import type { TimetableItem } from '../types/usas';
 
-export default function LiveNextClassWidget({ timetable = [] }) {
+type LiveNextClassWidgetProps = {
+  timetable?: TimetableItem[];
+};
+
+type NextClassItem = TimetableItem & {
+  diff?: number;
+  endMin?: number;
+};
+
+export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWidgetProps) {
   const { lang, t } = useLanguage();
   const { theme } = useTheme();
   const [now, setNow] = useState(new Date());
   const [autoNotifyEnabled, setAutoNotifyEnabled] = useState(() => {
     try { return localStorage.getItem('usas_auto_notify') === 'true'; } catch (e) { return false; }
   });
-  const notifiedRef = useRef({});
+  const notifiedRef = useRef<Record<string, boolean>>({});
 
   const isLight = theme === 'light';
 
@@ -37,7 +47,7 @@ export default function LiveNextClassWidget({ timetable = [] }) {
   const currentDayName = dayNames[now.getDay()];
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-  const parseTimeToMinutes = (timeStr) => {
+  const parseTimeToMinutes = (timeStr: string | undefined) => {
     if (!timeStr) return 0;
     const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
     if (!match) return 0;
@@ -49,8 +59,8 @@ export default function LiveNextClassWidget({ timetable = [] }) {
     return h * 60 + m;
   };
 
-  let ongoingClass = null;
-  let nextClass = null;
+  let ongoingClass: NextClassItem | null = null;
+  let nextClass: NextClassItem | null = null;
   let minDiff = Infinity;
 
   if (Array.isArray(timetable) && timetable.length > 0) {

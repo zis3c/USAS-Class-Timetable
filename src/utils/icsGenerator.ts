@@ -1,9 +1,13 @@
+import type { TimetableItem } from '../types/usas';
+
 /**
  * Generates an iCalendar (.ics) file for Google Calendar, Apple iCal, and Outlook.
  * Creates recurring weekly events for all enrolled student courses.
  */
 
-function formatICSDatetime(dayName, timeStr) {
+type IcsTimeInput = string | undefined;
+
+function formatICSDatetime(dayName: string | undefined, timeStr: IcsTimeInput): string {
   // Map day names to day offset (Monday = 1, Friday = 5)
   const dayOffsets = {
     'ISNIN': 1, 'MONDAY': 1, 'MON': 1,
@@ -53,7 +57,7 @@ function formatICSDatetime(dayName, timeStr) {
   return `${year}${month}${date}T${hh}${mm}00Z`;
 }
 
-export function exportTimetableICS(timetable, studentName = 'Pelajar USAS') {
+export function exportTimetableICS(timetable: TimetableItem[] = [], studentName = 'Pelajar USAS'): void {
   if (!timetable || timetable.length === 0) {
     alert('Tiada kursus untuk dieksport ke kalendar.');
     return;

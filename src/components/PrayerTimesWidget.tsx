@@ -1,11 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { fetchPrayerTimesAPI, MOCK_PRAYER_TIMES } from '../services/usasApi';
-import { Moon, Clock, Compass, AlertCircle, Sparkles } from 'lucide-react';
+import type { PrayerTimeItem } from '../types/usas';
+import { Moon, AlertCircle } from 'lucide-react';
 
 export default function PrayerTimesWidget() {
   const { session } = useAuth();
-  const [prayerData, setPrayerData] = useState({ times: MOCK_PRAYER_TIMES, location: 'Kuala Kangsar (PRK02)' });
+  const [prayerData, setPrayerData] = useState<{ times: PrayerTimeItem[]; location: string }>({
+    times: MOCK_PRAYER_TIMES,
+    location: 'Kuala Kangsar (PRK02)',
+  });
 
   useEffect(() => {
     let mounted = true;

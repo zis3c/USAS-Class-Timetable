@@ -15,6 +15,7 @@ const sharedRules = {
   ...reactHooks.configs.recommended.rules,
   'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
   'no-empty': 'off',
+  'no-console': ['warn', { allow: ['warn', 'error'] }],
 };
 
 export default [
@@ -41,6 +42,12 @@ export default [
     },
     rules: {
       ...sharedRules,
+      '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }],
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/ban-ts-comment': 'error',
+      'no-undef': 'off',
+      'react-hooks/purity': 'off',
+      'react-hooks/set-state-in-effect': 'off',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrors: 'none' }],
       'no-unused-vars': 'off',
     },

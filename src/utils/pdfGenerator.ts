@@ -1,7 +1,11 @@
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-async function captureElement(elementRef, scale = 2, backgroundColor = '#FFFFFF') {
+type ExportElement = HTMLElement & {
+  getAttribute?: (name: string) => string | null;
+};
+
+async function captureElement(elementRef: ExportElement | null, scale = 2, backgroundColor = '#FFFFFF') {
   if (!elementRef) {
     throw new Error('Element template not found for export.');
   }
@@ -36,7 +40,11 @@ async function captureElement(elementRef, scale = 2, backgroundColor = '#FFFFFF'
 /**
  * Generates an official printable PDF file (A4 Portrait or Landscape)
  */
-export async function generateTimetablePdf(elementRef, orientation = 'portrait', fileName = 'Jadual_Kuliah_USAS.pdf') {
+export async function generateTimetablePdf(
+  elementRef: ExportElement | null,
+  orientation: 'portrait' | 'landscape' = 'portrait',
+  fileName = 'Jadual_Kuliah_USAS.pdf',
+) {
   const canvas = await captureElement(elementRef, 2, '#FFFFFF');
 
   const imgData = canvas.toDataURL('image/png');
@@ -60,7 +68,12 @@ export async function generateTimetablePdf(elementRef, orientation = 'portrait',
 /**
  * Generates a downloadable PNG from the given element.
  */
-export async function generateElementPng(elementRef, fileName = 'Jadual_Kuliah_USAS.png', scale = 3, backgroundColor = '#FFFFFF') {
+export async function generateElementPng(
+  elementRef: ExportElement | null,
+  fileName = 'Jadual_Kuliah_USAS.png',
+  scale = 3,
+  backgroundColor = '#FFFFFF',
+) {
   const canvas = await captureElement(elementRef, scale, backgroundColor);
   const link = document.createElement('a');
   link.download = fileName;
@@ -71,6 +84,6 @@ export async function generateElementPng(elementRef, fileName = 'Jadual_Kuliah_U
 /**
  * Generates a high-resolution PNG image for Device Lock Screen / Phone Wallpaper
  */
-export async function generateLockscreenImage(elementRef, fileName = 'Jadual_USAS_Lockscreen.png') {
+export async function generateLockscreenImage(elementRef: ExportElement | null, fileName = 'Jadual_USAS_Lockscreen.png') {
   await generateElementPng(elementRef, fileName, 3, null);
 }

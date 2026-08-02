@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
@@ -15,7 +15,7 @@ export default function LoginForm() {
 
   const isLight = theme === 'light';
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!userId.trim() || !password.trim()) {
       setError(lang === 'ms' ? 'Sila masukkan No. Matrik dan Kata Laluan anda.' : 'Please enter your Matric No. and Password.');

@@ -1,7 +1,10 @@
-import React from 'react';
-import { MapPin, Navigation, Footprints, Building2 } from 'lucide-react';
+import { MapPin, Footprints } from 'lucide-react';
 
-export default function CampusVenueBadge({ location = 'Dewan / Makmal USAS' }) {
+type CampusVenueBadgeProps = {
+  location?: string;
+};
+
+export default function CampusVenueBadge({ location = 'Dewan / Makmal USAS' }: CampusVenueBadgeProps) {
   let blockTag = 'Blok Akademik USAS';
   let walkingTime = '2-4 mnt berjalan';
   let badgeColor = 'bg-sky-500/10 text-sky-400 border-sky-500/20';

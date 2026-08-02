@@ -1,9 +1,14 @@
-import React, { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { submitFacilityComplaintAPI } from '../services/usasApi';
-import { X, Wrench, CheckCircle2, Send, AlertTriangle } from 'lucide-react';
+import { X, Wrench, CheckCircle2, Send } from 'lucide-react';
 
-export default function FacilityHelpDeskModal({ isOpen, onClose }) {
+type FacilityHelpDeskModalProps = {
+  isOpen: boolean;
+  onClose: () => void;
+};
+
+export default function FacilityHelpDeskModal({ isOpen, onClose }: FacilityHelpDeskModalProps) {
   const { session } = useAuth();
   const [lokasi, setLokasi] = useState('Makmal Komputer FTMK (MK3)');
   const [kategori, setKategori] = useState('Penyaman Udara / Aircon');
@@ -13,7 +18,7 @@ export default function FacilityHelpDeskModal({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!butiran.trim()) return;
     setSubmitting(true);

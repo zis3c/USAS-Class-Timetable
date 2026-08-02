@@ -11,9 +11,9 @@ import ScheduleClashDetector from './ScheduleClashDetector';
 import type { TimetableItem } from '../types/usas';
 import { 
   Clock, MapPin, User, BookOpen, Search, 
-  GraduationCap, StickyNote, Edit3, Save,
-  Grid, LayoutList, CalendarCheck, Zap,
-  CalendarOff, RefreshCw, ChevronDown, ChevronUp
+  GraduationCap, StickyNote, Edit3,
+  Grid, LayoutList, CalendarCheck,
+  CalendarOff, RefreshCw, ChevronDown
 } from 'lucide-react';
 
 // Day color system
@@ -77,8 +77,6 @@ export default function TimetableGrid() {
   const [viewMode, setViewMode] = useState('cards');
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
   const [expandAll, setExpandAll] = useState(false);
-  const [showClashPanel, setShowClashPanel] = useState(false);
-  
   // Modals
   const [selectedLecturer, setSelectedLecturer] = useState<string | null>(null);
   const [selectedAttendanceCourse, setSelectedAttendanceCourse] = useState<TimetableItem | null>(null);
@@ -106,7 +104,7 @@ export default function TimetableGrid() {
     return [...baseDays, ...extraDays];
   }, [timetableData?.days, timetableData?.timetable]);
 
-  const allCourses = timetableData?.timetable || [];
+  const allCourses = useMemo(() => timetableData?.timetable || [], [timetableData?.timetable]);
 
   const handleSaveNote = (courseId) => {
     const updated = { ...courseNotes, [courseId]: noteInput };
@@ -116,11 +114,6 @@ export default function TimetableGrid() {
   };
 
   // Detect clashes
-  const hasClashes = useMemo(() => {
-    if (allCourses.length < 2) return false;
-    return false;
-  }, [allCourses]);
-
   const filteredCourses = useMemo(() => {
     return allCourses.filter(item => {
       const matchesDay = selectedDay === 'ALL' || item.day?.toUpperCase() === selectedDay.toUpperCase();

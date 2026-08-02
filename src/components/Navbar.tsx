@@ -1,11 +1,15 @@
-import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
-import { LogOut, Menu, RefreshCw, Sparkles, WifiOff } from 'lucide-react';
+import { Menu, RefreshCw, Sparkles, WifiOff } from 'lucide-react';
 
-export default function Navbar({ onOpenTools, onOpenPdfModal }) {
-  const { session, logout, refreshTimetable, loading, isOffline } = useAuth();
+type NavbarProps = {
+  onOpenTools: () => void;
+  onOpenPdfModal?: () => void;
+};
+
+export default function Navbar({ onOpenTools }: NavbarProps) {
+  const { session, refreshTimetable, loading, isOffline } = useAuth();
   const { lang, toggleLanguage, t } = useLanguage();
   const { theme } = useTheme();
 

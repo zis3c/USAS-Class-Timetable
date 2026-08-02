@@ -1,8 +1,20 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { X, Calculator, Award, Sparkles, Check } from 'lucide-react';
+import { X, Calculator, Award } from 'lucide-react';
+import type { TimetableItem } from '../types/usas';
 
-export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }) {
+type GpaCalculatorModalProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  courses?: TimetableItem[];
+};
+
+type CourseTarget = {
+  credits: number;
+  grade: string;
+};
+
+export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: GpaCalculatorModalProps) {
   const { t } = useLanguage();
 
   const gradePoints = {
@@ -11,10 +23,10 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }) {
   };
 
   // State mapping course id to { credits, grade }
-  const [courseTargets, setCourseTargets] = useState<Record<string, { credits: number; grade: string }>>(() => {
-    const initial = {};
-    courses.forEach(c => {
-      const id = c.course_id || c.kod_kursus;
+  const [courseTargets, setCourseTargets] = useState<Record<string, CourseTarget>>(() => {
+    const initial: Record<string, CourseTarget> = {};
+    courses.forEach((c) => {
+      const id = c.course_id || c.kod_kursus || c.course_name || 'course';
       initial[id] = { credits: 3, grade: 'A' };
     });
     return initial;
@@ -22,7 +34,7 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }) {
 
   if (!isOpen) return null;
 
-  const handleTargetChange = (courseId, field, value) => {
+  const handleTargetChange = (courseId: string, field: keyof CourseTarget, value: string | number) => {
     setCourseTargets(prev => ({
       ...prev,
       [courseId]: {
@@ -36,7 +48,7 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }) {
   let totalPoints = 0;
   let totalCredits = 0;
 
-  Object.values(courseTargets).forEach(item => {
+  Object.values(courseTargets).forEach((item) => {
     const cred = Number(item.credits) || 0;
     const pts = gradePoints[item.grade] || 4.0;
     totalPoints += pts * cred;
@@ -100,7 +112,7 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }) {
           {/* Subject Grade Target Table */}
           <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
             {courses.map((c, i) => {
-              const id = c.course_id || c.kod_kursus;
+              const id = c.course_id || c.kod_kursus || c.course_name || `course-${i}`;
               const target = courseTargets[id] || { credits: 3, grade: 'A' };
               return (
                 <div key={i} className="p-3.5 rounded-xl bg-[#070F22] border border-slate-800 flex items-center justify-between gap-3 text-xs">

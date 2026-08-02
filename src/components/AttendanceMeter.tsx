@@ -1,15 +1,18 @@
-import React from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
 import { AlertTriangle, CheckCircle2, ShieldAlert } from 'lucide-react';
 
-export default function AttendanceMeter({ percentStr = '85%' }) {
+type AttendanceMeterProps = {
+  percentStr?: string;
+};
+
+export default function AttendanceMeter({ percentStr = '85%' }: AttendanceMeterProps) {
   const { lang, t } = useLanguage();
   const { theme } = useTheme();
   const num = parseInt(percentStr, 10) || 85;
 
   const isLight = theme === 'light';
-  const getProgressColor = (value) => {
+  const getProgressColor = (value: number): string => {
     const clamped = Math.max(0, Math.min(value, 100));
     const hue = (clamped / 100) * 120;
     return `hsl(${hue} 85% 52%)`;
