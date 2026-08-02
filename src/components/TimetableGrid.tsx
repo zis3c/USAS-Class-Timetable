@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
@@ -9,6 +9,11 @@ import MatrixGridView from './MatrixGridView';
 import AttendanceHistoryModal from './AttendanceHistoryModal';
 import ScheduleClashDetector from './ScheduleClashDetector';
 import type { TimetableItem } from '../types/usas';
+import {
+  getActiveCourseHighlights,
+  getCourseHighlightKey,
+  getShortTimeRange,
+} from '../utils/timetableTime';
 import { 
   Clock, MapPin, User, BookOpen, Search, 
   GraduationCap, StickyNote, Edit3,
@@ -39,38 +44,13 @@ const getCardDayColor = (day: string | undefined, isLight: boolean) => {
   return (isLight ? lightColors[day] : darkColors[day]) || (isLight ? lightColors['ISNIN'] : darkColors['ISNIN']);
 };
 
-// Helper for converting 12-hour clock AM/PM to 24-hour style range format (e.g. 8-11, 13-16)
-const parseTo24hHour = (timeStr?: string) => {
-  if (!timeStr) return null;
-  const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
-  if (!match) {
-    const numMatch = timeStr.match(/(\d+)/);
-    return numMatch ? parseInt(numMatch[1], 10) : null;
-  }
-  let hour = parseInt(match[1], 10);
-  const ampm = match[3].toUpperCase();
-  if (ampm === 'PM' && hour !== 12) {
-    hour += 12;
-  } else if (ampm === 'AM' && hour === 12) {
-    hour = 0;
-  }
-  return hour;
-};
-
-const getShortTimeRange = (startTime?: string, endTime?: string) => {
-  const startHour = parseTo24hHour(startTime);
-  const endHour = parseTo24hHour(endTime);
-  if (startHour === null) return startTime || '';
-  if (endHour === null) return `${startHour}`;
-  return `${startHour}-${endHour}`;
-};
-
 export default function TimetableGrid() {
   const { timetableData, session, refreshTimetable, loading } = useAuth();
   const { lang, t } = useLanguage();
   const { theme } = useTheme();
   
   const isLight = theme === 'light';
+  const [now, setNow] = useState(() => new Date());
   
   const [selectedDay, setSelectedDay] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -128,6 +108,13 @@ export default function TimetableGrid() {
   }, [allCourses, selectedDay, searchQuery]);
 
   const totalSubjects = new Set(allCourses.map(c => c.course_id || c.kod_kursus).filter(Boolean)).size;
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const activeClassKeys = useMemo(() => getActiveCourseHighlights(allCourses, now), [allCourses, now]);
 
   // Empty state
   if (allCourses.length === 0) {
@@ -278,7 +265,7 @@ export default function TimetableGrid() {
 
           {/* View Content */}
           {viewMode === 'matrix' ? (
-            <MatrixGridView timetable={allCourses} days={daysList} />
+            <MatrixGridView timetable={allCourses} days={daysList} activeHighlights={activeClassKeys} />
           ) : (
             <div className="space-y-4">
               <LiveNextClassWidget timetable={allCourses} />
@@ -290,21 +277,39 @@ export default function TimetableGrid() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 items-start">
-                  {filteredCourses.map((course, idx) => {
+                  {filteredCourses.map((course) => {
                     const courseId = course.course_id || course.kod_kursus;
                     const dayColor = getCardDayColor(course.day?.toUpperCase(), isLight);
-                    const cardKey = `${courseId}_${course.day}_${idx}`;
+                    const cardKey = getCourseHighlightKey(course);
                     const isExpanded = expandAll ? true : !!expandedCards[cardKey];
                     const currentNote = courseNotes[courseId] || '';
+                    const courseStatus =
+                      activeClassKeys.ongoingKey === cardKey
+                        ? 'ongoing'
+                        : activeClassKeys.upcomingKey === cardKey
+                          ? 'upcoming'
+                          : 'idle';
 
                     return (
                       <div
                         key={cardKey}
-                        className={`rounded-lg border border-l-2 transition-all ${dayColor.accent} ${dayColor.border} ${dayColor.bg} hover:brightness-105 shadow-sm`}
+                        className={`rounded-lg border border-l-2 transition-all duration-300 ${dayColor.accent} ${dayColor.border} ${dayColor.bg} hover:brightness-105 shadow-sm ${
+                          courseStatus === 'ongoing'
+                            ? 'ring-1 ring-emerald-400/70 shadow-[0_0_18px_rgba(52,211,153,0.22)]'
+                            : courseStatus === 'upcoming'
+                              ? 'ring-1 ring-amber-300/60 shadow-[0_0_16px_rgba(251,191,36,0.18)] animate-[pulse_4s_ease-in-out_infinite]'
+                              : ''
+                        }`}
                       >
                         {/* Card Header — Click to expand/collapse independently */}
                         <div 
-                          className="p-3 cursor-pointer select-none"
+                          className={`p-3 cursor-pointer select-none rounded-lg ${
+                            courseStatus === 'ongoing'
+                              ? 'bg-emerald-500/10'
+                              : courseStatus === 'upcoming'
+                                ? 'bg-amber-500/10'
+                                : ''
+                          }`}
                           onClick={(e) => {
                             e.stopPropagation();
                             setExpandedCards(prev => ({

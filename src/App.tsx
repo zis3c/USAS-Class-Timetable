@@ -6,6 +6,7 @@ import { useLanguage } from './context/LanguageContext';
 import Navbar from './components/Navbar';
 import LoginForm from './components/LoginForm';
 import TimetableGrid from './components/TimetableGrid';
+import { PrayerTimesNotifier } from './components/PrayerTimesWidget';
 const PdfExportModal = lazy(() => import('./components/PdfExportModal'));
 const ExamScheduleModal = lazy(() => import('./components/ExamScheduleModal'));
 const QrShareModal = lazy(() => import('./components/QrShareModal'));
@@ -40,6 +41,7 @@ function MainContent() {
         onOpenTools={() => setIsToolsOpen(true)}
         onOpenPdfModal={() => setIsPdfModalOpen(true)}
       />
+      {session && <PrayerTimesNotifier />}
       
       <main className="flex-1 overflow-hidden relative">
         {!session ? (

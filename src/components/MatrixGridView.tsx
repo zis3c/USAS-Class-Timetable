@@ -3,10 +3,19 @@ import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import type { TimetableItem } from '../types/usas';
 import { MapPin } from 'lucide-react';
+import {
+  getCourseHighlightKey,
+  parseTo24hHour,
+  parseTimeToMinutes,
+} from '../utils/timetableTime';
 
 type MatrixGridViewProps = {
   timetable?: TimetableItem[];
   days?: string[];
+  activeHighlights?: {
+    ongoingKey: string | null;
+    upcomingKey: string | null;
+  };
 };
 
 const getDayColors = (day: string | undefined, isLight: boolean) => {
@@ -37,38 +46,6 @@ const ALL_TIME_SLOTS = [
   '08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM', 
   '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM'
 ];
-
-const parseTo24hHour = (timeStr?: string) => {
-  if (!timeStr) return null;
-  const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
-  if (!match) {
-    const numMatch = timeStr.match(/(\d+)/);
-    return numMatch ? parseInt(numMatch[1], 10) : null;
-  }
-  let hour = parseInt(match[1], 10);
-  const ampm = match[3].toUpperCase();
-  if (ampm === 'PM' && hour !== 12) {
-    hour += 12;
-  } else if (ampm === 'AM' && hour === 12) {
-    hour = 0;
-  }
-  return hour;
-};
-
-const parseTimeToMinutes = (timeStr?: string) => {
-  if (!timeStr) return null;
-  const raw = String(timeStr).trim();
-  const ampmMatch = raw.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-  const twentyFourMatch = raw.match(/^(\d{1,2}):(\d{2})$/);
-  const match = ampmMatch || twentyFourMatch;
-  if (!match) return null;
-
-  let hour = parseInt(match[1], 10);
-  const minute = parseInt(match[2], 10);
-  const suffix = ampmMatch ? ampmMatch[3].toUpperCase() : null;
-  const normalizedHour = suffix === 'PM' && hour < 12 ? hour + 12 : suffix === 'AM' && hour === 12 ? 0 : hour;
-  return normalizedHour * 60 + minute;
-};
 
 const getDurationLabel = (startTime?: string, endTime?: string, lang?: string) => {
   const startMin = parseTimeToMinutes(startTime);
@@ -117,6 +94,7 @@ const getSlotLabel = (slot: string) => {
 export default function MatrixGridView({
   timetable = [],
   days = ['ISNIN', 'SELASA', 'RABU', 'KHAMIS', 'JUMAAT'],
+  activeHighlights,
 }: MatrixGridViewProps) {
   const { theme } = useTheme();
   const { t, lang } = useLanguage();
@@ -229,6 +207,15 @@ export default function MatrixGridView({
                     }
 
                     const course = getCourseForSlot(d, slot);
+                    const courseKey = course ? getCourseHighlightKey(course) : '';
+                    const courseStatus =
+                      courseKey && activeHighlights
+                        ? (activeHighlights.ongoingKey === courseKey
+                            ? 'ongoing'
+                            : activeHighlights.upcomingKey === courseKey
+                              ? 'upcoming'
+                              : 'idle')
+                        : 'idle';
                     let colSpan = 1;
                     
                     let durationText = '';
@@ -255,7 +242,13 @@ export default function MatrixGridView({
                         }`}
                       >
                         {course ? (
-                          <div className={`px-2.5 py-2 rounded-md border h-full flex flex-col justify-between gap-0.5 transition-all hover:brightness-105 ${color.bg} ${color.border}`}>
+                          <div className={`px-2.5 py-2 rounded-md border h-full flex flex-col justify-between gap-0.5 transition-all duration-300 hover:brightness-105 ${color.bg} ${color.border} ${
+                            courseStatus === 'ongoing'
+                              ? 'ring-1 ring-emerald-400/70 shadow-[0_0_16px_rgba(52,211,153,0.20)]'
+                              : courseStatus === 'upcoming'
+                                ? 'ring-1 ring-amber-300/60 shadow-[0_0_14px_rgba(251,191,36,0.16)] animate-[pulse_4s_ease-in-out_infinite]'
+                                : ''
+                          }`}>
                             <div className="flex items-center justify-between gap-2 mb-0.5">
                               <div className={`font-bold truncate ${color.text}`} style={{ fontSize: `${autoScale * 12}px` }}>
                                 {course.course_id || course.kod_kursus}

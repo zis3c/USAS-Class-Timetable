@@ -25,8 +25,16 @@ export default function ToolsDrawer({ isOpen, onClose, onOpenPdf, onOpenExam, on
   useEffect(() => {
     if (isOpen) {
       setShouldRender(true);
-      const t = setTimeout(() => setAnimate(true), 10);
-      return () => clearTimeout(t);
+      setAnimate(false);
+      let raf1 = 0;
+      let raf2 = 0;
+      raf1 = requestAnimationFrame(() => {
+        raf2 = requestAnimationFrame(() => setAnimate(true));
+      });
+      return () => {
+        cancelAnimationFrame(raf1);
+        cancelAnimationFrame(raf2);
+      };
     } else {
       setAnimate(false);
       const t = setTimeout(() => setShouldRender(false), 250);
@@ -53,7 +61,11 @@ export default function ToolsDrawer({ isOpen, onClose, onOpenPdf, onOpenExam, on
         <div className={`h-11 flex items-center justify-between px-4 border-b ${
           isLight ? 'border-slate-200' : 'border-white/[0.06]'
         }`}>
-          <div />
+          <div className={`text-[9px] font-semibold uppercase tracking-[0.22em] ${
+            isLight ? 'text-slate-400' : 'text-white/25'
+          }`}>
+            {t('toolsAndExport')}
+          </div>
           <button 
             onClick={onClose} 
             className={`p-1 rounded-md transition-colors ${

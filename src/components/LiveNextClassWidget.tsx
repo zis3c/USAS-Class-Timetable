@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
 import { playClassChime, sendPushNotification } from '../utils/audioNotifier';
-import { Clock, CheckCircle2, Bell, BellOff, Volume2 } from 'lucide-react';
+import { Clock, CheckCircle2, Bell, BellOff } from 'lucide-react';
 import type { TimetableItem } from '../types/usas';
 
 type LiveNextClassWidgetProps = {
@@ -11,11 +11,12 @@ type LiveNextClassWidgetProps = {
 
 type NextClassItem = TimetableItem & {
   diff?: number;
+  diffSeconds?: number;
   endMin?: number;
 };
 
 export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWidgetProps) {
-  const { lang, t } = useLanguage();
+  const { t } = useLanguage();
   const { theme } = useTheme();
   const [now, setNow] = useState(new Date());
   const [autoNotifyEnabled, setAutoNotifyEnabled] = useState(() => {
@@ -26,7 +27,7 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
   const isLight = theme === 'light';
 
   useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 20000);
+    const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
@@ -46,6 +47,7 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
   const dayNames = ['AHAD', 'ISNIN', 'SELASA', 'RABU', 'KHAMIS', 'JUMAAT', 'SABTU'];
   const currentDayName = dayNames[now.getDay()];
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const currentSeconds = currentMinutes * 60 + now.getSeconds();
 
   const parseTimeToMinutes = (timeStr: string | undefined) => {
     if (!timeStr) return 0;
@@ -59,6 +61,26 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
     return h * 60 + m;
   };
 
+  const parseTimeToSeconds = (timeStr: string | undefined) => {
+    if (!timeStr) return 0;
+    const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+    if (!match) return 0;
+    let h = parseInt(match[1], 10);
+    const m = parseInt(match[2], 10);
+    const ampm = match[3]?.toUpperCase();
+    if (ampm === 'PM' && h < 12) h += 12;
+    if (ampm === 'AM' && h === 12) h = 0;
+    return h * 3600 + m * 60;
+  };
+
+  const formatCountdown = (totalSeconds: number) => {
+    const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+    const hours = Math.floor(safeSeconds / 3600);
+    const minutes = Math.floor((safeSeconds % 3600) / 60);
+    const seconds = safeSeconds % 60;
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  };
+
   let ongoingClass: NextClassItem | null = null;
   let nextClass: NextClassItem | null = null;
   let minDiff = Infinity;
@@ -70,30 +92,30 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
 
       const startMin = parseTimeToMinutes(item.start_time);
       const endMin = item.end_time ? parseTimeToMinutes(item.end_time) : startMin + 120;
-
+      const startSec = parseTimeToSeconds(item.start_time);
       if (currentMinutes >= startMin && currentMinutes <= endMin) {
         ongoingClass = { ...item, endMin };
       }
 
-      if (startMin > currentMinutes) {
-        const diff = startMin - currentMinutes;
+      if (startSec > currentSeconds) {
+        const diff = startSec - currentSeconds;
         if (diff < minDiff) {
           minDiff = diff;
-          nextClass = { ...item, diff };
+          nextClass = { ...item, diffSeconds: diff };
         }
       }
     });
   }
 
   useEffect(() => {
-    if (autoNotifyEnabled && nextClass && nextClass.diff <= 15 && nextClass.diff > 0) {
+    if (autoNotifyEnabled && nextClass && nextClass.diffSeconds !== undefined && nextClass.diffSeconds <= 600 && nextClass.diffSeconds > 0) {
       const key = `${nextClass.course_id}-${nextClass.day}-${nextClass.start_time}`;
       if (!notifiedRef.current[key]) {
         notifiedRef.current[key] = true;
         playClassChime();
         sendPushNotification(
           `Peringatan Kuliah USAS: ${nextClass.course_id}`,
-          `Kelas ${nextClass.course_name} bermula dalam 15 minit di ${nextClass.location}`
+          `Kelas ${nextClass.course_name} bermula dalam 10 minit di ${nextClass.location}`
         );
       }
     }
@@ -167,26 +189,20 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
             </span>
             {nextClass && (
               <span className={`text-[9px] font-bold ${isLight ? 'text-slate-400' : 'text-white/40'}`}>
-                {t('in')} {Math.floor(nextClass.diff / 60) > 0 ? `${Math.floor(nextClass.diff / 60)}${lang === 'en' ? 'h' : 'j'} ` : ''}{nextClass.diff % 60}m
+                {formatCountdown(nextClass.diffSeconds || 0)}
               </span>
             )}
           </div>
           <div className={`text-[11px] font-semibold truncate ${isLight ? 'text-slate-800' : 'text-white/90'}`}>
-            {activeCourse.course_id}: {activeCourse.course_name} <span className={isLight ? 'text-slate-400 font-normal' : 'text-white/30 font-normal'}>({activeCourse.location})</span>
+            {activeCourse.course_id}: {activeCourse.course_name}
+            <span className={`ml-2 ${isLight ? 'text-slate-400 font-normal' : 'text-white/30 font-normal'}`}>
+              {activeCourse.location}
+            </span>
           </div>
         </div>
       </div>
 
       <div className="flex items-center gap-1.5 flex-shrink-0">
-        <button
-          onClick={playClassChime}
-          className={`p-1 rounded transition-colors text-[9px] font-medium ${
-            isLight ? 'text-slate-400 hover:text-amber-600' : 'text-white/30 hover:text-amber-400'
-          }`}
-          title="Uji Chime"
-        >
-          <Volume2 className="w-3.5 h-3.5" />
-        </button>
         <button
           onClick={toggleAutoNotify}
           className={`p-1 rounded transition-colors text-[9px] font-semibold flex items-center gap-1 ${
