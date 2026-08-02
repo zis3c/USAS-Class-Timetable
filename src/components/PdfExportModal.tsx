@@ -4,11 +4,23 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
 import { generateTimetablePdf, generateElementPng, generateLockscreenImage } from '../utils/pdfGenerator';
+import type { TimetableItem } from '../types/usas';
 import { 
   X, Download, Smartphone, RotateCw, Award, ChevronDown, Plus, Minus
 } from 'lucide-react';
 
-const getModalDayColors = (day, isLight) => {
+type PdfExportModalProps = {
+  isOpen: boolean;
+  onClose: () => void;
+};
+
+type ExportMode = 'FORMAL_A4' | 'WALLPAPER';
+type ExportFileType = 'PDF' | 'PNG';
+type WallpaperPreset = 'phone' | 'tablet' | 'desktop' | 'square';
+type ContentDetail = 'CODE' | 'DETAILS';
+type ExportTheme = 'light' | 'dark';
+
+const getModalDayColors = (day: string | undefined, isLight: boolean) => {
   const darkColors = {
     'ISNIN':  { bg: 'bg-emerald-500/25', border: 'border-emerald-500/40', text: 'text-emerald-300 font-bold' },
     'SELASA': { bg: 'bg-blue-500/25',    border: 'border-blue-500/40',    text: 'text-blue-300 font-bold' },
@@ -30,7 +42,7 @@ const getModalDayColors = (day, isLight) => {
   return (isLight ? lightColors[day] : darkColors[day]) || (isLight ? lightColors['ISNIN'] : darkColors['ISNIN']);
 };
 
-const getPresetStyle = (preset, detail = 'FULL') => {
+const getPresetStyle = (preset: WallpaperPreset, detail: ContentDetail = 'DETAILS') => {
   const base = {
     phone: {
       tableFontSize: 'text-[5px] sm:text-[5.75px]',
@@ -101,7 +113,7 @@ const getPresetStyle = (preset, detail = 'FULL') => {
 
 const WALLPAPER_HOUR_STARTS = [8, 9, 10, 11, 12, 13, 14, 15, 16];
 
-const parseTimeToMinutes = (timeStr) => {
+const parseTimeToMinutes = (timeStr?: string) => {
   if (!timeStr) return null;
   const raw = String(timeStr).trim();
   const ampmMatch = raw.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
@@ -116,7 +128,7 @@ const parseTimeToMinutes = (timeStr) => {
   return normalizedHour * 60 + minute;
 };
 
-const formatAmPmTime = (timeStr) => {
+const formatAmPmTime = (timeStr?: string) => {
   if (!timeStr) return '';
   const raw = String(timeStr).trim();
   const match = raw.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
@@ -130,7 +142,7 @@ const formatAmPmTime = (timeStr) => {
   return `${hour}${minStr}${ampm}`;
 };
 
-const formatDurationRange = (startTime, endTime) => {
+const formatDurationRange = (startTime?: string, endTime?: string) => {
   if (!startTime && !endTime) return '-';
   const start = formatAmPmTime(startTime);
   const end = formatAmPmTime(endTime);
@@ -139,13 +151,13 @@ const formatDurationRange = (startTime, endTime) => {
   return `${start} - ${end}`;
 };
 
-const formatWallpaperSlotLabel = (hour) => {
+const formatWallpaperSlotLabel = (hour: number) => {
   const start = String(hour).padStart(2, '0');
   const end = String(hour + 1).padStart(2, '0');
   return `${start}-${end}`;
 };
 
-const formatShortDurationLabel = (startTime, endTime) => {
+const formatShortDurationLabel = (startTime?: string, endTime?: string) => {
   const startParsed = parseTimeToMinutes(startTime);
   const endParsed = parseTimeToMinutes(endTime);
   if (startParsed == null || endParsed == null || endParsed <= startParsed) return '';
@@ -153,7 +165,7 @@ const formatShortDurationLabel = (startTime, endTime) => {
   return `${hours}hr${hours > 1 ? 's' : ''}`;
 };
 
-export default function PdfExportModal({ isOpen, onClose }) {
+export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps) {
   const { timetableData, session } = useAuth();
   const { lang, t } = useLanguage();
   const { theme } = useTheme();
@@ -161,14 +173,14 @@ export default function PdfExportModal({ isOpen, onClose }) {
   const isLight = theme === 'light';
   
   // Modes: 'FORMAL_A4' | 'WALLPAPER'
-  const [exportMode, setExportMode] = useState('FORMAL_A4'); 
-  const [exportFileType, setExportFileType] = useState('PDF');
+  const [exportMode, setExportMode] = useState<ExportMode>('FORMAL_A4'); 
+  const [exportFileType, setExportFileType] = useState<ExportFileType>('PDF');
   
   // Device Wallpaper Presets: 'phone' (9:16) | 'tablet' (4:3) | 'desktop' (16:9) | 'square' (1:1)
-  const [wallpaperPreset, setWallpaperPreset] = useState('phone');
+  const [wallpaperPreset, setWallpaperPreset] = useState<WallpaperPreset>('phone');
 
   // Content Detail Customizer: 'CODE' | 'DETAILS'
-  const [contentDetail, setContentDetail] = useState('DETAILS');
+  const [contentDetail, setContentDetail] = useState<ContentDetail>('DETAILS');
 
   const [ratioDropdownOpen, setRatioDropdownOpen] = useState(false);
   const [detailDropdownOpen, setDetailDropdownOpen] = useState(false);
@@ -179,7 +191,7 @@ export default function PdfExportModal({ isOpen, onClose }) {
   const [previewScale, setPreviewScale] = useState(1);
   const [previewHeight, setPreviewHeight] = useState(0);
   const [userZoom, setUserZoom] = useState(1);
-  const [exportTheme, setExportTheme] = useState('light');
+  const [exportTheme, setExportTheme] = useState<ExportTheme>('light');
   const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
 
   useEffect(() => {
@@ -233,9 +245,9 @@ export default function PdfExportModal({ isOpen, onClose }) {
     </div>
   );
   
-  const pdfRef = useRef(null);
-  const previewShellRef = useRef(null);
-  const wallpaperRef = useRef(null);
+  const pdfRef = useRef<HTMLDivElement | null>(null);
+  const previewShellRef = useRef<HTMLDivElement | null>(null);
+  const wallpaperRef = useRef<HTMLDivElement | null>(null);
 
   const allCourses = useMemo(() => timetableData?.timetable || [], [timetableData?.timetable]);
   const studentName = timetableData?.studentName || session?.user_id || 'Pelajar USAS';
@@ -243,7 +255,7 @@ export default function PdfExportModal({ isOpen, onClose }) {
   const programName = timetableData?.program || 'FAKULTI TEKNOLOGI & SAINS MAKLUMAT';
   const semesterStr = timetableData?.semester || 'Semester Semasa';
 
-  const normalizeGroup = (groupStr) => {
+  const normalizeGroup = (groupStr?: string) => {
     if (!groupStr) return 'Group 1';
     const raw = String(groupStr).trim();
     const match = raw.match(/^(?:GRP|G)\s*0*(\d+)$/i);
@@ -315,7 +327,7 @@ export default function PdfExportModal({ isOpen, onClose }) {
     };
   }, [shouldRender, exportMode, contentDetail, wallpaperPreset, daysList, allCourses.length]);
 
-  const getWallpaperCourseForHour = (dayName, hourStart) => {
+  const getWallpaperCourseForHour = (dayName: string, hourStart: number): TimetableItem | null => {
     return allCourses.find(c => {
       const isDay = c.day?.toUpperCase() === dayName.toUpperCase();
       if (!isDay) return false;
@@ -326,7 +338,7 @@ export default function PdfExportModal({ isOpen, onClose }) {
     }) || null;
   };
 
-  const getWallpaperCourseSpan = (course) => {
+  const getWallpaperCourseSpan = (course: TimetableItem): number => {
     const startMinutes = parseTimeToMinutes(course.start_time || course.jadual || '');
     const endMinutes = parseTimeToMinutes(course.end_time || '');
     if (startMinutes == null) return 1;
@@ -334,7 +346,7 @@ export default function PdfExportModal({ isOpen, onClose }) {
     return Math.max(1, Math.ceil((safeEnd - startMinutes) / 60));
   };
 
-  const isWallpaperSlotCovered = (dayName, hourStart) => {
+  const isWallpaperSlotCovered = (dayName: string, hourStart: number): boolean => {
     return allCourses.some(c => {
       if ((c.day?.toUpperCase() || '') !== dayName.toUpperCase()) return false;
       const startMinutes = parseTimeToMinutes(c.start_time || c.jadual || '');
@@ -371,7 +383,29 @@ export default function PdfExportModal({ isOpen, onClose }) {
     }
   };
 
-  const renderWallpaperCourseContent = (course, span, badgeHeightPx, isLight) => {
+  const fileTypeOptions: Array<{ id: ExportFileType; label: string }> = [
+    { id: 'PDF', label: 'PDF' },
+    { id: 'PNG', label: 'PNG' },
+  ];
+
+  const ratioOptions: Array<{ id: WallpaperPreset; label: string }> = [
+    { id: 'phone', label: `${t('phonePreset')} (9:16)` },
+    { id: 'tablet', label: `${t('tabletPreset')} (4:3)` },
+    { id: 'desktop', label: `${t('desktopPreset')} (16:9)` },
+    { id: 'square', label: `${t('squarePreset')} (1:1)` },
+  ];
+
+  const detailOptions: Array<{ id: ContentDetail; label: string }> = [
+    { id: 'CODE', label: t('codeOnly') },
+    { id: 'DETAILS', label: t('details') },
+  ];
+
+  const themeOptions: Array<{ id: ExportTheme; label: string }> = [
+    { id: 'light', label: t('themeLight') },
+    { id: 'dark', label: t('themeDark') },
+  ];
+
+  const renderWallpaperCourseContent = (course: TimetableItem, span: number, badgeHeightPx: number, isLight: boolean) => {
     const code = course.course_id || course.kod_kursus;
     const loc = course.location || 'Dewan USAS';
     const duration = formatDurationRange(course.start_time || course.jadual, course.end_time);
@@ -556,10 +590,7 @@ export default function PdfExportModal({ isOpen, onClose }) {
                 isLight ? 'text-amber-800' : 'text-amber-400/90'
               }`}>Format Muat Turun:</span>
               <div className="flex items-center gap-1">
-                {[
-                  { id: 'PDF', label: 'PDF' },
-                  { id: 'PNG', label: 'PNG' }
-                ].map(item => (
+                {fileTypeOptions.map((item) => (
                   <button
                     key={item.id}
                     onClick={() => setExportFileType(item.id)}
@@ -629,12 +660,7 @@ export default function PdfExportModal({ isOpen, onClose }) {
                         <div className={`absolute top-full mt-1 left-0 w-44 rounded-xl border shadow-xl py-1 z-30 transition-all ${
                           isLight ? 'bg-white border-slate-200 text-slate-700' : 'bg-[#0A1428] border-white/10 text-white'
                         }`}>
-                          {[
-                            { id: 'phone', label: `${t('phonePreset')} (9:16)` },
-                            { id: 'tablet', label: `${t('tabletPreset')} (4:3)` },
-                            { id: 'desktop', label: `${t('desktopPreset')} (16:9)` },
-                            { id: 'square', label: `${t('squarePreset')} (1:1)` }
-                          ].map(item => (
+                          {ratioOptions.map((item) => (
                             <button
                               key={item.id}
                               onClick={(e) => {
@@ -688,10 +714,7 @@ export default function PdfExportModal({ isOpen, onClose }) {
                       <div className={`absolute top-full mt-1 right-0 w-36 rounded-xl border shadow-xl py-1 z-30 transition-all ${
                         isLight ? 'bg-white border-slate-200 text-slate-700' : 'bg-[#0A1428] border-white/10 text-white'
                       }`}>
-                        {[
-                          { id: 'CODE', label: t('codeOnly') },
-                          { id: 'DETAILS', label: t('details') }
-                        ].map(item => (
+                        {detailOptions.map((item) => (
                           <button
                             key={item.id}
                             onClick={(e) => {
@@ -743,10 +766,7 @@ export default function PdfExportModal({ isOpen, onClose }) {
                       <div className={`absolute top-full mt-1 right-0 w-36 rounded-xl border shadow-xl py-1 z-30 transition-all ${
                         isLight ? 'bg-white border-slate-200 text-slate-700' : 'bg-[#0A1428] border-white/10 text-white'
                       }`}>
-                        {[
-                          { id: 'light', label: t('themeLight') },
-                          { id: 'dark', label: t('themeDark') }
-                        ].map(item => (
+                        {themeOptions.map((item) => (
                           <button
                             key={item.id}
                             onClick={(e) => {

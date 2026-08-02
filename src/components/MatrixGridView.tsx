@@ -1,9 +1,15 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
+import type { TimetableItem } from '../types/usas';
 import { MapPin } from 'lucide-react';
 
-const getDayColors = (day, isLight) => {
+type MatrixGridViewProps = {
+  timetable?: TimetableItem[];
+  days?: string[];
+};
+
+const getDayColors = (day: string | undefined, isLight: boolean) => {
   const darkColors = {
     'ISNIN':  { bg: 'bg-emerald-500/[0.18]', border: 'border-emerald-500/40', text: 'text-emerald-300 font-bold', dot: 'bg-emerald-400' },
     'SELASA': { bg: 'bg-blue-500/[0.18]',    border: 'border-blue-500/40',    text: 'text-blue-300 font-bold',    dot: 'bg-blue-400' },
@@ -32,7 +38,7 @@ const ALL_TIME_SLOTS = [
   '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM'
 ];
 
-const parseTo24hHour = (timeStr) => {
+const parseTo24hHour = (timeStr?: string) => {
   if (!timeStr) return null;
   const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
   if (!match) {
@@ -49,7 +55,7 @@ const parseTo24hHour = (timeStr) => {
   return hour;
 };
 
-const parseTimeToMinutes = (timeStr) => {
+const parseTimeToMinutes = (timeStr?: string) => {
   if (!timeStr) return null;
   const raw = String(timeStr).trim();
   const ampmMatch = raw.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
@@ -64,7 +70,7 @@ const parseTimeToMinutes = (timeStr) => {
   return normalizedHour * 60 + minute;
 };
 
-const getDurationLabel = (startTime, endTime, lang) => {
+const getDurationLabel = (startTime?: string, endTime?: string, lang?: string) => {
   const startMin = parseTimeToMinutes(startTime);
   const endMin = parseTimeToMinutes(endTime);
   if (startMin === null || endMin === null || endMin <= startMin) return '';
@@ -92,7 +98,7 @@ const getDurationLabel = (startTime, endTime, lang) => {
   }
 };
 
-const getSlotLabel = (slot) => {
+const getSlotLabel = (slot: string) => {
   const slotMap = {
     '08:00 AM': '8-9',
     '09:00 AM': '9-10',
@@ -108,12 +114,15 @@ const getSlotLabel = (slot) => {
   return slotMap[slot] || slot;
 };
 
-export default function MatrixGridView({ timetable = [], days = ['ISNIN', 'SELASA', 'RABU', 'KHAMIS', 'JUMAAT'] }) {
+export default function MatrixGridView({
+  timetable = [],
+  days = ['ISNIN', 'SELASA', 'RABU', 'KHAMIS', 'JUMAAT'],
+}: MatrixGridViewProps) {
   const { theme } = useTheme();
   const { t, lang } = useLanguage();
   const isLight = theme === 'light';
   
-  const getCourseForSlot = (dayName, slotTime) => {
+  const getCourseForSlot = (dayName: string, slotTime: string) => {
     return timetable.find(c => {
       const isDay = c.day?.toUpperCase() === dayName.toUpperCase();
       if (!isDay) return false;
