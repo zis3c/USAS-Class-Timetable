@@ -11,7 +11,20 @@ export function LanguageProvider({ children }) {
   };
 
   const t = (key) => {
-    return translations[lang]?.[key] || translations['ms']?.[key] || key;
+    if (typeof key !== 'string') return key;
+    const keys = key.split('.');
+    
+    let value = translations[lang];
+    for (const k of keys) {
+      value = value?.[k];
+    }
+    if (value !== undefined) return value;
+
+    let fallbackValue = translations['ms'];
+    for (const k of keys) {
+      fallbackValue = fallbackValue?.[k];
+    }
+    return fallbackValue !== undefined ? fallbackValue : key;
   };
 
   return (

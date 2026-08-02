@@ -1,71 +1,354 @@
-import React, { useState, useRef, useMemo } from 'react';
+/* eslint-disable react-hooks/set-state-in-effect */
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { generateTimetablePdf, generateLockscreenImage } from '../utils/pdfGenerator';
+import { useTheme } from '../context/ThemeContext';
+import { generateTimetablePdf, generateElementPng, generateLockscreenImage } from '../utils/pdfGenerator';
 import { 
-  X, FileText, Download, Smartphone, Monitor, Tablet, Square, RotateCw, MapPin, Award, Layers
+  X, Download, Smartphone, RotateCw, Award, ChevronDown, Plus, Minus
 } from 'lucide-react';
 
-const DAY_COLORS = {
-  'ISNIN':  { bg: 'bg-emerald-500/15', border: 'border-emerald-500/30', text: 'text-emerald-400' },
-  'SELASA': { bg: 'bg-blue-500/15',    border: 'border-blue-500/30',    text: 'text-blue-400' },
-  'RABU':   { bg: 'bg-amber-500/15',   border: 'border-amber-500/30',   text: 'text-amber-400' },
-  'KHAMIS': { bg: 'bg-purple-500/15',  border: 'border-purple-500/30',  text: 'text-purple-400' },
-  'JUMAAT': { bg: 'bg-red-500/15',     border: 'border-red-500/30',     text: 'text-red-400' },
+const getModalDayColors = (day, isLight) => {
+  const darkColors = {
+    'ISNIN':  { bg: 'bg-emerald-500/25', border: 'border-emerald-500/40', text: 'text-emerald-300 font-bold' },
+    'SELASA': { bg: 'bg-blue-500/25',    border: 'border-blue-500/40',    text: 'text-blue-300 font-bold' },
+    'RABU':   { bg: 'bg-amber-500/25',   border: 'border-amber-500/40',   text: 'text-amber-300 font-bold' },
+    'KHAMIS': { bg: 'bg-purple-500/25',  border: 'border-purple-500/40',  text: 'text-purple-300 font-bold' },
+    'JUMAAT': { bg: 'bg-rose-500/25',    border: 'border-rose-500/40',    text: 'text-rose-300 font-bold' },
+    'SABTU':  { bg: 'bg-orange-500/25',  border: 'border-orange-500/40',  text: 'text-orange-300 font-bold' },
+    'AHAD':   { bg: 'bg-slate-500/25',   border: 'border-slate-500/40',   text: 'text-slate-300 font-bold' },
+  };
+  const lightColors = {
+    'ISNIN':  { bg: 'bg-emerald-100/80', border: 'border-emerald-300', text: 'text-emerald-800 font-bold' },
+    'SELASA': { bg: 'bg-blue-100/80',    border: 'border-blue-300',    text: 'text-blue-800 font-bold' },
+    'RABU':   { bg: 'bg-amber-100/90',   border: 'border-amber-350',   text: 'text-amber-800 font-bold' },
+    'KHAMIS': { bg: 'bg-purple-100/80',  border: 'border-purple-300',  text: 'text-purple-800 font-bold' },
+    'JUMAAT': { bg: 'bg-rose-100/80',    border: 'border-rose-300',    text: 'text-rose-800 font-bold' },
+    'SABTU':  { bg: 'bg-orange-100/80',  border: 'border-orange-300',  text: 'text-orange-800 font-bold' },
+    'AHAD':   { bg: 'bg-slate-200/80',   border: 'border-slate-350',   text: 'text-slate-805 font-bold' },
+  };
+  return (isLight ? lightColors[day] : darkColors[day]) || (isLight ? lightColors['ISNIN'] : darkColors['ISNIN']);
 };
 
-const ALL_TIME_SLOTS = [
-  '08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM', 
-  '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM'
-];
+const getPresetStyle = (preset, detail = 'FULL') => {
+  const base = {
+    phone: {
+      tableFontSize: 'text-[5px] sm:text-[5.75px]',
+      thPadding: 'p-0.5',
+      tdPadding: 'p-0.5',
+      minH: 'min-h-[34px]',
+      courseTitleSize: 'text-[6px] font-black leading-none text-center',
+      courseSubSize: 'text-[5px] leading-tight line-clamp-2 text-center break-words',
+      courseLocSize: 'text-[4.5px] leading-none text-center font-medium',
+      durationSize: 'text-[4.4px] leading-none text-center font-semibold',
+      iconSize: 'w-1.5 h-1.5',
+    },
+    square: {
+      tableFontSize: 'text-[6.5px] sm:text-[7px]',
+      thPadding: 'p-0.5',
+      tdPadding: 'p-0.5',
+      minH: 'min-h-[40px]',
+      courseTitleSize: 'text-[7px] font-black leading-none text-center',
+      courseSubSize: 'text-[6px] leading-tight line-clamp-2 text-center break-words',
+      courseLocSize: 'text-[5.5px] leading-none text-center font-medium',
+      durationSize: 'text-[5px] leading-none text-center font-semibold',
+      iconSize: 'w-2 h-2',
+    },
+    tablet: {
+      tableFontSize: 'text-[7.5px] sm:text-[8px]',
+      thPadding: 'p-1',
+      tdPadding: 'p-1',
+      minH: 'min-h-[46px]',
+      courseTitleSize: 'text-[8.5px] font-black leading-none text-center',
+      courseSubSize: 'text-[7px] leading-tight line-clamp-2 text-center break-words',
+      courseLocSize: 'text-[6px] leading-none text-center font-medium',
+      durationSize: 'text-[5.8px] leading-none text-center font-semibold',
+      iconSize: 'w-2.5 h-2.5',
+    },
+    desktop: {
+      tableFontSize: 'text-[8.5px] sm:text-[9px]',
+      thPadding: 'p-1.5',
+      tdPadding: 'p-1',
+      minH: 'min-h-[52px]',
+      courseTitleSize: 'text-[9.5px] font-black leading-none text-center',
+      courseSubSize: 'text-[8.2px] leading-tight line-clamp-2 text-center break-words',
+      courseLocSize: 'text-[7px] leading-none text-center font-medium',
+      durationSize: 'text-[6.5px] leading-none text-center font-semibold',
+      iconSize: 'w-3 h-3',
+    },
+  };
+
+  const detailTweaks = {
+    CODE: {
+      phone: { minH: 'min-h-[24px]', courseTitleSize: 'text-[7.2px] font-black leading-none text-center tracking-tight', durationSize: 'text-[4px] leading-none text-center font-semibold' },
+      square: { minH: 'min-h-[32px]', courseTitleSize: 'text-[8.4px] font-black leading-none text-center tracking-tight', durationSize: 'text-[4.6px] leading-none text-center font-semibold' },
+      tablet: { minH: 'min-h-[38px]', courseTitleSize: 'text-[10px] font-black leading-none text-center tracking-tight', durationSize: 'text-[5.2px] leading-none text-center font-semibold' },
+      desktop: { minH: 'min-h-[44px]', courseTitleSize: 'text-[11.8px] font-black leading-none text-center tracking-tight', durationSize: 'text-[5.8px] leading-none text-center font-semibold' },
+    },
+    DETAILS: {
+      phone: { minH: 'min-h-[26px]', courseTitleSize: 'text-[6.8px] font-black leading-none text-center tracking-tight', courseLocSize: 'text-[3.8px] leading-none text-center font-medium', durationSize: 'text-[3.8px] leading-none text-center font-semibold' },
+      square: { minH: 'min-h-[34px]', courseTitleSize: 'text-[8px] font-black leading-none text-center tracking-tight', courseLocSize: 'text-[4.5px] leading-none text-center font-medium', durationSize: 'text-[4.5px] leading-none text-center font-semibold' },
+      tablet: { minH: 'min-h-[40px]', courseTitleSize: 'text-[9.4px] font-black leading-none text-center tracking-tight', courseLocSize: 'text-[5.1px] leading-none text-center font-medium', durationSize: 'text-[5px] leading-none text-center font-semibold' },
+      desktop: { minH: 'min-h-[46px]', courseTitleSize: 'text-[10.8px] font-black leading-none text-center tracking-tight', courseLocSize: 'text-[5.8px] leading-none text-center font-medium', durationSize: 'text-[5.8px] leading-none text-center font-semibold' },
+    },
+  };
+
+  return {
+    ...base[preset],
+    ...(detailTweaks[detail]?.[preset] || {}),
+  };
+};
+
+const WALLPAPER_HOUR_STARTS = [8, 9, 10, 11, 12, 13, 14, 15, 16];
+
+const parseTimeToMinutes = (timeStr) => {
+  if (!timeStr) return null;
+  const raw = String(timeStr).trim();
+  const ampmMatch = raw.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  const twentyFourMatch = raw.match(/^(\d{1,2}):(\d{2})$/);
+  const match = ampmMatch || twentyFourMatch;
+  if (!match) return null;
+
+  let hour = parseInt(match[1], 10);
+  const minute = parseInt(match[2], 10);
+  const suffix = ampmMatch ? ampmMatch[3].toUpperCase() : null;
+  const normalizedHour = suffix === 'PM' && hour < 12 ? hour + 12 : suffix === 'AM' && hour === 12 ? 0 : hour;
+  return normalizedHour * 60 + minute;
+};
+
+const formatAmPmTime = (timeStr) => {
+  if (!timeStr) return '';
+  const raw = String(timeStr).trim();
+  const match = raw.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) return timeStr;
+  
+  const hour = parseInt(match[1], 10);
+  const min = parseInt(match[2], 10);
+  const ampm = match[3].toLowerCase();
+  
+  const minStr = min === 0 ? '' : `:${String(min).padStart(2, '0')}`;
+  return `${hour}${minStr}${ampm}`;
+};
+
+const formatDurationRange = (startTime, endTime) => {
+  if (!startTime && !endTime) return '-';
+  const start = formatAmPmTime(startTime);
+  const end = formatAmPmTime(endTime);
+  if (!start) return end;
+  if (!end) return start;
+  return `${start} - ${end}`;
+};
+
+const formatWallpaperSlotLabel = (hour) => {
+  const start = String(hour).padStart(2, '0');
+  const end = String(hour + 1).padStart(2, '0');
+  return `${start}-${end}`;
+};
+
+const formatShortDurationLabel = (startTime, endTime) => {
+  const startParsed = parseTimeToMinutes(startTime);
+  const endParsed = parseTimeToMinutes(endTime);
+  if (startParsed == null || endParsed == null || endParsed <= startParsed) return '';
+  const hours = Math.max(1, Math.round((endParsed - startParsed) / 60));
+  return `${hours}hr${hours > 1 ? 's' : ''}`;
+};
 
 export default function PdfExportModal({ isOpen, onClose }) {
   const { timetableData, session } = useAuth();
   const { lang, t } = useLanguage();
+  const { theme } = useTheme();
   
-  // Modes: 'FORMAL_A4' | 'UI_TABLE_A4' | 'WALLPAPER'
+  const isLight = theme === 'light';
+  
+  // Modes: 'FORMAL_A4' | 'WALLPAPER'
   const [exportMode, setExportMode] = useState('FORMAL_A4'); 
+  const [exportFileType, setExportFileType] = useState('PDF');
   
   // Device Wallpaper Presets: 'phone' (9:16) | 'tablet' (4:3) | 'desktop' (16:9) | 'square' (1:1)
   const [wallpaperPreset, setWallpaperPreset] = useState('phone');
 
-  // Content Detail Customizer: 'CODE' | 'TITLE' | 'CODE_VENUE' | 'FULL'
-  const [contentDetail, setContentDetail] = useState('FULL');
+  // Content Detail Customizer: 'CODE' | 'DETAILS'
+  const [contentDetail, setContentDetail] = useState('DETAILS');
+
+  const [ratioDropdownOpen, setRatioDropdownOpen] = useState(false);
+  const [detailDropdownOpen, setDetailDropdownOpen] = useState(false);
 
   const [exporting, setExporting] = useState(false);
+  const [shouldRender, setShouldRender] = useState(isOpen);
+  const [animate, setAnimate] = useState(false);
+  const [previewScale, setPreviewScale] = useState(1);
+  const [previewHeight, setPreviewHeight] = useState(0);
+  const [userZoom, setUserZoom] = useState(1);
+  const [exportTheme, setExportTheme] = useState('light');
+  const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setExportTheme(theme === 'light' ? 'light' : 'dark');
+    }
+  }, [theme, isOpen]);
+  
+  useEffect(() => {
+    setUserZoom(1);
+  }, [exportMode]);
+
+  const finalScale = previewScale * userZoom;
+  const isExportLight = exportTheme === 'light';
+
+  const renderFloatingZoomWidget = (isLightBg) => (
+    <div className={`sticky top-4 left-4 z-30 w-fit self-start flex items-center gap-1.5 p-1 rounded-xl shadow-lg border backdrop-blur-xl transition-all ${
+      isLightBg 
+        ? 'bg-white/35 border-slate-200/30 text-slate-700 shadow-slate-900/5' 
+        : 'bg-[#0A1428]/35 border-white/[0.08] text-white/95 shadow-black/20'
+    }`}>
+      <button
+        onClick={(e) => { e.stopPropagation(); setUserZoom(prev => Math.max(0.5, prev - 0.1)); }}
+        className={`p-1.5 rounded-lg transition-all ${
+          isLightBg ? 'hover:bg-slate-100/80 text-slate-650' : 'hover:bg-white/[0.08] text-white/80'
+        }`}
+        title="Zoom Out"
+      >
+        <Minus className="w-3.5 h-3.5" />
+      </button>
+      
+      <button
+        onClick={(e) => { e.stopPropagation(); setUserZoom(1); }}
+        className={`px-2 py-1 rounded-lg text-[10.5px] font-extrabold transition-all min-w-[42px] text-center ${
+          isLightBg ? 'hover:bg-slate-100/80 text-slate-700' : 'hover:bg-white/[0.08] text-white/90'
+        }`}
+        title="Reset Zoom"
+      >
+        {Math.round(userZoom * 100)}%
+      </button>
+
+      <button
+        onClick={(e) => { e.stopPropagation(); setUserZoom(prev => Math.min(2.5, prev + 0.1)); }}
+        className={`p-1.5 rounded-lg transition-all ${
+          isLightBg ? 'hover:bg-slate-100/80 text-slate-650' : 'hover:bg-white/[0.08] text-white/80'
+        }`}
+        title="Zoom In"
+      >
+        <Plus className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
   
   const pdfRef = useRef(null);
+  const previewShellRef = useRef(null);
   const wallpaperRef = useRef(null);
 
-  const daysList = timetableData?.days || ['ISNIN', 'SELASA', 'RABU', 'KHAMIS', 'JUMAAT'];
-  const allCourses = timetableData?.timetable || [];
-  const studentName = timetableData?.studentName || session?.user_id || 'AHMAD AMIRUL BIN ROSLI';
+  const allCourses = useMemo(() => timetableData?.timetable || [], [timetableData?.timetable]);
+  const studentName = timetableData?.studentName || session?.user_id || 'Pelajar USAS';
   const matricNo = session?.user_id || 'AI210042';
-  const programName = timetableData?.program || 'BACHELOR OF COMPUTER SCIENCE (HONS)';
-  const semesterStr = timetableData?.semester || 'Semester 1 2024/2025';
+  const programName = timetableData?.program || 'FAKULTI TEKNOLOGI & SAINS MAKLUMAT';
+  const semesterStr = timetableData?.semester || 'Semester Semasa';
 
-  const getCourseForSlot = (dayName, slotTime) => {
+  const normalizeGroup = (groupStr) => {
+    if (!groupStr) return 'Group 1';
+    const raw = String(groupStr).trim();
+    const match = raw.match(/^(?:GRP|G)\s*0*(\d+)$/i);
+    if (match) return `Group ${match[1]}`;
+    if (/^A$/i.test(raw)) return 'Group A';
+    return raw.replace(/^GRP/i, 'Group ');
+  };
+
+  const daysList = useMemo(() => {
+    if (timetableData?.days && timetableData.days.length > 0) {
+      return timetableData.days;
+    }
+    const defaultOrder = ['ISNIN', 'SELASA', 'RABU', 'KHAMIS', 'JUMAAT', 'SABTU', 'AHAD'];
+    const daysInCourses = new Set(allCourses.map(c => c.day?.toUpperCase()).filter(Boolean));
+    const baseDays = ['ISNIN', 'SELASA', 'RABU', 'KHAMIS', 'JUMAAT'];
+    const extraDays = defaultOrder.filter(d => daysInCourses.has(d) && !baseDays.includes(d));
+    return [...baseDays, ...extraDays];
+  }, [timetableData?.days, allCourses]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setShouldRender(true);
+      const timer = setTimeout(() => setAnimate(true), 10);
+      return () => clearTimeout(timer);
+    } else {
+      setAnimate(false);
+      const timer = setTimeout(() => setShouldRender(false), 200);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!shouldRender || exportMode === 'WALLPAPER') return;
+
+    const previewWidth = exportMode === 'FORMAL_A4' ? 840 : 920;
+    const updateScale = () => {
+      if (!previewShellRef.current) return;
+      const availableWidth = previewShellRef.current.clientWidth || previewWidth;
+      const baseScale = Math.min(1, availableWidth / previewWidth);
+      const mobileBoost = window.innerWidth < 640 ? 0.9 : window.innerWidth < 1024 ? 0.95 : 1;
+      const nextScale = Math.max(0.72, baseScale * mobileBoost);
+      setPreviewScale(Number(nextScale.toFixed(3)));
+    };
+
+    const updateHeight = () => {
+      if (!pdfRef.current) return;
+      setPreviewHeight(pdfRef.current.offsetHeight || 0);
+    };
+
+    updateScale();
+    updateHeight();
+
+    const shellObserver = typeof ResizeObserver !== 'undefined' && previewShellRef.current
+      ? new ResizeObserver(updateScale)
+      : null;
+    if (shellObserver && previewShellRef.current) shellObserver.observe(previewShellRef.current);
+
+    const contentObserver = typeof ResizeObserver !== 'undefined' && pdfRef.current
+      ? new ResizeObserver(updateHeight)
+      : null;
+    if (contentObserver && pdfRef.current) contentObserver.observe(pdfRef.current);
+
+    window.addEventListener('resize', updateScale);
+
+    return () => {
+      shellObserver?.disconnect();
+      contentObserver?.disconnect();
+      window.removeEventListener('resize', updateScale);
+    };
+  }, [shouldRender, exportMode, contentDetail, wallpaperPreset, daysList, allCourses.length]);
+
+  const getWallpaperCourseForHour = (dayName, hourStart) => {
     return allCourses.find(c => {
       const isDay = c.day?.toUpperCase() === dayName.toUpperCase();
       if (!isDay) return false;
-      const startTime = c.start_time || c.jadual || '';
-      return startTime.includes(slotTime.split(':')[0]);
+      const startMinutes = parseTimeToMinutes(c.start_time || c.jadual || '');
+      if (startMinutes == null) return false;
+      const courseStartHour = Math.floor(startMinutes / 60);
+      return courseStartHour === hourStart;
+    }) || null;
+  };
+
+  const getWallpaperCourseSpan = (course) => {
+    const startMinutes = parseTimeToMinutes(course.start_time || course.jadual || '');
+    const endMinutes = parseTimeToMinutes(course.end_time || '');
+    if (startMinutes == null) return 1;
+    const safeEnd = endMinutes != null && endMinutes > startMinutes ? endMinutes : startMinutes + 60;
+    return Math.max(1, Math.ceil((safeEnd - startMinutes) / 60));
+  };
+
+  const isWallpaperSlotCovered = (dayName, hourStart) => {
+    return allCourses.some(c => {
+      if ((c.day?.toUpperCase() || '') !== dayName.toUpperCase()) return false;
+      const startMinutes = parseTimeToMinutes(c.start_time || c.jadual || '');
+      const endMinutes = parseTimeToMinutes(c.end_time || '');
+      if (startMinutes == null) return false;
+      const courseStartHour = Math.floor(startMinutes / 60);
+      const safeEnd = endMinutes != null && endMinutes > startMinutes ? endMinutes : startMinutes + 60;
+      const span = Math.max(1, Math.ceil((safeEnd - startMinutes) / 60));
+      const courseEndHour = courseStartHour + span;
+      return hourStart > courseStartHour && hourStart < courseEndHour;
     });
   };
 
-  // Automatically filter out trailing empty time slots where no classes exist
-  const activeTimeSlots = useMemo(() => {
-    let lastIndex = 0;
-    ALL_TIME_SLOTS.forEach((slot, idx) => {
-      const hasCourse = daysList.some(d => !!getCourseForSlot(d, slot));
-      if (hasCourse) {
-        lastIndex = idx;
-      }
-    });
-    return ALL_TIME_SLOTS.slice(0, lastIndex + 1);
-  }, [allCourses, daysList]);
-
-  if (!isOpen) return null;
+  if (!shouldRender) return null;
 
   const handleDownload = async () => {
     setExporting(true);
@@ -73,9 +356,11 @@ export default function PdfExportModal({ isOpen, onClose }) {
       if (exportMode === 'WALLPAPER') {
         const filename = `USAS_Lockscreen_${wallpaperPreset.toUpperCase()}_${contentDetail}_${matricNo}.png`;
         await generateLockscreenImage(wallpaperRef.current, filename);
+      } else if (exportFileType === 'PNG') {
+        const filename = `Jadual_USAS_Formal_${matricNo}_LANDSCAPE.png`;
+        await generateElementPng(pdfRef.current, filename, 3, '#FFFFFF');
       } else {
-        const typeStr = exportMode === 'FORMAL_A4' ? 'Formal' : 'UI_Table';
-        const filename = `Jadual_USAS_${typeStr}_${matricNo}_LANDSCAPE.pdf`;
+        const filename = `Jadual_USAS_Formal_${matricNo}_LANDSCAPE.pdf`;
         await generateTimetablePdf(pdfRef.current, 'landscape', filename);
       }
     } catch (err) {
@@ -86,72 +371,146 @@ export default function PdfExportModal({ isOpen, onClose }) {
     }
   };
 
-  const renderCourseContent = (course, isCompact = false) => {
+  const renderWallpaperCourseContent = (course, span, badgeHeightPx, isLight) => {
     const code = course.course_id || course.kod_kursus;
-    const name = course.course_name || course.kursus;
     const loc = course.location || 'Dewan USAS';
+    const duration = formatDurationRange(course.start_time || course.jadual, course.end_time);
+    const shortDuration = formatShortDurationLabel(course.start_time || course.jadual, course.end_time);
+    const codeOnlyFontSize = (() => {
+      const baseSize = (() => {
+        if (wallpaperPreset === 'phone') {
+          if (code.length > 8) return 7.5;
+          if (code.length > 6) return 8.2;
+          if (code.length > 4) return 9.0;
+          return 10.0;
+        }
+        if (wallpaperPreset === 'square') {
+          if (code.length > 8) return 9.5;
+          if (code.length > 6) return 10.5;
+          if (code.length > 4) return 11.5;
+          return 12.5;
+        }
+        if (wallpaperPreset === 'tablet') {
+          if (code.length > 8) return 10.5;
+          if (code.length > 6) return 11.5;
+          if (code.length > 4) return 12.5;
+          return 13.5;
+        }
+        if (code.length > 8) return 10.0;
+        if (code.length > 6) return 11.0;
+        if (code.length > 4) return 12.0;
+        return 13.0;
+      })();
+      if (contentDetail === 'CODE') return baseSize * 1.25;
+      return baseSize;
+    })();
 
-    if (contentDetail === 'CODE') {
-      return (
-        <div className="font-black text-[10px] sm:text-[11px] truncate text-center py-1">
-          {code}
-        </div>
-      );
-    }
-
-    if (contentDetail === 'TITLE') {
-      return (
-        <div className="font-extrabold text-[9px] sm:text-[10px] leading-tight line-clamp-3">
-          {name}
-        </div>
-      );
-    }
-
-    if (contentDetail === 'CODE_VENUE') {
-      return (
-        <div className="space-y-0.5">
-          <div className="font-black text-[9.5px] sm:text-[10.5px] truncate">{code}</div>
-          <div className="text-[8px] text-white/50 truncate flex items-center gap-0.5">
-            <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
-            <span className="truncate">{loc}</span>
-          </div>
-        </div>
-      );
-    }
-
-    // FULL
     return (
-      <div className="space-y-0.5">
-        <div className="font-black text-[9.5px] sm:text-[10px] truncate">{code}</div>
-        <div className="font-extrabold text-[8px] sm:text-[9px] leading-tight line-clamp-2 text-white/90">
-          {name}
-        </div>
-        <div className="text-[7.5px] text-white/50 truncate flex items-center gap-0.5">
-          <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
-          <span className="truncate">{loc}</span>
-        </div>
+      <div
+        className="flex flex-col items-center justify-center w-full h-full min-h-full overflow-hidden text-center"
+        style={{ height: badgeHeightPx, minHeight: badgeHeightPx }}
+      >
+        {contentDetail === 'DETAILS' ? (
+          <div className="w-full h-full min-h-full px-1.5 py-1 flex flex-col justify-between">
+            <div className={`w-full flex justify-start text-left ${
+              wallpaperPreset === 'phone' 
+                ? 'text-[5.5px]' 
+                : wallpaperPreset === 'square' 
+                  ? 'text-[6.5px]' 
+                  : wallpaperPreset === 'tablet' 
+                    ? 'text-[7.2px]' 
+                    : 'text-[7.8px]'
+            } leading-none font-bold ${isLight ? 'text-slate-500' : 'text-white/60'}`}>
+              <span className="whitespace-nowrap">{shortDuration || duration}</span>
+            </div>
+            <div className="flex-grow flex items-center justify-center py-0.5 w-full">
+              <div
+                className={`w-full break-words font-black leading-tight tracking-tight text-center ${
+                  isLight ? 'text-slate-800' : 'text-white'
+                }`}
+                style={{ fontSize: `${codeOnlyFontSize}px` }}
+                title={code}
+              >
+                {code}
+              </div>
+            </div>
+            <div className={`w-full flex justify-center text-center ${
+              wallpaperPreset === 'phone' 
+                ? 'text-[5.5px]' 
+                : wallpaperPreset === 'square' 
+                  ? 'text-[6.5px]' 
+                  : wallpaperPreset === 'tablet' 
+                    ? 'text-[7.2px]' 
+                    : 'text-[7.8px]'
+            } leading-tight font-semibold ${isLight ? 'text-slate-500' : 'text-white/60'}`}>
+              <span className="break-words whitespace-normal text-center" title={loc}>{loc}</span>
+            </div>
+          </div>
+        ) : (
+          <div className="relative w-full h-full min-h-full overflow-hidden">
+            <div className="absolute inset-0 flex items-center justify-center px-1">
+              <span
+                className={`block break-words leading-tight tracking-tight text-center font-black ${isLight ? 'text-slate-800' : 'text-white'}`}
+                style={{ fontSize: `${codeOnlyFontSize}px`, letterSpacing: '-0.03em' }}
+                title={code}
+              >
+                {code}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
 
+  const wallpaperTopSpacer = wallpaperPreset === 'desktop'
+    ? 'h-[56px]'
+    : wallpaperPreset === 'square'
+      ? 'h-[64px]'
+      : wallpaperPreset === 'tablet'
+        ? 'h-[104px]'
+        : 'h-[96px]';
+
+  const wallpaperBottomSpacer = wallpaperPreset === 'desktop'
+    ? 'h-[28px]'
+    : wallpaperPreset === 'square'
+      ? 'h-[24px]'
+      : wallpaperPreset === 'tablet'
+        ? 'h-[22px]'
+        : 'h-[18px]';
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fade-in overflow-hidden">
+    <div className={`fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 backdrop-blur-md transition-all duration-200 ${
+      animate ? 'bg-slate-900/30 opacity-100' : 'bg-slate-900/0 opacity-0 pointer-events-none'
+    }`}>
       
       {/* Spacious Modal Frame */}
-      <div className="glass-card rounded-2xl w-[96vw] max-w-6xl h-[92vh] max-h-[92vh] bg-[#060E1F] border border-white/10 shadow-2xl flex flex-col overflow-hidden my-auto animate-scale-up">
+      <div className={`rounded-xl w-[96vw] max-w-6xl h-[92vh] max-h-[92vh] border flex flex-col overflow-hidden my-auto transition-all duration-200 transform ${
+        animate ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
+      } ${
+        isLight 
+          ? 'bg-white border-slate-200 shadow-2xl text-slate-800' 
+          : 'bg-[#0A1428]/95 border-white/10 text-white shadow-2xl'
+      }`}>
         
         {/* Header */}
-        <div className="p-4 border-b border-white/[0.06] flex items-center justify-between flex-shrink-0 bg-[#060E1F]">
+        <div className={`p-4 border-b flex items-center justify-between flex-shrink-0 ${
+          isLight ? 'border-slate-200 bg-slate-50/50' : 'border-white/[0.06] bg-[#0A1428]/95'
+        }`}>
           <div className="flex items-center gap-3">
             <img src="/usas-logo.png" alt="USAS Logo" className="w-7 h-7 object-contain" />
             <div>
-              <h3 className="text-xs font-bold text-white">{t('exportPdfTitle')}</h3>
-              <p className="text-[10px] text-white/40">Eksport Dokumen Rasmi A4, Table View UI, atau Custom Wallpaper Lockscreen peranti</p>
+              <h3 className={`text-xs font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>{t('exportPdfTitle')}</h3>
+              <p className={`text-[10px] ${isLight ? 'text-slate-500 font-semibold' : 'text-white/40'}`}>
+                Eksport Dokumen Rasmi A4 atau Custom Wallpaper Lockscreen peranti
+              </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-white/30 hover:text-white hover:bg-white/[0.06] transition-colors"
+            className={`p-1.5 rounded-md transition-colors ${
+              isLight ? 'text-slate-400 hover:text-slate-655 hover:bg-slate-100' : 'text-white/30 hover:text-white hover:bg-white/[0.06]'
+            }`}
           >
             <X className="w-4 h-4" />
           </button>
@@ -161,13 +520,15 @@ export default function PdfExportModal({ isOpen, onClose }) {
         <div className="p-4 flex-1 overflow-y-auto space-y-4">
           
           {/* Main Mode Tabs */}
-          <div className="grid grid-cols-3 gap-2 p-1 rounded-xl bg-white/[0.03] border border-white/[0.04]">
+          <div className={`grid grid-cols-2 gap-2 p-1 rounded-xl border ${
+            isLight ? 'bg-slate-100 border-slate-200' : 'bg-white/[0.03] border-white/[0.04]'
+          }`}>
             <button
               onClick={() => setExportMode('FORMAL_A4')}
               className={`py-2 px-3 rounded-lg text-[11px] font-bold flex items-center justify-center gap-2 transition-all ${
                 exportMode === 'FORMAL_A4'
-                  ? 'bg-amber-400 text-slate-950 shadow-md'
-                  : 'text-white/40 hover:text-white'
+                  ? (isLight ? 'bg-[#0B1E43] text-white shadow-md' : 'bg-amber-400 text-slate-950 shadow-md')
+                  : (isLight ? 'text-slate-500 hover:text-slate-800' : 'text-white/40 hover:text-white')
               }`}
             >
               <Award className="w-3.5 h-3.5" />
@@ -175,23 +536,11 @@ export default function PdfExportModal({ isOpen, onClose }) {
             </button>
 
             <button
-              onClick={() => setExportMode('UI_TABLE_A4')}
-              className={`py-2 px-3 rounded-lg text-[11px] font-bold flex items-center justify-center gap-2 transition-all ${
-                exportMode === 'UI_TABLE_A4'
-                  ? 'bg-amber-400 text-slate-950 shadow-md'
-                  : 'text-white/40 hover:text-white'
-              }`}
-            >
-              <FileText className="w-3.5 h-3.5" />
-              <span>Table View UI (Moden A4)</span>
-            </button>
-
-            <button
               onClick={() => setExportMode('WALLPAPER')}
               className={`py-2 px-3 rounded-lg text-[11px] font-bold flex items-center justify-center gap-2 transition-all ${
                 exportMode === 'WALLPAPER'
-                  ? 'bg-amber-400 text-slate-950 shadow-md'
-                  : 'text-white/40 hover:text-white'
+                  ? (isLight ? 'bg-[#0B1E43] text-white shadow-md' : 'bg-amber-400 text-slate-950 shadow-md')
+                  : (isLight ? 'text-slate-500 hover:text-slate-800' : 'text-white/40 hover:text-white')
               }`}
             >
               <Smartphone className="w-3.5 h-3.5" />
@@ -199,115 +548,225 @@ export default function PdfExportModal({ isOpen, onClose }) {
             </button>
           </div>
 
-          {/* CUSTOMIZERS FOR WALLPAPER MODE */}
-          {exportMode === 'WALLPAPER' && (
-            <div className="space-y-3 bg-white/[0.02] p-3 rounded-xl border border-white/[0.04]">
-              
-              {/* 1. Device Ratio Selector */}
-              <div>
-                <label className="text-[10px] font-bold text-amber-400/90 uppercase tracking-wider block mb-1.5">
-                  Pilih Nisbah Peranti (Aspect Ratio)
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {exportMode !== 'WALLPAPER' && (
+            <div className={`p-2.5 rounded-xl border flex items-center justify-between gap-3 text-[11px] font-medium transition-colors ${
+              isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-white/[0.02] border-white/[0.04] text-white/70'
+            }`}>
+              <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${
+                isLight ? 'text-amber-800' : 'text-amber-400/90'
+              }`}>Format Muat Turun:</span>
+              <div className="flex items-center gap-1">
+                {[
+                  { id: 'PDF', label: 'PDF' },
+                  { id: 'PNG', label: 'PNG' }
+                ].map(item => (
                   <button
-                    onClick={() => setWallpaperPreset('phone')}
-                    className={`p-2 rounded-lg border text-left flex items-center gap-2 transition-all ${
-                      wallpaperPreset === 'phone' ? 'bg-amber-400/10 border-amber-400 text-amber-300' : 'bg-white/[0.02] border-white/10 text-white/40'
+                    key={item.id}
+                    onClick={() => setExportFileType(item.id)}
+                    className={`px-2.5 py-1 rounded text-[10px] font-semibold border transition-all ${
+                      exportFileType === item.id
+                        ? (isLight ? 'bg-[#0B1E43] text-white border-slate-800 shadow-sm' : 'bg-amber-400 text-slate-950 border-amber-400')
+                        : (isLight ? 'bg-white border-slate-200 text-slate-500 hover:bg-slate-100/50' : 'bg-white/[0.02] border-white/10 text-white/50')
                     }`}
                   >
-                    <Smartphone className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                    <div>
-                      <div className="text-[11px] font-bold">Telefon (9:16)</div>
-                      <div className="text-[9px] opacity-60">iPhone / Android</div>
-                    </div>
+                    {item.label}
                   </button>
-
-                  <button
-                    onClick={() => setWallpaperPreset('tablet')}
-                    className={`p-2 rounded-lg border text-left flex items-center gap-2 transition-all ${
-                      wallpaperPreset === 'tablet' ? 'bg-amber-400/10 border-amber-400 text-amber-300' : 'bg-white/[0.02] border-white/10 text-white/40'
-                    }`}
-                  >
-                    <Tablet className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                    <div>
-                      <div className="text-[11px] font-bold">Tablet (4:3)</div>
-                      <div className="text-[9px] opacity-60">iPad / Pad</div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => setWallpaperPreset('desktop')}
-                    className={`p-2 rounded-lg border text-left flex items-center gap-2 transition-all ${
-                      wallpaperPreset === 'desktop' ? 'bg-amber-400/10 border-amber-400 text-amber-300' : 'bg-white/[0.02] border-white/10 text-white/40'
-                    }`}
-                  >
-                    <Monitor className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                    <div>
-                      <div className="text-[11px] font-bold">Desktop (16:9)</div>
-                      <div className="text-[9px] opacity-60">PC & Laptop</div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => setWallpaperPreset('square')}
-                    className={`p-2 rounded-lg border text-left flex items-center gap-2 transition-all ${
-                      wallpaperPreset === 'square' ? 'bg-amber-400/10 border-amber-400 text-amber-300' : 'bg-white/[0.02] border-white/10 text-white/40'
-                    }`}
-                  >
-                    <Square className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                    <div>
-                      <div className="text-[11px] font-bold">Segi Empat (1:1)</div>
-                      <div className="text-[9px] opacity-60">Square Avatar</div>
-                    </div>
-                  </button>
-                </div>
+                ))}
               </div>
+            </div>
+          )}
 
-              {/* 2. Content Detail Customizer */}
-              <div>
-                <label className="text-[10px] font-bold text-amber-400/90 uppercase tracking-wider block mb-1.5 flex items-center gap-1">
-                  <Layers className="w-3 h-3" /> Customize Kandungan Kad Subjek
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  <button
-                    onClick={() => setContentDetail('CODE')}
-                    className={`p-2 rounded-lg border text-center transition-all ${
-                      contentDetail === 'CODE' ? 'bg-amber-400 text-slate-950 font-black border-amber-400' : 'bg-white/[0.02] border-white/10 text-white/50'
-                    }`}
-                  >
-                    <div className="text-[10px] font-bold">Kod Kelas Sahaja</div>
-                    <div className="text-[8.5px] opacity-70">CSC2103</div>
-                  </button>
+          {/* MINIMALIST CUSTOMIZERS (Horizontal Segmented Controls for Height Reduction) */}
+          {exportMode !== 'FORMAL_A4' && (
+            <div className={`p-2.5 rounded-xl border flex flex-col sm:flex-row gap-3 items-center justify-between text-[11px] font-medium transition-colors relative ${
+              isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-white/[0.02] border-white/[0.04] text-white/70'
+            }`}>
+              
+              {/* Invisible overlay to close dropdowns on clicking outside */}
+              {(ratioDropdownOpen || detailDropdownOpen || themeDropdownOpen) && (
+                <div 
+                  className="fixed inset-0 z-10 cursor-default" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setRatioDropdownOpen(false);
+                    setDetailDropdownOpen(false);
+                    setThemeDropdownOpen(false);
+                  }}
+                />
+              )}
 
-                  <button
-                    onClick={() => setContentDetail('TITLE')}
-                    className={`p-2 rounded-lg border text-center transition-all ${
-                      contentDetail === 'TITLE' ? 'bg-amber-400 text-slate-950 font-black border-amber-400' : 'bg-white/[0.02] border-white/10 text-white/50'
-                    }`}
-                  >
-                    <div className="text-[10px] font-bold">Nama Subjek Sahaja</div>
-                    <div className="text-[8.5px] opacity-70">Data Structures...</div>
-                  </button>
+              <div className="flex flex-col sm:flex-row gap-4 items-center w-full justify-between sm:justify-start relative z-40">
+                {/* 1. Device Ratio Selector (WALLPAPER only) */}
+                {exportMode === 'WALLPAPER' && (
+                  <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start relative z-40">
+                    <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${
+                      isLight ? 'text-amber-800' : 'text-amber-400/90'
+                    }`}>{t('deviceRatio')}:</span>
+                    <div className="relative">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRatioDropdownOpen(!ratioDropdownOpen);
+                          setDetailDropdownOpen(false);
+                          setThemeDropdownOpen(false);
+                        }}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-semibold transition-all shadow-sm ${
+                          isLight 
+                            ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50' 
+                            : 'bg-white/[0.04] border-white/10 text-white/90 hover:bg-white/[0.08]'
+                        }`}
+                      >
+                        <span>
+                          {wallpaperPreset === 'phone' && `${t('phonePreset')} (9:16)`}
+                          {wallpaperPreset === 'tablet' && `${t('tabletPreset')} (4:3)`}
+                          {wallpaperPreset === 'desktop' && `${t('desktopPreset')} (16:9)`}
+                          {wallpaperPreset === 'square' && `${t('squarePreset')} (1:1)`}
+                        </span>
+                        <ChevronDown className={`w-3 h-3 opacity-60 transition-transform duration-200 ${ratioDropdownOpen ? 'rotate-180' : ''}`} />
+                      </button>
 
-                  <button
-                    onClick={() => setContentDetail('CODE_VENUE')}
-                    className={`p-2 rounded-lg border text-center transition-all ${
-                      contentDetail === 'CODE_VENUE' ? 'bg-amber-400 text-slate-950 font-black border-amber-400' : 'bg-white/[0.02] border-white/10 text-white/50'
-                    }`}
-                  >
-                    <div className="text-[10px] font-bold">Kod + Bilik / Lokasi</div>
-                    <div className="text-[8.5px] opacity-70">CSC2103 • MK3</div>
-                  </button>
+                      {ratioDropdownOpen && (
+                        <div className={`absolute top-full mt-1 left-0 w-44 rounded-xl border shadow-xl py-1 z-30 transition-all ${
+                          isLight ? 'bg-white border-slate-200 text-slate-700' : 'bg-[#0A1428] border-white/10 text-white'
+                        }`}>
+                          {[
+                            { id: 'phone', label: `${t('phonePreset')} (9:16)` },
+                            { id: 'tablet', label: `${t('tabletPreset')} (4:3)` },
+                            { id: 'desktop', label: `${t('desktopPreset')} (16:9)` },
+                            { id: 'square', label: `${t('squarePreset')} (1:1)` }
+                          ].map(item => (
+                            <button
+                              key={item.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setWallpaperPreset(item.id);
+                                setRatioDropdownOpen(false);
+                              }}
+                              className={`w-full text-left px-3 py-1.5 text-[11px] font-semibold hover:bg-slate-100/50 dark:hover:bg-white/[0.04] transition-colors flex items-center justify-between ${
+                                wallpaperPreset === item.id 
+                                  ? (isLight ? 'text-amber-800 bg-amber-50/50' : 'text-amber-400 bg-amber-400/5') 
+                                  : ''
+                              }`}
+                            >
+                              <span>{item.label}</span>
+                              {wallpaperPreset === item.id && <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
-                  <button
-                    onClick={() => setContentDetail('FULL')}
-                    className={`p-2 rounded-lg border text-center transition-all ${
-                      contentDetail === 'FULL' ? 'bg-amber-400 text-slate-950 font-black border-amber-400' : 'bg-white/[0.02] border-white/10 text-white/50'
-                    }`}
-                  >
-                    <div className="text-[10px] font-bold">Semua (Lengkap)</div>
-                    <div className="text-[8.5px] opacity-70">Kod + Nama + Bilik</div>
-                  </button>
+                {/* 2. Content Detail Selector */}
+                <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start relative z-20">
+                  <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${
+                    isLight ? 'text-amber-800' : 'text-amber-400/90'
+                  }`}>{t('cardContent')}:</span>
+                  <div className="relative">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDetailDropdownOpen(!detailDropdownOpen);
+                        setRatioDropdownOpen(false);
+                        setThemeDropdownOpen(false);
+                      }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-semibold transition-all shadow-sm ${
+                        isLight 
+                          ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50' 
+                          : 'bg-white/[0.04] border-white/10 text-white/90 hover:bg-white/[0.08]'
+                      }`}
+                    >
+                      <span>
+                        {contentDetail === 'CODE' && t('codeOnly')}
+                        {contentDetail === 'DETAILS' && t('details')}
+                      </span>
+                      <ChevronDown className={`w-3 h-3 opacity-60 transition-transform duration-200 ${detailDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {detailDropdownOpen && (
+                      <div className={`absolute top-full mt-1 right-0 w-36 rounded-xl border shadow-xl py-1 z-30 transition-all ${
+                        isLight ? 'bg-white border-slate-200 text-slate-700' : 'bg-[#0A1428] border-white/10 text-white'
+                      }`}>
+                        {[
+                          { id: 'CODE', label: t('codeOnly') },
+                          { id: 'DETAILS', label: t('details') }
+                        ].map(item => (
+                          <button
+                            key={item.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setContentDetail(item.id);
+                              setDetailDropdownOpen(false);
+                            }}
+                            className={`w-full text-left px-3 py-1.5 text-[11px] font-semibold hover:bg-slate-100/50 dark:hover:bg-white/[0.04] transition-colors flex items-center justify-between ${
+                              contentDetail === item.id 
+                                ? (isLight ? 'text-amber-800 bg-amber-50/50' : 'text-amber-400 bg-amber-400/5') 
+                                : ''
+                            }`}
+                          >
+                            <span>{item.label}</span>
+                            {contentDetail === item.id && <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 3. Tema Jadual Selector */}
+                <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start relative z-20">
+                  <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${
+                    isLight ? 'text-amber-800' : 'text-amber-400/90'
+                  }`}>{t('tableTheme')}:</span>
+                  <div className="relative">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setThemeDropdownOpen(!themeDropdownOpen);
+                        setRatioDropdownOpen(false);
+                        setDetailDropdownOpen(false);
+                      }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-semibold transition-all shadow-sm ${
+                        isLight 
+                          ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50' 
+                          : 'bg-white/[0.04] border-white/10 text-white/90 hover:bg-white/[0.08]'
+                      }`}
+                    >
+                      <span>
+                        {exportTheme === 'light' ? t('themeLight') : t('themeDark')}
+                      </span>
+                      <ChevronDown className={`w-3 h-3 opacity-60 transition-transform duration-200 ${themeDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {themeDropdownOpen && (
+                      <div className={`absolute top-full mt-1 right-0 w-36 rounded-xl border shadow-xl py-1 z-30 transition-all ${
+                        isLight ? 'bg-white border-slate-200 text-slate-700' : 'bg-[#0A1428] border-white/10 text-white'
+                      }`}>
+                        {[
+                          { id: 'light', label: t('themeLight') },
+                          { id: 'dark', label: t('themeDark') }
+                        ].map(item => (
+                          <button
+                            key={item.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExportTheme(item.id);
+                              setThemeDropdownOpen(false);
+                            }}
+                            className={`w-full text-left px-3 py-1.5 text-[11px] font-semibold hover:bg-slate-100/50 dark:hover:bg-white/[0.04] transition-colors flex items-center justify-between ${
+                              exportTheme === item.id 
+                                ? (isLight ? 'text-amber-800 bg-amber-50/50' : 'text-amber-400 bg-amber-400/5') 
+                                : ''
+                            }`}
+                          >
+                            <span>{item.label}</span>
+                            {exportTheme === item.id && <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -316,240 +775,252 @@ export default function PdfExportModal({ isOpen, onClose }) {
 
           {/* ── MODE 1: FORMAL PRINTABLE A4 DOCUMENT ── */}
           {exportMode === 'FORMAL_A4' && (
-            <div className="overflow-x-auto border border-white/10 rounded-xl p-3 bg-white text-slate-950">
+            <div
+              ref={previewShellRef}
+              className={`border rounded-xl p-2 sm:p-3 bg-white overflow-auto usas-scrollbar relative ${isLight ? 'border-slate-200 shadow-sm' : 'border-white/10 shadow-inner'}`}
+              style={{ 
+                height: previewHeight ? `${Math.ceil(previewHeight * finalScale) + 16}px` : 'auto', 
+                maxHeight: '65vh' 
+              }}
+            >
+              {renderFloatingZoomWidget(true)}
               <div 
-                ref={pdfRef}
-                className="bg-white text-slate-950 p-6 rounded-lg text-xs font-sans shadow-inner border border-slate-300 min-w-[820px]"
+                style={{ 
+                  width: `${840 * finalScale}px`, 
+                  height: `${previewHeight * finalScale}px`,
+                  position: 'relative',
+                  overflow: 'hidden',
+                  margin: '0 auto'
+                }}
               >
-                <div className="border-b-2 border-slate-900 pb-3 mb-4 flex justify-between items-center">
-                  <div className="flex items-center gap-3">
-                    <img src="/usas-logo.png" alt="USAS Crest" className="w-11 h-11 object-contain" />
-                    <div>
-                      <h1 className="text-sm font-black tracking-tight text-slate-900 uppercase">
-                        UNIVERSITI SULTAN AZLAN SHAH (USAS)
-                      </h1>
-                      <h2 className="text-xs font-bold text-amber-800 uppercase">
-                        JADUAL WAKTU KULIAH PELAJAR
-                      </h2>
-                      <p className="text-[10px] text-slate-600 font-semibold mt-0.5">
-                        {semesterStr}
-                      </p>
+                <div
+                  ref={pdfRef}
+                  className="bg-white text-slate-950 p-4 sm:p-6 rounded-lg text-xs shadow-inner border border-slate-300 w-[840px] max-w-none absolute top-0 left-0"
+                  style={{
+                    transform: `scale(${finalScale})`,
+                    transformOrigin: 'top left',
+                    fontFamily: 'Inter, system-ui, sans-serif'
+                  }}
+                >
+                  {/* Official Branding Header */}
+                  <div className="border-b-2 border-slate-900 pb-2 mb-3 flex justify-between items-end">
+                    <div className="flex items-center gap-3">
+                      <img src="/usas-logo.png" alt="USAS Crest" className="w-10 h-10 object-contain" />
+                      <div>
+                        <h1 className="text-xs font-black tracking-tight text-slate-900 uppercase leading-none">
+                          UNIVERSITI SULTAN AZLAN SHAH (USAS)
+                        </h1>
+                        <h2 className="text-[10px] font-bold text-amber-805 uppercase mt-1 leading-none">
+                          JADUAL WAKTU KULIAH PELAJAR
+                        </h2>
+                        <p className="text-[9px] text-slate-500 font-semibold mt-1 leading-none">
+                          {semesterStr}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right text-[9px] text-slate-500 font-semibold leading-tight">
+                      <div>Format: A4 LANDSCAPE</div>
+                      <div className="text-amber-800 font-bold">DOKUMEN RASMI</div>
                     </div>
                   </div>
-                  <div className="text-right text-[9.5px] text-slate-600 font-semibold">
-                    <div>Tarikh Cetakan: {new Date().toLocaleDateString('ms-MY')}</div>
-                    <div>Format: A4 LANDSCAPE</div>
-                    <div className="text-amber-800 font-bold">DOKUMEN RASMI</div>
-                  </div>
-                </div>
 
-                <div className="bg-slate-100 p-3 rounded border border-slate-300 mb-4 grid grid-cols-2 gap-2 text-[10.5px]">
-                  <div>
-                    <span className="font-bold text-slate-700">NAMA PELAJAR:</span> <span className="font-extrabold text-slate-900">{studentName}</span>
+                  {/* Student Identity Block */}
+                  <div className="bg-slate-50 p-2 rounded border border-slate-200 mb-3 flex flex-wrap items-center gap-x-6 gap-y-1.5 text-[9.5px]">
+                    <div>
+                      <span className="font-bold text-slate-600">NAMA PELAJAR:</span> <span className="font-extrabold text-slate-900">{studentName}</span>
+                    </div>
+                    <div>
+                      <span className="font-bold text-slate-600">NO. MATRIK:</span> <span className="font-extrabold text-slate-900">{matricNo}</span>
+                    </div>
+                    <div>
+                      <span className="font-bold text-slate-600">PROGRAM:</span> <span className="font-extrabold text-slate-900">{programName}</span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="font-bold text-slate-700">NO. MATRIK:</span> <span className="font-extrabold text-slate-900">{matricNo}</span>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="font-bold text-slate-700">PROGRAM:</span> <span className="font-extrabold text-slate-900">{programName}</span>
-                  </div>
-                </div>
 
-                <table className="w-full border-collapse border border-slate-400 text-[10px]">
-                  <thead>
-                    <tr className="bg-slate-900 text-white font-bold">
-                      <th className="border border-slate-400 p-2 text-center w-20">HARI</th>
-                      <th className="border border-slate-400 p-2 text-center w-28">WAKTU</th>
-                      <th className="border border-slate-400 p-2 text-left w-24">KOD</th>
-                      <th className="border border-slate-400 p-2 text-left">NAMA KURSUS</th>
-                      <th className="border border-slate-400 p-2 text-center w-12">GRP</th>
-                      <th className="border border-slate-400 p-2 text-left w-36">LOKASI</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {allCourses.map((c, i) => (
-                      <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                        <td className="border border-slate-300 p-2 text-center font-bold text-amber-800">{c.day}</td>
-                        <td className="border border-slate-300 p-2 text-center font-medium">
-                          {c.start_time ? `${c.start_time} - ${c.end_time}` : (c.jadual || '-')}
-                        </td>
-                        <td className="border border-slate-300 p-2 font-bold text-blue-900">{c.course_id || c.kod_kursus}</td>
-                        <td className="border border-slate-300 p-2 font-semibold text-slate-900">{c.course_name || c.kursus}</td>
-                        <td className="border border-slate-300 p-2 text-center font-bold">{c.group || c.kumpulan || 'A'}</td>
-                        <td className="border border-slate-300 p-2 text-slate-800">{c.location || 'Dewan USAS'}</td>
+                  <table className="w-full table-fixed border-collapse border border-slate-400 text-[10px]">
+                    <thead>
+                      <tr className="bg-slate-900 text-white font-bold">
+                        <th className="border border-slate-400 p-2 text-center w-20">{lang === 'en' ? 'DAY' : 'HARI'}</th>
+                        <th className="border border-slate-400 p-2 text-center w-28">{lang === 'en' ? 'TIME' : 'WAKTU'}</th>
+                        <th className="border border-slate-400 p-2 text-left w-24">{lang === 'en' ? 'CODE' : 'KOD'}</th>
+                        <th className="border border-slate-400 p-2 text-left">{lang === 'en' ? 'COURSE NAME' : 'NAMA KURSUS'}</th>
+                        <th className="border border-slate-400 p-2 text-center w-16">{lang === 'en' ? 'GROUP' : 'GROUP'}</th>
+                        <th className="border border-slate-400 p-2 text-left w-36">{lang === 'en' ? 'LOCATION' : 'LOKASI'}</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {allCourses.map((c, i) => (
+                        <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                          <td className="border border-slate-300 p-2 text-center font-bold text-amber-805">{t(`days.${c.day?.toUpperCase()}`) || c.day}</td>
+                          <td className="border border-slate-300 p-2 text-center font-medium">
+                            {formatDurationRange(c.start_time || c.jadual, c.end_time)}
+                          </td>
+                          <td className="border border-slate-300 p-2 font-bold text-blue-900">{c.course_id || c.kod_kursus}</td>
+                          <td className="border border-slate-300 p-2 font-semibold text-slate-900">{c.course_name || c.kursus}</td>
+                          <td className="border border-slate-300 p-2 text-center font-bold">{normalizeGroup(c.group || c.kumpulan || 'A')}</td>
+                          <td className="border border-slate-300 p-2 text-slate-800">{c.location || 'Dewan USAS'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
 
-                <div className="mt-4 pt-2 border-t border-slate-300 text-[9px] text-slate-500 flex justify-between items-center">
-                  <span>Dokumen rasmi ini dijana daripada Portal Jadual Waktu Kuliah USAS.</span>
-                  <span>Mukasurat 1 / 1</span>
+                  {/* Relocated Date & Time Footer */}
+                  <div className="mt-3 pt-1.5 border-t border-slate-200 text-[8.5px] text-slate-500 flex justify-between items-center font-medium">
+                    <span>{lang === 'en' ? 'This official document is generated from the USAS Student Timetable Portal.' : 'Dokumen rasmi ini dijana daripada Portal Jadual Waktu Kuliah USAS.'}</span>
+                    <span>{lang === 'en' ? 'Printed Date' : 'Tarikh Cetakan'}: {new Date().toLocaleDateString(lang === 'en' ? 'en-US' : 'ms-MY')} {new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ms-MY', { hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* ── MODE 2: DARK MODERN UI TABLE A4 ── */}
-          {exportMode === 'UI_TABLE_A4' && (
-            <div className="overflow-x-auto border border-white/10 rounded-xl p-3 bg-[#060E1F]">
-              <div 
-                ref={pdfRef}
-                className="bg-[#070F22] text-white p-5 rounded-xl text-xs font-sans shadow-2xl border border-white/[0.06] min-w-[840px]"
-              >
-                <div className="border-b border-white/10 pb-3 mb-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <img src="/usas-logo.png" alt="USAS Logo" className="w-9 h-9 object-contain" />
-                    <div>
-                      <h1 className="text-xs font-black tracking-wider text-amber-400 uppercase">UNIVERSITI SULTAN AZLAN SHAH</h1>
-                      <p className="text-[10px] font-bold text-white/80">{studentName} ({matricNo}) • {programName}</p>
-                      <p className="text-[9px] text-white/40 font-medium">{semesterStr} • Jadual Waktu Kuliah</p>
-                    </div>
-                  </div>
-                  <div className="text-right text-[9px] text-white/30 font-medium">
-                    <div>Format UI Table Moden</div>
-                    <div>{new Date().toLocaleDateString('ms-MY')}</div>
-                  </div>
-                </div>
 
-                <table className="w-full border-collapse text-xs">
-                  <thead>
-                    <tr>
-                      <th className="p-2 text-left font-black text-amber-400/80 text-[10px] uppercase tracking-wider w-20 border-r border-white/[0.06]">
-                        Waktu
-                      </th>
-                      {daysList.map(d => {
-                        const color = DAY_COLORS[d] || DAY_COLORS['ISNIN'];
-                        return (
-                          <th key={d} className={`p-2 text-center font-black text-[10px] uppercase tracking-wider border-r border-white/[0.06] ${color.text}`}>
-                            {d}
-                          </th>
-                        );
-                      })}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {activeTimeSlots.map((slot) => (
-                      <tr key={slot} className="border-t border-white/[0.04]">
-                        <td className="p-2 font-bold text-white/40 text-[9.5px] border-r border-white/[0.06]">
-                          {slot}
-                        </td>
-                        {daysList.map(d => {
-                          const course = getCourseForSlot(d, slot);
-                          const color = DAY_COLORS[d] || DAY_COLORS['ISNIN'];
-                          return (
-                            <td key={d} className="p-1 border-r border-white/[0.04] h-14 vertical-align-top">
-                              {course ? (
-                                <div className={`p-1.5 rounded-lg ${color.bg} border ${color.border} text-white shadow-sm h-full flex flex-col justify-center`}>
-                                  {renderCourseContent(course)}
-                                </div>
-                              ) : (
-                                <div className="h-full w-full rounded-md border border-dashed border-white/[0.02]" />
-                              )}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
 
           {/* ── MODE 3: DEVICE LOCK SCREEN WALLPAPER (Custom Presets & Content Controls) ── */}
           {exportMode === 'WALLPAPER' && (
             <div className="space-y-3">
-              <div className="flex justify-center py-3 bg-[#060D1A] rounded-xl border border-white/[0.04] overflow-x-auto">
-                
-                <div 
-                  ref={wallpaperRef}
-                  className={`bg-[#070F22] text-white font-sans flex flex-col justify-between p-4 relative overflow-hidden select-none border border-white/10 rounded-3xl transition-all ${
-                    wallpaperPreset === 'phone'
-                      ? 'w-[340px] h-[640px]'
-                      : wallpaperPreset === 'tablet'
-                        ? 'w-[520px] h-[640px]'
-                        : wallpaperPreset === 'square'
-                          ? 'w-[480px] h-[480px]'
-                          : 'w-[780px] h-[480px]'
-                  }`}
-                >
-                  {/* Top Reserved Clock Area */}
-                  <div className={`${(wallpaperPreset === 'desktop' || wallpaperPreset === 'square') ? 'h-[70px]' : 'h-[150px]'} flex flex-col items-center justify-center text-center opacity-25 flex-shrink-0`}>
-                    <span className="text-[9px] uppercase tracking-widest text-white/40 font-mono">
-                      [ Lock Screen Clock & Widget Area ]
-                    </span>
-                  </div>
+              <div className={`flex justify-center py-3 rounded-xl border overflow-auto usas-scrollbar relative ${
+                isLight ? 'bg-slate-100 border-slate-200' : 'bg-[#060D1A] border-white/[0.04]'
+              }`} style={{ maxHeight: '65vh' }}>
+                {renderFloatingZoomWidget(isExportLight)}
+                {(() => {
+                  const widthMap = { phone: 340, tablet: 520, square: 480, desktop: 780 };
+                  const heightMap = { phone: 640, tablet: 640, square: 480, desktop: 480 };
+                  const w = widthMap[wallpaperPreset];
+                  const h = heightMap[wallpaperPreset];
+                  return (
+                    <div 
+                      style={{ 
+                        width: `${w * userZoom}px`, 
+                        height: `${h * userZoom}px`,
+                        position: 'relative',
+                        overflow: 'hidden'
+                      }}
+                    >
+                      <div
+                        ref={wallpaperRef}
+                        data-export-root="wallpaper-export-root"
+                        className="font-sans flex flex-col justify-start gap-2 select-none border rounded-3xl absolute top-0 left-0 origin-top-left"
+                        style={{
+                          width: `${w}px`,
+                          height: `${h}px`,
+                          transform: `scale(${userZoom})`,
+                          fontFamily: 'Inter, system-ui, sans-serif',
+                          padding: wallpaperPreset === 'phone' ? '12px' : wallpaperPreset === 'square' ? '14px' : '16px',
+                          backgroundColor: isExportLight ? '#FFFFFF' : '#070F22',
+                          borderColor: isExportLight ? '#E2E8F0' : '#ffffff10',
+                          color: isExportLight ? '#1E293B' : '#FFFFFF'
+                        }}
+                      >
+                  {/* Top Reserved Clock Area (Removed text labels) */}
+                  <div className={`${wallpaperTopSpacer} flex-shrink-0`} />
 
                   {/* Lock Screen Matrix Grid */}
-                  <div className="bg-[#0A1428] border border-white/[0.08] rounded-xl p-2.5 shadow-2xl space-y-2 flex-1 flex flex-col justify-between overflow-hidden">
-                    <div className="flex items-center justify-between border-b border-white/[0.08] pb-1.5 px-1 flex-shrink-0">
-                      <div className="flex items-center gap-2">
-                        <img src="/usas-logo.png" alt="USAS" className="w-4 h-4 object-contain" />
-                        <span className="text-[10px] font-black text-amber-400 tracking-wider">USAS TIMETABLE</span>
-                      </div>
-                      <span className="text-[9px] text-white/40 font-medium">{studentName} ({matricNo})</span>
-                    </div>
+                  <div className={`border rounded-xl p-0 flex-1 min-h-0 flex flex-col justify-start overflow-hidden ${
+                    isExportLight ? 'bg-slate-50 border-slate-200' : 'bg-[#0A1428] border-white/[0.08]'
+                  }`}>
+                    {/* (Top Header Brand Row Removed per Request) */}
 
-                    <table className="w-full border-collapse text-[8.5px] flex-1">
-                      <thead>
-                        <tr>
-                          <th className="p-1 text-left font-black text-amber-400/80 uppercase tracking-wider w-12 border-r border-white/[0.06]">
-                            Waktu
-                          </th>
-                          {daysList.map(d => {
-                            const color = DAY_COLORS[d] || DAY_COLORS['ISNIN'];
-                            return (
-                              <th key={d} className={`p-1 text-center font-black uppercase tracking-wider border-r border-white/[0.06] ${color.text}`}>
-                                {d}
+                    {/* DYNAMIC SCALING WALLPAPER GRID VIEW TABLE (Supports Phone and Square ratio scaling) */}
+                    {(() => {
+                      const style = getPresetStyle(wallpaperPreset, contentDetail);
+                      const rowHeightPx = wallpaperPreset === 'phone'
+                        ? 46
+                        : wallpaperPreset === 'square'
+                          ? 42
+                          : wallpaperPreset === 'tablet'
+                            ? 54
+                            : 44;
+                      const rowHeightClass = wallpaperPreset === 'phone'
+                        ? 'h-[46px]'
+                        : wallpaperPreset === 'square'
+                          ? 'h-[42px]'
+                          : wallpaperPreset === 'tablet'
+                            ? 'h-[54px]'
+                            : 'h-[44px]';
+                      return (
+                        <table className={`w-full h-full table-fixed border-collapse ${style.tableFontSize}`}>
+                          <thead>
+                            <tr>
+                              <th className={`text-center font-black uppercase tracking-wider w-12 border-r ${
+                                isExportLight ? 'text-slate-500 border-slate-200' : 'text-amber-400/80 border-white/[0.06]'
+                              } ${style.thPadding}`}>
+                                
                               </th>
-                            );
-                          })}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {activeTimeSlots.map((slot) => (
-                          <tr key={slot} className="border-t border-white/[0.04]">
-                            <td className="p-1 font-bold text-white/40 text-[8px] border-r border-white/[0.06]">
-                              {slot}
-                            </td>
-                            {daysList.map(d => {
-                              const course = getCourseForSlot(d, slot);
-                              const color = DAY_COLORS[d] || DAY_COLORS['ISNIN'];
+                              {WALLPAPER_HOUR_STARTS.map((hourStart) => {
+                                return (
+                                  <th key={hourStart} className={`text-center font-black uppercase tracking-wider border-r ${
+                                    isExportLight ? 'border-slate-200' : 'border-white/[0.06]'
+                                  } ${style.thPadding}`}>
+                                    {formatWallpaperSlotLabel(hourStart)}
+                                  </th>
+                                );
+                              })}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {daysList.map((d) => {
+                              const dayColor = getModalDayColors(d, isExportLight);
                               return (
-                                <td key={d} className="p-1 border-r border-white/[0.04] h-11 vertical-align-top">
-                                  {course ? (
-                                    <div className={`p-1 rounded ${color.bg} border ${color.border} text-white shadow-sm h-full flex flex-col justify-center`}>
-                                      {renderCourseContent(course, true)}
-                                    </div>
-                                  ) : (
-                                    <div className="h-full w-full rounded border border-dashed border-white/[0.01]" />
-                                  )}
+                              <tr key={d} className={`border-t ${rowHeightClass} ${isExportLight ? 'border-slate-200/60' : 'border-white/[0.04]'}`}>
+                                <td className={`font-bold border-r text-center ${
+                                  isExportLight ? 'text-slate-450 border-slate-200' : 'text-white/40 border-white/[0.06]'
+                                } ${style.tdPadding} ${dayColor.text}`}>
+                                  {t(`shortDays.${d?.toUpperCase()}`) || d}
                                 </td>
+                                {WALLPAPER_HOUR_STARTS.map((hourStart) => {
+                                  const course = getWallpaperCourseForHour(d, hourStart);
+                                  const covered = isWallpaperSlotCovered(d, hourStart);
+                                  if (covered) return null;
+                                  if (course) {
+                                    const courseSpan = getWallpaperCourseSpan(course);
+                                    return (
+                                      <td key={hourStart} colSpan={courseSpan} className={`border-r border-white/[0.04] align-middle p-0 ${
+                                        isExportLight ? 'border-slate-200/60' : 'border-white/[0.04]'
+                                      }`}>
+                                      <div className={`w-full h-full min-h-full border-0 flex flex-col justify-center items-center overflow-hidden ${dayColor.bg} ${dayColor.border}`}>
+                                          {renderWallpaperCourseContent(course, courseSpan, rowHeightPx, isExportLight)}
+                                        </div>
+                                      </td>
+                                    );
+                                  }
+                                  return (
+                                    <td key={hourStart} className={`border-r border-white/[0.04] align-middle p-0 ${
+                                      isExportLight ? 'border-slate-200/60' : 'border-white/[0.04]'
+                                    }`} />
+                                  );
+                                })}
+                              </tr>
                               );
                             })}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                          </tbody>
+                        </table>
+                      );
+                    })()}
                   </div>
 
-                  <div className="text-center pt-2 text-[8px] font-bold tracking-widest text-white/20 uppercase flex-shrink-0">
-                    UNIVERSITI SULTAN AZLAN SHAH • WALLPAPER
-                  </div>
+                  <div className={`${wallpaperBottomSpacer} flex-shrink-0`} />
                 </div>
-
               </div>
-            </div>
-          )}
+            );
+          })()}
+        </div>
+      </div>
+    )}
 
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-white/[0.06] flex items-center justify-end gap-2 flex-shrink-0 bg-[#060E1F]">
+        <div className={`p-4 border-t flex items-center justify-end gap-2 flex-shrink-0 ${
+          isLight ? 'border-slate-200 bg-slate-50/50' : 'border-white/[0.06] bg-[#0A1428]/95'
+        }`}>
           <button
             onClick={onClose}
-            className="px-3.5 py-2 rounded-xl text-white/40 hover:text-white text-xs font-semibold"
+            className={`px-3.5 py-2 rounded-xl border text-xs font-semibold transition-all ${
+              isLight 
+                ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200' 
+                : 'bg-white/[0.04] hover:bg-white/[0.08] text-white/80 hover:text-white border-white/10'
+            }`}
           >
             {t('cancel')}
           </button>
@@ -557,7 +1028,11 @@ export default function PdfExportModal({ isOpen, onClose }) {
           <button
             onClick={handleDownload}
             disabled={exporting}
-            className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs flex items-center gap-2 shadow-lg shadow-amber-400/10 disabled:opacity-50"
+            className={`px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-2 shadow-lg disabled:opacity-50 transition-all ${
+              isLight 
+                ? 'bg-[#0B1E43] hover:bg-[#152e63] text-white shadow-slate-900/10' 
+                : 'bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-amber-400/10'
+            }`}
           >
             {exporting ? (
               <>
@@ -568,9 +1043,9 @@ export default function PdfExportModal({ isOpen, onClose }) {
               <>
                 <Download className="w-3.5 h-3.5" />
                 <span>
-                  {exportMode === 'WALLPAPER' 
-                    ? `Muat Turun Wallpaper ${wallpaperPreset.toUpperCase()} (.PNG)` 
-                    : `Muat Turun PDF (${exportMode === 'FORMAL_A4' ? 'Formal' : 'Moden UI'} LANDSCAPE)`}
+                  {exportMode === 'WALLPAPER'
+                    ? (lang === 'en' ? 'Download PNG' : 'Muat Turun PNG')
+                    : (lang === 'en' ? 'Download PDF' : 'Muat Turun PDF')}
                 </span>
               </>
             )}

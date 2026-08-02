@@ -1,5 +1,7 @@
 import React, { useMemo } from 'react';
-import { AlertTriangle, Zap, ArrowRight, Footprints } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
+import { AlertTriangle, Zap } from 'lucide-react';
 
 const CAMPUS_WALK_TIMES = {
   'MAKMAL': { 'DK': 3, 'DEWAN BESAR': 7, 'FTMK': 1, 'BILIK MESYUARAT': 2, 'PERPUSTAKAAN': 4, 'DEFAULT': 5 },
@@ -40,6 +42,10 @@ function parseTimeToMinutes(timeStr) {
 }
 
 export default function ScheduleClashDetector({ timetable = [] }) {
+  const { theme } = useTheme();
+  const { t } = useLanguage();
+  const isLight = theme === 'light';
+
   const alerts = useMemo(() => {
     if (!timetable || timetable.length < 2) return [];
 
@@ -102,24 +108,28 @@ export default function ScheduleClashDetector({ timetable = [] }) {
   }
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1.5 animate-fade-in">
       {alerts.map((alert, idx) => {
         const isClash = alert.type === 'clash';
 
         return (
           <div
             key={idx}
-            className={`py-1.5 px-3 rounded-lg border flex items-center justify-between text-[10px] ${
-              isClash ? 'border-red-500/30 bg-red-500/10 text-red-300' : 'border-amber-500/30 bg-amber-500/10 text-amber-300'
+            className={`py-1.5 px-3 rounded-lg border flex items-center justify-between text-[10px] transition-colors duration-150 ${
+              isClash 
+                ? (isLight ? 'border-red-200 bg-red-50 text-red-700' : 'border-red-500/30 bg-red-500/10 text-red-300')
+                : (isLight ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-amber-500/30 bg-amber-500/10 text-amber-300')
             }`}
           >
             <div className="flex items-center gap-2 truncate">
-              {isClash ? <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 text-red-400" /> : <Zap className="w-3.5 h-3.5 flex-shrink-0 text-amber-400" />}
-              <span className="font-bold uppercase tracking-wider">{alert.day}:</span>
+              {isClash 
+                ? <AlertTriangle className={`w-3.5 h-3.5 flex-shrink-0 ${isLight ? 'text-red-650' : 'text-red-400'}`} /> 
+                : <Zap className={`w-3.5 h-3.5 flex-shrink-0 ${isLight ? 'text-amber-600' : 'text-amber-400'}`} />}
+              <span className="font-bold uppercase tracking-wider">{t(`days.${alert.day?.toUpperCase()}`) || alert.day}:</span>
               <span className="truncate">{alert.from.course_id} → {alert.to.course_id}</span>
             </div>
             <div className="flex items-center gap-2 font-bold flex-shrink-0">
-              {isClash ? `Bertindih ${Math.abs(alert.gapMinutes)}m` : `Rehat: ${alert.gapMinutes}m (~${alert.walkTimeNeeded}m jalan)`}
+              {isClash ? `${t('clashDetected')} ${Math.abs(alert.gapMinutes)}m` : `${t('restTime')}: ${alert.gapMinutes}m (~${alert.walkTimeNeeded}m ${t('walkTimeNeeded')})`}
             </div>
           </div>
         );

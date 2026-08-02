@@ -1,15 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import { useTheme } from '../context/ThemeContext';
 import { playClassChime, sendPushNotification } from '../utils/audioNotifier';
 import { Clock, MapPin, CheckCircle2, Bell, BellOff, Volume2 } from 'lucide-react';
 
 export default function LiveNextClassWidget({ timetable = [] }) {
-  const { lang } = useLanguage();
+  const { lang, t } = useLanguage();
+  const { theme } = useTheme();
   const [now, setNow] = useState(new Date());
   const [autoNotifyEnabled, setAutoNotifyEnabled] = useState(() => {
     try { return localStorage.getItem('usas_auto_notify') === 'true'; } catch (e) { return false; }
   });
   const notifiedRef = useRef({});
+
+  const isLight = theme === 'light';
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 20000);
@@ -90,19 +94,35 @@ export default function LiveNextClassWidget({ timetable = [] }) {
   // Ultra-compact one-liner when all classes for today are completed
   if (!ongoingClass && !nextClass) {
     return (
-      <div className="py-1.5 px-3 rounded-lg bg-white/[0.02] border border-white/[0.04] text-[10px] text-white/40 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400/70" />
-          <span>Sesi Kuliah Hari Ini Selesai ({currentDayName}) • Selamat berehat!</span>
+      <div className={`py-2 px-3.5 rounded-xl border text-[10px] flex items-center justify-between transition-all duration-350 shadow-sm ${
+        isLight 
+          ? 'bg-gradient-to-r from-emerald-50/70 to-teal-50/70 border-emerald-100/80 text-emerald-900 shadow-emerald-500/5' 
+          : 'bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-emerald-500/20 text-emerald-300 shadow-black/10'
+      }`}>
+        <div className="flex items-center gap-2.5">
+          <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
+            isLight ? 'bg-emerald-100 text-emerald-650' : 'bg-emerald-500/20 text-emerald-400'
+          }`}>
+            <CheckCircle2 className="w-3 h-3" />
+          </div>
+          <span className="font-semibold tracking-wide">
+            {t('noClassRemaining')} ({t(`days.${currentDayName}`) || currentDayName}) • {t('restWell')}
+          </span>
         </div>
         <button
           onClick={toggleAutoNotify}
-          className={`p-1 rounded transition-colors text-[9px] flex items-center gap-1 ${
-            autoNotifyEnabled ? 'text-emerald-400' : 'text-white/20 hover:text-white/40'
+          className={`p-1 rounded-lg transition-all duration-200 flex items-center gap-1 ${
+            autoNotifyEnabled 
+              ? (isLight 
+                  ? 'bg-emerald-100/80 text-emerald-700 hover:bg-emerald-200/80' 
+                  : 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30') 
+              : (isLight 
+                  ? 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50' 
+                  : 'text-white/20 hover:text-white/40 hover:bg-white/[0.04]')
           }`}
           title="Mod Peringatan Chime Auto"
         >
-          {autoNotifyEnabled ? <Bell className="w-3 h-3" /> : <BellOff className="w-3 h-3" />}
+          {autoNotifyEnabled ? <Bell className="w-3 h-3 animate-bounce" style={{ animationIterationCount: 2 }} /> : <BellOff className="w-3 h-3" />}
         </button>
       </div>
     );
@@ -111,26 +131,38 @@ export default function LiveNextClassWidget({ timetable = [] }) {
   const activeCourse = ongoingClass || nextClass;
 
   return (
-    <div className="py-2 px-3 rounded-lg bg-white/[0.03] border border-white/[0.05] flex items-center justify-between gap-3 text-xs">
+    <div className={`py-2 px-3 rounded-lg border flex items-center justify-between gap-3 text-xs transition-colors duration-150 ${
+      isLight ? 'bg-white border-slate-200 text-slate-700' : 'bg-white/[0.03] border-white/[0.05] text-slate-100'
+    }`}>
       <div className="flex items-center gap-2.5 min-w-0">
         <div className={`w-7 h-7 rounded-md border flex items-center justify-center flex-shrink-0 ${
-          ongoingClass ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 'bg-amber-400/15 border-amber-400/30 text-amber-400'
+          ongoingClass 
+            ? (isLight 
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-600' 
+                : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400')
+            : (isLight 
+                ? 'bg-amber-50 border-amber-200 text-amber-600' 
+                : 'bg-amber-400/15 border-amber-400/30 text-amber-400')
         }`}>
           <Clock className="w-3.5 h-3.5" />
         </div>
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className={`text-[9px] font-bold uppercase tracking-wider ${ongoingClass ? 'text-emerald-400' : 'text-amber-400'}`}>
-              {ongoingClass ? 'Sedang Berlangsung' : 'Seterusnya'}
+            <span className={`text-[9px] font-bold uppercase tracking-wider ${
+              ongoingClass 
+                ? (isLight ? 'text-emerald-600' : 'text-emerald-400') 
+                : (isLight ? 'text-amber-600' : 'text-amber-400')
+            }`}>
+              {ongoingClass ? t('ongoingNow') : t('nextClass')}
             </span>
             {nextClass && (
-              <span className="text-[9px] font-bold text-amber-400/80">
-                dalam {Math.floor(nextClass.diff / 60) > 0 ? `${Math.floor(nextClass.diff / 60)}j ` : ''}{nextClass.diff % 60}m
+              <span className={`text-[9px] font-bold ${isLight ? 'text-slate-400' : 'text-white/40'}`}>
+                {t('in')} {Math.floor(nextClass.diff / 60) > 0 ? `${Math.floor(nextClass.diff / 60)}${lang === 'en' ? 'h' : 'j'} ` : ''}{nextClass.diff % 60}m
               </span>
             )}
           </div>
-          <div className="text-[11px] font-semibold text-white/90 truncate">
-            {activeCourse.course_id}: {activeCourse.course_name} <span className="text-white/30 font-normal">({activeCourse.location})</span>
+          <div className={`text-[11px] font-semibold truncate ${isLight ? 'text-slate-800' : 'text-white/90'}`}>
+            {activeCourse.course_id}: {activeCourse.course_name} <span className={isLight ? 'text-slate-400 font-normal' : 'text-white/30 font-normal'}>({activeCourse.location})</span>
           </div>
         </div>
       </div>
@@ -138,7 +170,9 @@ export default function LiveNextClassWidget({ timetable = [] }) {
       <div className="flex items-center gap-1.5 flex-shrink-0">
         <button
           onClick={playClassChime}
-          className="p-1 rounded text-white/30 hover:text-amber-400 transition-colors text-[9px] font-medium"
+          className={`p-1 rounded transition-colors text-[9px] font-medium ${
+            isLight ? 'text-slate-400 hover:text-amber-600' : 'text-white/30 hover:text-amber-400'
+          }`}
           title="Uji Chime"
         >
           <Volume2 className="w-3.5 h-3.5" />
@@ -146,11 +180,15 @@ export default function LiveNextClassWidget({ timetable = [] }) {
         <button
           onClick={toggleAutoNotify}
           className={`p-1 rounded transition-colors text-[9px] font-semibold flex items-center gap-1 ${
-            autoNotifyEnabled ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/20 px-2' : 'text-white/30 hover:text-white/60'
+            autoNotifyEnabled 
+              ? (isLight 
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 px-2' 
+                  : 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/20 px-2') 
+              : (isLight ? 'text-slate-400 hover:text-slate-600' : 'text-white/30 hover:text-white/60')
           }`}
           title="Peringatan Auto 15 Minit"
         >
-          {autoNotifyEnabled ? <Bell className="w-3 h-3 text-emerald-400" /> : <BellOff className="w-3 h-3" />}
+          {autoNotifyEnabled ? <Bell className="w-3 h-3 text-emerald-500" /> : <BellOff className="w-3 h-3" />}
           {autoNotifyEnabled && <span>Chime ON</span>}
         </button>
       </div>

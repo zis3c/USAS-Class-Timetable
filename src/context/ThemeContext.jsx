@@ -12,9 +12,9 @@ export const THEMES = {
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
     try {
-      return localStorage.getItem('usas_theme') || THEMES.NAVY;
+      return localStorage.getItem('usas_theme') || THEMES.LIGHT;
     } catch (e) {
-      return THEMES.NAVY;
+      return THEMES.LIGHT;
     }
   });
 
@@ -24,6 +24,12 @@ export function ThemeProvider({ children }) {
       localStorage.setItem('usas_theme', newTheme);
     } catch (e) {}
   };
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.remove('theme-light', 'theme-navy', 'theme-oled', 'theme-emerald');
+    root.classList.add(`theme-${theme}`);
+  }, [theme]);
 
   return (
     <ThemeContext.Provider value={{ theme, changeTheme, THEMES }}>

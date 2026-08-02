@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useTheme } from '../context/ThemeContext';
 import LiveNextClassWidget from './LiveNextClassWidget';
 import AttendanceMeter from './AttendanceMeter';
 import LecturerModal from './LecturerModal';
@@ -15,19 +16,60 @@ import {
 } from 'lucide-react';
 
 // Day color system
-const DAY_COLORS = {
-  'ISNIN':  { dot: 'bg-emerald-400', text: 'text-emerald-400', accent: 'border-l-emerald-400' },
-  'SELASA': { dot: 'bg-blue-400',    text: 'text-blue-400',    accent: 'border-l-blue-400' },
-  'RABU':   { dot: 'bg-amber-400',   text: 'text-amber-400',   accent: 'border-l-amber-400' },
-  'KHAMIS': { dot: 'bg-purple-400',  text: 'text-purple-400',  accent: 'border-l-purple-400' },
-  'JUMAAT': { dot: 'bg-red-400',     text: 'text-red-400',     accent: 'border-l-red-400' },
-  'SABTU':  { dot: 'bg-orange-400',  text: 'text-orange-400',  accent: 'border-l-orange-400' },
-  'AHAD':   { dot: 'bg-slate-400',   text: 'text-slate-400',   accent: 'border-l-slate-400' },
+const getCardDayColor = (day, isLight) => {
+  const darkColors = {
+    'ISNIN':  { dot: 'bg-emerald-400', text: 'text-emerald-400 font-bold', accent: 'border-l-emerald-400', bg: 'bg-emerald-500/[0.18]', border: 'border-emerald-500/40', badge: 'bg-emerald-500/30 text-emerald-300 border border-emerald-500/50 font-bold' },
+    'SELASA': { dot: 'bg-blue-400',    text: 'text-blue-400 font-bold',    accent: 'border-l-blue-400',    bg: 'bg-blue-500/[0.18]',    border: 'border-blue-500/40',    badge: 'bg-blue-500/30 text-blue-300 border border-blue-500/50 font-bold' },
+    'RABU':   { dot: 'bg-amber-400',   text: 'text-amber-400 font-bold',   accent: 'border-l-amber-400',   bg: 'bg-amber-500/[0.18]',   border: 'border-amber-500/40',   badge: 'bg-amber-500/30 text-amber-300 border border-amber-500/50 font-bold' },
+    'KHAMIS': { dot: 'bg-purple-400',  text: 'text-purple-400 font-bold',  accent: 'border-l-purple-400',  bg: 'bg-purple-500/[0.18]',  border: 'border-purple-500/40',  badge: 'bg-purple-500/30 text-purple-300 border border-purple-500/50 font-bold' },
+    'JUMAAT': { dot: 'bg-rose-400',    text: 'text-rose-400 font-bold',    accent: 'border-l-rose-400',    bg: 'bg-rose-500/[0.18]',    border: 'border-rose-500/40',    badge: 'bg-rose-500/30 text-rose-300 border border-rose-500/50 font-bold' },
+    'SABTU':  { dot: 'bg-orange-400',  text: 'text-orange-400 font-bold',  accent: 'border-l-orange-400',  bg: 'bg-orange-500/[0.18]',  border: 'border-orange-500/40',  badge: 'bg-orange-500/30 text-orange-300 border border-orange-500/50 font-bold' },
+    'AHAD':   { dot: 'bg-slate-400',   text: 'text-slate-400 font-bold',   accent: 'border-l-slate-400',   bg: 'bg-slate-500/[0.18]',   border: 'border-slate-500/40',   badge: 'bg-slate-500/30 text-slate-300 border border-slate-500/50 font-bold' },
+  };
+  const lightColors = {
+    'ISNIN':  { dot: 'bg-emerald-500', text: 'text-emerald-800 font-bold', accent: 'border-l-emerald-500', bg: 'bg-emerald-100/70', border: 'border-emerald-300/80', badge: 'bg-emerald-600 text-white font-extrabold shadow-sm' },
+    'SELASA': { dot: 'bg-blue-500',    text: 'text-blue-800 font-bold',    accent: 'border-l-blue-500',    bg: 'bg-blue-100/70',    border: 'border-blue-300/80',    badge: 'bg-blue-600 text-white font-extrabold shadow-sm' },
+    'RABU':   { dot: 'bg-amber-500',   text: 'text-amber-800 font-bold',   accent: 'border-l-amber-500',   bg: 'bg-amber-100/80',   border: 'border-amber-305/85',   badge: 'bg-amber-600 text-white font-extrabold shadow-sm' },
+    'KHAMIS': { dot: 'bg-purple-500',  text: 'text-purple-800 font-bold',  accent: 'border-l-purple-500',  bg: 'bg-purple-100/70',  border: 'border-purple-300/80',  badge: 'bg-purple-600 text-white font-extrabold shadow-sm' },
+    'JUMAAT': { dot: 'bg-rose-500',    text: 'text-rose-800 font-bold',    accent: 'border-l-rose-500',    bg: 'bg-rose-100/70',    border: 'border-rose-300/80',    badge: 'bg-rose-600 text-white font-extrabold shadow-sm' },
+    'SABTU':  { dot: 'bg-orange-500',  text: 'text-orange-800 font-bold',  accent: 'border-l-orange-500',  bg: 'bg-orange-100/70',  border: 'border-orange-300/80',  badge: 'bg-orange-600 text-white font-extrabold shadow-sm' },
+    'AHAD':   { dot: 'bg-slate-500',   text: 'text-slate-800 font-bold',   accent: 'border-l-slate-500',   bg: 'bg-slate-200/70',   border: 'border-slate-350/80',   badge: 'bg-slate-600 text-white font-extrabold shadow-sm' },
+  };
+  return (isLight ? lightColors[day] : darkColors[day]) || (isLight ? lightColors['ISNIN'] : darkColors['ISNIN']);
+};
+
+// Helper for converting 12-hour clock AM/PM to 24-hour style range format (e.g. 8-11, 13-16)
+const parseTo24hHour = (timeStr) => {
+  if (!timeStr) return null;
+  const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (!match) {
+    const numMatch = timeStr.match(/(\d+)/);
+    return numMatch ? parseInt(numMatch[1], 10) : null;
+  }
+  let hour = parseInt(match[1], 10);
+  const ampm = match[3].toUpperCase();
+  if (ampm === 'PM' && hour !== 12) {
+    hour += 12;
+  } else if (ampm === 'AM' && hour === 12) {
+    hour = 0;
+  }
+  return hour;
+};
+
+const getShortTimeRange = (startTime, endTime) => {
+  const startHour = parseTo24hHour(startTime);
+  const endHour = parseTo24hHour(endTime);
+  if (startHour === null) return startTime || '';
+  if (endHour === null) return `${startHour}`;
+  return `${startHour}-${endHour}`;
 };
 
 export default function TimetableGrid() {
   const { timetableData, session, refreshTimetable, loading } = useAuth();
   const { lang, t } = useLanguage();
+  const { theme } = useTheme();
+  
+  const isLight = theme === 'light';
   
   const [selectedDay, setSelectedDay] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -47,7 +89,22 @@ export default function TimetableGrid() {
   const [editingCourseId, setEditingCourseId] = useState(null);
   const [noteInput, setNoteInput] = useState('');
 
-  const daysList = timetableData?.days || ['ISNIN', 'SELASA', 'RABU', 'KHAMIS', 'JUMAAT'];
+  const normalizeGroup = (groupStr) => {
+    if (!groupStr) return 'G1';
+    return groupStr.replace(/^GRP/i, 'G');
+  };
+
+  const daysList = useMemo(() => {
+    if (timetableData?.days && timetableData.days.length > 0) {
+      return timetableData.days;
+    }
+    const defaultOrder = ['ISNIN', 'SELASA', 'RABU', 'KHAMIS', 'JUMAAT', 'SABTU', 'AHAD'];
+    const daysInCourses = new Set((timetableData?.timetable || []).map(c => c.day?.toUpperCase()).filter(Boolean));
+    const baseDays = ['ISNIN', 'SELASA', 'RABU', 'KHAMIS', 'JUMAAT'];
+    const extraDays = defaultOrder.filter(d => daysInCourses.has(d) && !baseDays.includes(d));
+    return [...baseDays, ...extraDays];
+  }, [timetableData?.days, timetableData?.timetable]);
+
   const allCourses = timetableData?.timetable || [];
 
   const handleSaveNote = (courseId) => {
@@ -76,7 +133,7 @@ export default function TimetableGrid() {
     });
   }, [allCourses, selectedDay, searchQuery]);
 
-  const totalSubjects = new Set(allCourses.map(c => c.course_id)).size;
+  const totalSubjects = new Set(allCourses.map(c => c.course_id || c.kod_kursus).filter(Boolean)).size;
 
   // Empty state
   if (allCourses.length === 0) {
@@ -93,7 +150,7 @@ export default function TimetableGrid() {
           <button
             onClick={refreshTimetable}
             disabled={loading}
-            className="px-4 py-2 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] text-white/60 text-xs font-medium flex items-center gap-2 mx-auto transition-colors"
+            className="px-4 py-2 rounded-md bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] text-white/60 text-xs font-medium flex items-center gap-2 mx-auto transition-colors"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             {lang === 'ms' ? 'Muat Semula' : 'Refresh'}
@@ -107,35 +164,45 @@ export default function TimetableGrid() {
     <div className="h-full flex flex-col overflow-hidden">
       
       {/* ── TOP FILTER BAR ── */}
-      <div className="flex-shrink-0 px-4 sm:px-6 py-3 border-b border-white/[0.04]">
+      <div className={`flex-shrink-0 px-4 sm:px-6 py-2.5 border-b transition-colors duration-150 ${
+        isLight ? 'bg-white border-slate-200' : 'border-white/[0.06]'
+      }`}>
         <div className="w-full flex items-center gap-3 flex-wrap">
           
           {/* Quick Stats */}
           <div className="hidden sm:flex items-center gap-1.5 mr-2">
-            <span className="text-[10px] text-white/25 font-medium">{totalSubjects} {t('subjects').toLowerCase()}</span>
-            <span className="text-white/10">·</span>
-            <span className="text-[10px] text-white/25 font-medium">{allCourses.length} {t('sessions').toLowerCase()}</span>
+            <span className={`text-[10px] font-medium ${isLight ? 'text-slate-400' : 'text-white/25'}`}>
+              {totalSubjects} {t('subjects').toLowerCase()}
+            </span>
+            <span className={isLight ? 'text-slate-200' : 'text-white/10'}>·</span>
+            <span className={`text-[10px] font-medium ${isLight ? 'text-slate-400' : 'text-white/25'}`}>
+              {allCourses.length} {t('sessions').toLowerCase()}
+            </span>
           </div>
 
           {/* Day Filter Pills */}
-          <div className="flex items-center gap-1 flex-1 overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-0.5 flex-1 overflow-x-auto no-scrollbar">
             {daysList.map(day => {
-              const color = DAY_COLORS[day] || DAY_COLORS['ISNIN'];
+              const color = getCardDayColor(day, isLight);
               const count = allCourses.filter(c => c.day?.toUpperCase() === day).length;
               const isActive = selectedDay === day;
               return (
                 <button
                   key={day}
                   onClick={() => setSelectedDay(isActive ? 'ALL' : day)}
-                  className={`flex-shrink-0 px-2.5 py-1 rounded-md text-[10px] font-semibold transition-all flex items-center gap-1.5 ${
+                  className={`flex-shrink-0 px-2.5 py-1 rounded-md text-[10px] font-medium transition-colors flex items-center gap-1.5 focus:outline-none border ${
                     isActive
-                      ? 'bg-white/10 text-white'
-                      : 'text-white/30 hover:text-white/50'
+                      ? (isLight 
+                          ? 'bg-slate-100 text-slate-800 border-slate-200/80 shadow-sm' 
+                          : 'bg-white/10 text-white border-white/[0.08]')
+                      : (isLight 
+                          ? 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50' 
+                          : 'border-transparent text-white/30 hover:text-white/50 hover:bg-white/[0.04]')
                   }`}
                 >
                   <span className={`w-1.5 h-1.5 rounded-full ${color.dot}`} />
-                  <span>{day}</span>
-                  {count > 0 && <span className="text-[9px] text-white/20">{count}</span>}
+                  <span>{t(`days.${day}`) || day}</span>
+                  {count > 0 && <span className={`text-[9px] ${isLight ? 'text-slate-400' : 'text-white/20'}`}>{count}</span>}
                 </button>
               );
             })}
@@ -143,18 +210,24 @@ export default function TimetableGrid() {
 
           {/* Search */}
           <div className="relative w-40 sm:w-48">
-            <Search className="w-3 h-3 text-white/20 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <Search className={`w-3 h-3 absolute left-2.5 top-1/2 -translate-y-1/2 ${isLight ? 'text-slate-450' : 'text-white/20'}`} />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t('searchPlaceholder')}
-              className="w-full pl-7 pr-2 py-1.5 rounded-md bg-white/[0.04] border-0 text-[10px] text-white placeholder-white/20 focus:outline-none focus:bg-white/[0.06] font-medium transition-colors"
+              className={`w-full pl-7 pr-2 py-1.5 rounded-md border text-[10px] font-medium focus:outline-none transition-colors ${
+                isLight 
+                  ? 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400 focus:border-amber-500/50' 
+                  : 'bg-white/[0.04] border-white/[0.06] text-white placeholder-white/20 focus:border-amber-400/30'
+              }`}
             />
           </div>
 
           {/* View Toggle & Expand All */}
-          <div className="flex items-center gap-1.5 bg-white/[0.04] rounded-md p-0.5">
+          <div className={`flex items-center gap-0.5 border rounded-md p-0.5 ${
+            isLight ? 'bg-slate-100/80 border-slate-200/80' : 'bg-white/[0.04] border-white/[0.06]'
+          }`}>
             {viewMode === 'cards' && (
               <button
                 onClick={() => {
@@ -164,8 +237,10 @@ export default function TimetableGrid() {
                     setExpandedCards({});
                   }
                 }}
-                className={`px-2 py-1 rounded text-[10px] font-bold transition-all ${
-                  expandAll ? 'bg-amber-400/20 text-amber-300 border border-amber-400/30' : 'text-white/40 hover:text-white/70'
+                className={`px-2 py-1 rounded text-[10px] font-semibold transition-all ${
+                  expandAll 
+                    ? (isLight ? 'bg-white text-slate-805 shadow-sm border border-slate-200' : 'bg-amber-400/20 text-amber-300 border border-amber-400/25') 
+                    : (isLight ? 'text-slate-500 hover:text-slate-800' : 'text-white/40 hover:text-white/70')
                 }`}
                 title={expandAll ? t('collapseAll') : t('expandAll')}
               >
@@ -175,14 +250,22 @@ export default function TimetableGrid() {
             <button
               onClick={() => setViewMode('cards')}
               title="Paparan Kad"
-              className={`p-1.5 rounded transition-colors ${viewMode === 'cards' ? 'bg-white/[0.08] text-white/70' : 'text-white/20'}`}
+              className={`p-1.5 rounded transition-colors ${
+                viewMode === 'cards' 
+                  ? (isLight ? 'bg-white text-slate-800 shadow-sm' : 'bg-white/[0.08] text-white/70') 
+                  : (isLight ? 'text-slate-400 hover:text-slate-650' : 'text-white/20 hover:text-white/40')
+              }`}
             >
               <LayoutList className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => setViewMode('matrix')}
               title="Paparan Grid"
-              className={`p-1.5 rounded transition-colors ${viewMode === 'matrix' ? 'bg-white/[0.08] text-white/70' : 'text-white/20'}`}
+              className={`p-1.5 rounded transition-colors ${
+                viewMode === 'matrix' 
+                  ? (isLight ? 'bg-white text-slate-800 shadow-sm' : 'bg-white/[0.08] text-white/70') 
+                  : (isLight ? 'text-slate-400 hover:text-slate-650' : 'text-white/20 hover:text-white/40')
+              }`}
             >
               <Grid className="w-3.5 h-3.5" />
             </button>
@@ -191,12 +274,9 @@ export default function TimetableGrid() {
       </div>
 
       {/* ── MAIN CONTENT ── */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="w-full px-4 sm:px-6 py-4 space-y-4">
+      <div className={`flex-1 ${viewMode === 'matrix' ? 'flex flex-col min-h-0 overflow-hidden' : 'overflow-y-auto'}`}>
+        <div className={`w-full px-4 sm:px-6 pt-3 pb-4 space-y-3 ${viewMode === 'matrix' ? 'flex-1 flex flex-col min-h-0' : ''}`}>
           
-          {/* Next Class Widget — compact */}
-          <LiveNextClassWidget timetable={allCourses} />
-
           {/* Clash Detector — collapsible, only if clashes exist */}
           {allCourses.length > 1 && (
             <ScheduleClashDetector timetable={allCourses} />
@@ -205,152 +285,186 @@ export default function TimetableGrid() {
           {/* View Content */}
           {viewMode === 'matrix' ? (
             <MatrixGridView timetable={allCourses} days={daysList} />
-          ) : filteredCourses.length === 0 ? (
-            <div className="py-16 text-center animate-fade-in">
-              <BookOpen className="w-8 h-8 text-white/8 mx-auto mb-3" />
-              <p className="text-xs text-white/25 font-medium">Tiada kelas pada hari {selectedDay}</p>
-            </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 items-start">
-              {filteredCourses.map((course, idx) => {
-                const courseId = course.course_id || course.kod_kursus;
-                const dayColor = DAY_COLORS[course.day?.toUpperCase()] || DAY_COLORS['ISNIN'];
-                const cardKey = `${courseId}_${course.day}_${idx}`;
-                const isExpanded = expandAll ? true : !!expandedCards[cardKey];
-                const currentNote = courseNotes[courseId] || '';
+            <div className="space-y-4">
+              <LiveNextClassWidget timetable={allCourses} />
+              
+              {filteredCourses.length === 0 ? (
+                <div className="py-16 text-center">
+                  <BookOpen className={`w-8 h-8 mx-auto mb-3 ${isLight ? 'text-slate-300' : 'text-white/8'}`} />
+                  <p className={`text-xs font-medium ${isLight ? 'text-slate-400' : 'text-white/25'}`}>{t('noClassesOnDay')} {t(`days.${selectedDay}`) || selectedDay}</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 items-start">
+                  {filteredCourses.map((course, idx) => {
+                    const courseId = course.course_id || course.kod_kursus;
+                    const dayColor = getCardDayColor(course.day?.toUpperCase(), isLight);
+                    const cardKey = `${courseId}_${course.day}_${idx}`;
+                    const isExpanded = expandAll ? true : !!expandedCards[cardKey];
+                    const currentNote = courseNotes[courseId] || '';
 
-                return (
-                  <div
-                    key={cardKey}
-                    className={`rounded-lg bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] transition-all border-l-2 ${dayColor.accent} animate-fade-in-up stagger-${Math.min(idx + 1, 8)}`}
-                  >
-                    {/* Card Header — Click to expand/collapse independently */}
-                    <div 
-                      className="p-3 cursor-pointer select-none"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setExpandedCards(prev => ({
-                          ...prev,
-                          [cardKey]: expandAll ? false : !prev[cardKey]
-                        }));
-                        if (expandAll) setExpandAll(false);
-                      }}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          {/* Course Code + Day Badge */}
-                          <div className="flex items-center gap-1.5 mb-0.5">
-                            <span className={`text-[10px] font-black tracking-wider ${dayColor.text}`}>{courseId}</span>
-                            <span className="px-1.5 py-0.2 rounded text-[8px] font-bold bg-white/[0.04] text-white/30 uppercase">{course.day}</span>
-                          </div>
-                          {/* Course Name */}
-                          <h3 className="text-[11px] font-semibold text-white/90 leading-snug line-clamp-2">
-                            {course.course_name || course.kursus}
-                          </h3>
-                        </div>
-
-                        {/* Time Badge */}
-                        <div className="text-right flex-shrink-0">
-                          <div className="text-[10px] font-bold text-white/60">
-                            {course.start_time || '—'}
-                          </div>
-                          {course.end_time && (
-                            <div className="text-[8.5px] text-white/25">{course.end_time}</div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Compact Info Row */}
-                      <div className="flex items-center justify-between gap-2 mt-2 text-[9.5px] text-white/35">
-                        <span className="flex items-center gap-1 truncate max-w-[85%]">
-                          <MapPin className="w-3 h-3 flex-shrink-0 text-sky-400/60" />
-                          <span className="truncate">{course.location || 'TBA'}</span>
-                        </span>
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          {currentNote && (
-                            <span className="text-amber-400/60" title="Nota Wujud">
-                              <StickyNote className="w-2.5 h-2.5" />
-                            </span>
-                          )}
-                          <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isExpanded ? 'rotate-180 text-amber-400' : 'text-white/20'}`} />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Expanded Details — Isolated from header toggle */}
-                    {isExpanded && (
-                      <div className="px-3 pb-3 space-y-2.5 border-t border-white/[0.04] pt-2.5 animate-fade-in" onClick={(e) => e.stopPropagation()}>
-                        
-                        {/* Lecturer */}
+                    return (
+                      <div
+                        key={cardKey}
+                        className={`rounded-lg border border-l-2 transition-all ${dayColor.accent} ${dayColor.border} ${dayColor.bg} hover:brightness-105 shadow-sm`}
+                      >
+                        {/* Card Header — Click to expand/collapse independently */}
                         <div 
-                          className="flex items-center gap-2 text-[9.5px] cursor-pointer group"
+                          className="p-3 cursor-pointer select-none"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setSelectedLecturer(course.lecturer || course.pensyarah);
+                            setExpandedCards(prev => ({
+                              ...prev,
+                              [cardKey]: expandAll ? false : !prev[cardKey]
+                            }));
+                            if (expandAll) setExpandAll(false);
                           }}
                         >
-                          <User className="w-3 h-3 text-emerald-400/60 flex-shrink-0" />
-                          <span className="text-white/60 group-hover:text-amber-300 transition-colors font-medium truncate">
-                            {course.lecturer || course.pensyarah || t('lecturers')}
-                          </span>
+                          <div className="flex flex-col gap-1.5">
+                            {/* Card Header Top Row */}
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex flex-col gap-0.5">
+                                <span className={`text-[10px] font-black tracking-wider ${dayColor.text}`}>{courseId}</span>
+                                <div className={`flex items-center gap-1 text-[9.5px] ${isLight ? 'text-slate-500 font-semibold' : 'text-white/45'}`}>
+                                  <Clock className={`w-3 h-3 ${isLight ? 'text-amber-650' : 'text-amber-400/70'}`} />
+                                  <span className="leading-none">{getShortTimeRange(course.start_time, course.end_time)}</span>
+                                </div>
+                              </div>
+                              <span className={`px-1.5 py-0.5 rounded text-[8px] font-extrabold uppercase shrink-0 ${dayColor.badge}`}>
+                                {t(`days.${course.day?.toUpperCase()}`) || course.day}
+                              </span>
+                            </div>
+
+                            {/* Course Name */}
+                            <h3 className={`text-[11.5px] font-bold leading-snug ${
+                              isLight ? 'text-slate-805' : 'text-white/95'
+                            }`}>
+                              {course.course_name || course.kursus}
+                            </h3>
+
+                            {/* Location Row */}
+                            <div className={`flex items-center justify-between gap-2 mt-0.5 text-[9.5px] ${
+                              isLight ? 'text-slate-500 font-semibold' : 'text-white/45'
+                            }`}>
+                              <span className="flex items-center gap-1.5 truncate max-w-[85%]">
+                                <MapPin className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#ed4134' }} />
+                                <span className="truncate leading-none" style={{ transform: 'translateY(0.5px)' }}>{course.location || 'TBA'}</span>
+                              </span>
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                {currentNote && (
+                                  <span className={isLight ? 'text-amber-605' : 'text-amber-400/60'} title="Nota Wujud">
+                                    <StickyNote className="w-2.5 h-2.5" />
+                                  </span>
+                                )}
+                                <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${
+                                  isExpanded 
+                                    ? (isLight ? 'rotate-180 text-amber-650 font-bold' : 'rotate-180 text-amber-400') 
+                                    : (isLight ? 'text-slate-400' : 'text-white/20')
+                                }`} />
+                              </div>
+                            </div>
+                          </div>
                         </div>
 
-                        {/* Group */}
-                        <div className="flex items-center gap-2 text-[9.5px]">
-                          <GraduationCap className="w-3 h-3 text-white/25 flex-shrink-0" />
-                          <span className="text-white/35 font-medium">{t('group')}: {course.group || course.kumpulan || 'A'}</span>
-                        </div>
+                        {/* Expanded Details — Isolated from header toggle with height transitions */}
+                        <div 
+                          className={`transition-all duration-300 ease-in-out overflow-hidden ${
+                            isExpanded 
+                              ? 'max-h-[300px] opacity-100 border-t' 
+                              : 'max-h-0 opacity-0 pointer-events-none'
+                          } ${isLight ? 'border-slate-100' : 'border-white/[0.04]'}`} 
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="px-3 pb-3 pt-2.5 space-y-2.5">
+                            
+                            {/* Lecturer */}
+                            <div 
+                              className="flex items-center gap-2 text-[9.5px] cursor-pointer group"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedLecturer(course.lecturer || course.pensyarah);
+                              }}
+                            >
+                              <User className={`w-3 h-3 flex-shrink-0 ${isLight ? 'text-emerald-600' : 'text-emerald-400/60'}`} />
+                              <span className={`transition-colors font-medium truncate ${
+                                isLight ? 'text-slate-600 group-hover:text-amber-600' : 'text-white/60 group-hover:text-amber-300'
+                              }`}>
+                                {course.lecturer || course.pensyarah || t('lecturers')}
+                              </span>
+                            </div>
 
-                        {/* Attendance */}
-                        <div className="flex items-center justify-between pt-0.5">
-                          <AttendanceMeter percentStr={course.kehadiran} />
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setSelectedAttendanceCourse(course); }}
-                            className="text-[9px] text-white/25 hover:text-white/50 font-semibold flex items-center gap-1 transition-colors ml-2"
-                          >
-                            <CalendarCheck className="w-3 h-3 text-sky-400/70" /> Log
-                          </button>
-                        </div>
+                            {/* Group (Normalized display) */}
+                            <div className="flex items-center gap-2 text-[9.5px]">
+                              <GraduationCap className={`w-3 h-3 flex-shrink-0 ${isLight ? 'text-slate-400' : 'text-white/25'}`} />
+                              <span className={`font-medium ${isLight ? 'text-slate-500' : 'text-white/35'}`}>
+                                {t('group')}: {normalizeGroup(course.group || course.kumpulan || 'A')}
+                              </span>
+                            </div>
 
-                        {/* Notes */}
-                        <div className="space-y-1 pt-0.5" onClick={(e) => e.stopPropagation()}>
-                          {editingCourseId === courseId ? (
-                            <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                              <input
-                                type="text"
-                                value={noteInput}
-                                onClick={(e) => e.stopPropagation()}
-                                onChange={(e) => setNoteInput(e.target.value)}
-                                placeholder={t('addNote')}
-                                className="flex-1 bg-white/[0.04] rounded px-2 py-1 text-[9.5px] text-white placeholder-white/20 focus:outline-none font-medium border border-white/10"
-                              />
+                            {/* Attendance */}
+                            <div className="flex items-center justify-between pt-0.5">
+                              <AttendanceMeter percentStr={course.kehadiran} />
                               <button
-                                onClick={(e) => { e.stopPropagation(); handleSaveNote(courseId); }}
-                                className="px-2 py-1 rounded bg-amber-400/20 text-amber-300 text-[9px] font-bold"
+                                onClick={(e) => { e.stopPropagation(); setSelectedAttendanceCourse(course); }}
+                                className={`text-[9px] font-semibold flex items-center gap-1 transition-colors ml-2 ${
+                                  isLight ? 'text-slate-450 hover:text-slate-750' : 'text-white/25 hover:text-white/50'
+                                }`}
                               >
-                                {t('saveNote')}
+                                <CalendarCheck className={`w-3 h-3 ${isLight ? 'text-sky-600' : 'text-sky-400/70'}`} /> Log
                               </button>
                             </div>
-                          ) : (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setEditingCourseId(courseId); setNoteInput(currentNote); }}
-                              className="text-[9px] text-white/20 hover:text-white/40 font-medium flex items-center gap-1 transition-colors"
-                            >
-                              <Edit3 className="w-2.5 h-2.5" />
-                              {currentNote || t('addNote')}
-                            </button>
-                          )}
-                          {currentNote && editingCourseId !== courseId && (
-                            <div className="text-[9.5px] text-amber-300/60 font-medium pl-3 border-l border-amber-400/20">
-                              {currentNote}
+
+                            {/* Notes */}
+                            <div className="space-y-1 pt-0.5" onClick={(e) => e.stopPropagation()}>
+                              {editingCourseId === courseId ? (
+                                <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                  <input
+                                    type="text"
+                                    value={noteInput}
+                                    onClick={(e) => e.stopPropagation()}
+                                    onChange={(e) => setNoteInput(e.target.value)}
+                                    placeholder={t('addNote')}
+                                    className={`flex-1 rounded px-2 py-1 text-[9.5px] font-medium focus:outline-none border ${
+                                      isLight 
+                                        ? 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400 focus:border-amber-500/50' 
+                                        : 'bg-white/[0.04] text-white placeholder-white/20 border-white/10'
+                                    }`}
+                                  />
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handleSaveNote(courseId); }}
+                                    className={`px-2 py-1 rounded text-[9px] font-bold ${
+                                      isLight ? 'bg-[#0B1E43] text-white' : 'bg-amber-400/20 text-amber-300'
+                                    }`}
+                                  >
+                                    {t('saveNote')}
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setEditingCourseId(courseId); setNoteInput(currentNote); }}
+                                  className={`text-[9px] font-medium flex items-center gap-1 transition-colors ${
+                                    isLight ? 'text-slate-400 hover:text-slate-600' : 'text-white/20 hover:text-white/40'
+                                  }`}
+                                >
+                                  <Edit3 className="w-2.5 h-2.5" />
+                                  {currentNote || t('addNote')}
+                                </button>
+                              )}
+                              {currentNote && editingCourseId !== courseId && (
+                                <div className={`text-[9.5px] font-medium pl-3 border-l ${
+                                  isLight ? 'text-amber-700 border-amber-500' : 'text-amber-300/60 border-amber-400/20'
+                                }`}>
+                                  {currentNote}
+                                </div>
+                              )}
                             </div>
-                          )}
+                          </div>
                         </div>
                       </div>
-                    )}
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>
