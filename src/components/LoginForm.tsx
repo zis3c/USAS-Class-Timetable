@@ -50,27 +50,6 @@ export default function LoginForm() {
 
       <div className="w-full max-w-[380px] relative z-10 animate-fade-in-up">
 
-        {/* Header Branding */}
-        <div className="flex items-center gap-3 justify-center mb-8">
-          <img
-            src="/usas-logo.png"
-            alt="USAS Emblem"
-            className="w-9 h-9 object-contain drop-shadow-[0_2px_8px_rgba(212,175,55,0.2)]"
-          />
-          <div className="flex flex-col justify-center text-left">
-            <h2 className={`text-[13px] font-semibold tracking-tight leading-none ${
-              isLight ? 'text-slate-800' : 'text-white'
-            }`}>
-              Universiti Sultan Azlan Shah
-            </h2>
-            <p className={`text-[10px] font-medium uppercase tracking-[0.15em] mt-1 ${
-              isLight ? 'text-amber-600' : 'text-amber-400/70'
-            }`}>
-              Jadual Waktu Kuliah
-            </p>
-          </div>
-        </div>
-
         {/* Form Card */}
         <div className={`border rounded-lg p-6 animate-fade-in-up stagger-2 ${
           isLight 
@@ -230,7 +209,7 @@ export default function LoginForm() {
           isLight ? 'text-slate-500' : 'text-slate-500'
         }`}>
           <ShieldCheck className="w-3 h-3 text-emerald-500/60 flex-shrink-0" />
-          <span>{t('privacyNote')}</span>
+          <span className="whitespace-nowrap">{t('privacyNote')}</span>
         </div>
 
       </div>

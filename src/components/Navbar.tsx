@@ -16,7 +16,7 @@ export default function Navbar({ onOpenTools }: NavbarProps) {
   const isLight = theme === 'light';
 
   return (
-    <header className={`h-11 flex-shrink-0 border-b px-4 sm:px-6 relative z-50 transition-colors duration-150 ${isLight
+    <header className={`h-12 sm:h-14 flex-shrink-0 border-b px-4 sm:px-6 relative z-50 transition-colors duration-150 ${isLight
         ? 'bg-white border-slate-200 text-slate-800'
         : 'bg-[#060E1F]/98 border-white/[0.06] backdrop-blur-md text-white'
       }`}>
@@ -24,16 +24,17 @@ export default function Navbar({ onOpenTools }: NavbarProps) {
 
         {/* Left: Brand & Badges */}
         <div className="flex items-center gap-3 flex-1 min-w-0">
-          {session && (
-            <div className="flex items-center gap-2">
-              <img src="/usas-logo.png" alt="USAS Logo" className="w-5 h-5 object-contain" />
-              <span className={`text-[11px] font-medium tracking-normal whitespace-nowrap ${isLight ? 'text-slate-800' : 'text-white'
-                }`}>
-                <span className="inline sm:hidden" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>USAS</span>
-                <span className="hidden sm:inline" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>USAS Class Timetable</span>
-              </span>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <img src="/usas-logo.png" alt="USAS Emblem" className="w-8 h-8 object-contain drop-shadow-[0_2px_8px_rgba(212,175,55,0.2)]" />
+            <div className="flex flex-col justify-center text-left leading-none min-w-0">
+              <h2 className={`text-[12px] font-semibold tracking-tight leading-none whitespace-nowrap ${isLight ? 'text-slate-800' : 'text-white'}`}>
+                Universiti Sultan Azlan Shah
+              </h2>
+              <p className={`text-[9px] font-medium uppercase tracking-[0.15em] mt-0.5 whitespace-nowrap ${isLight ? 'text-amber-600' : 'text-amber-400/70'}`}>
+                Jadual Waktu Kuliah
+              </p>
             </div>
-          )}
+          </div>
 
           <div className="flex items-center gap-1.5">
             {session?.isDemo && (

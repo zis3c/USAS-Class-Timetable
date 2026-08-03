@@ -49,7 +49,7 @@ export const translations = {
     loginMatric: "No. Matrik",
     loginPass: "Kata Laluan",
     authenticating: "Mengesahkan...",
-    privacyNote: "Sesi dilindungi dengan penyulitan selamat USAS Pelajar.",
+    privacyNote: "Dilindungi oleh STEM USAS.",
     loginUmcNoteTitle: "Kredensial Aplikasi UMC USAS",
     loginUmcNoteDesc: "Guna kredensial log masuk UMC App USAS.",
     days: {
@@ -132,7 +132,7 @@ export const translations = {
     loginMatric: "Matric No.",
     loginPass: "Password",
     authenticating: "Authenticating...",
-    privacyNote: "Session secured with safe USAS student encryption.",
+    privacyNote: "Protected by STEM USAS.",
     loginUmcNoteTitle: "UMC USAS App Credentials",
     loginUmcNoteDesc: "Use same credentials as UMC App USAS login.",
     days: {

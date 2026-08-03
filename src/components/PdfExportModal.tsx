@@ -44,7 +44,7 @@ const getModalDayColors = (day: string | undefined, isLight: boolean) => {
 const getPresetStyle = (preset: WallpaperPreset, detail: ContentDetail = 'DETAILS') => {
   const base = {
     phone: {
-      tableFontSize: 'text-[5px] sm:text-[5.75px]',
+      tableFontSize: 'text-[5.75px]',
       thPadding: 'p-0.5',
       tdPadding: 'p-0.5',
       minH: 'min-h-[34px]',
@@ -55,7 +55,7 @@ const getPresetStyle = (preset: WallpaperPreset, detail: ContentDetail = 'DETAIL
       iconSize: 'w-1.5 h-1.5',
     },
     square: {
-      tableFontSize: 'text-[6.5px] sm:text-[7px]',
+      tableFontSize: 'text-[7px]',
       thPadding: 'p-0.5',
       tdPadding: 'p-0.5',
       minH: 'min-h-[40px]',
@@ -66,7 +66,7 @@ const getPresetStyle = (preset: WallpaperPreset, detail: ContentDetail = 'DETAIL
       iconSize: 'w-2 h-2',
     },
     tablet: {
-      tableFontSize: 'text-[7.5px] sm:text-[8px]',
+      tableFontSize: 'text-[8px]',
       thPadding: 'p-1',
       tdPadding: 'p-1',
       minH: 'min-h-[46px]',
@@ -77,7 +77,7 @@ const getPresetStyle = (preset: WallpaperPreset, detail: ContentDetail = 'DETAIL
       iconSize: 'w-2.5 h-2.5',
     },
     desktop: {
-      tableFontSize: 'text-[8.5px] sm:text-[9px]',
+      tableFontSize: 'text-[9px]',
       thPadding: 'p-1.5',
       tdPadding: 'p-1',
       minH: 'min-h-[52px]',
@@ -185,6 +185,8 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
   const [detailDropdownOpen, setDetailDropdownOpen] = useState(false);
 
   const [exporting, setExporting] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [progressStatus, setProgressStatus] = useState('');
   const [shouldRender, setShouldRender] = useState(isOpen);
   const [animate, setAnimate] = useState(false);
   const [previewScale, setPreviewScale] = useState(1);
@@ -207,10 +209,10 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
   const isExportLight = exportTheme === 'light';
 
   const renderFloatingZoomWidget = (isLightBg) => (
-    <div className={`sticky top-4 left-4 z-30 w-fit self-start flex items-center gap-1.5 p-1 rounded-xl shadow-lg border backdrop-blur-xl transition-all ${
+    <div className={`sticky top-4 left-4 z-30 w-fit self-start flex items-center gap-1.5 p-1 rounded-xl shadow-lg border backdrop-blur-xl transition-all pointer-events-auto ${
       isLightBg 
-        ? 'bg-white/35 border-slate-200/30 text-slate-700 shadow-slate-900/5' 
-        : 'bg-[#0A1428]/35 border-white/[0.08] text-white/95 shadow-black/20'
+        ? 'bg-white/90 border-slate-200 text-slate-700 shadow-slate-900/5' 
+        : 'bg-[#0A1428]/90 border-white/10 text-white/95 shadow-black/20'
     }`}>
       <button
         onClick={(e) => { e.stopPropagation(); setUserZoom(prev => Math.max(0.5, prev - 0.1)); }}
@@ -277,8 +279,15 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
   useEffect(() => {
     if (isOpen) {
       setShouldRender(true);
-      const timer = setTimeout(() => setAnimate(true), 10);
-      return () => clearTimeout(timer);
+      let raf1 = 0;
+      let raf2 = 0;
+      raf1 = requestAnimationFrame(() => {
+        raf2 = requestAnimationFrame(() => setAnimate(true));
+      });
+      return () => {
+        cancelAnimationFrame(raf1);
+        cancelAnimationFrame(raf2);
+      };
     } else {
       setAnimate(false);
       const timer = setTimeout(() => setShouldRender(false), 200);
@@ -363,22 +372,67 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
 
   const handleDownload = async () => {
     setExporting(true);
+    setProgress(0);
+    setProgressStatus(lang === 'en' ? 'Preparing template...' : 'Menyediakan template...');
+    
+    // Smooth progress simulation
+    const interval = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 88) {
+          // Slow down progress increments as we approach completion
+          return prev + 1 >= 95 ? 95 : prev + 1;
+        }
+        // Rapid growth in the beginning
+        if (prev < 40) return prev + Math.floor(Math.random() * 8) + 4;
+        return prev + Math.floor(Math.random() * 4) + 1;
+      });
+    }, 150);
+
+    // Update statuses based on progress
+    const statusInterval = setInterval(() => {
+      setProgress((curr) => {
+        if (curr < 30) {
+          setProgressStatus(lang === 'en' ? 'Initializing render engine...' : 'Memulakan enjin jana...');
+        } else if (curr < 65) {
+          setProgressStatus(lang === 'en' ? 'Rendering high-resolution elements...' : 'Menjana grafik resolusi tinggi...');
+        } else if (curr < 90) {
+          setProgressStatus(lang === 'en' ? 'Compiling download package...' : 'Menyusun fail muat turun...');
+        }
+        return curr;
+      });
+    }, 500);
+
+    // Yield control to the browser event loop to paint the progress overlay
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
     try {
       if (exportMode === 'WALLPAPER') {
         const filename = `USAS_Lockscreen_${wallpaperPreset.toUpperCase()}_${contentDetail}_${matricNo}.png`;
         await generateLockscreenImage(wallpaperRef.current, filename);
       } else if (exportFileType === 'PNG') {
         const filename = `Jadual_USAS_Formal_${matricNo}_LANDSCAPE.png`;
-        await generateElementPng(pdfRef.current, filename, 3, '#FFFFFF');
+        await generateElementPng(pdfRef.current, filename, 8, '#FFFFFF');
       } else {
         const filename = `Jadual_USAS_Formal_${matricNo}_LANDSCAPE.pdf`;
         await generateTimetablePdf(pdfRef.current, 'landscape', filename);
       }
+      
+      // Complete progress on success
+      clearInterval(interval);
+      clearInterval(statusInterval);
+      setProgress(100);
+      setProgressStatus(lang === 'en' ? 'Download completed!' : 'Muat turun berjaya!');
+      
+      // Delay before closing loading overlay
+      await new Promise(resolve => setTimeout(resolve, 800));
     } catch (err) {
+      clearInterval(interval);
+      clearInterval(statusInterval);
       console.error('Export Error:', err);
       alert(lang === 'ms' ? 'Gagal menjana fail. Sila cuba lagi.' : 'Failed to generate file. Please try again.');
     } finally {
       setExporting(false);
+      setProgress(0);
     }
   };
 
@@ -404,7 +458,23 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
     { id: 'dark', label: t('themeDark') },
   ];
 
-  const renderWallpaperCourseContent = (course: TimetableItem, span: number, badgeHeightPx: number, isLight: boolean) => {
+  const renderWallpaperCourseContent = (
+    course: TimetableItem,
+    span: number,
+    badgeHeightPx: number,
+    isLight: boolean,
+    style: {
+      tableFontSize: string;
+      thPadding: string;
+      tdPadding: string;
+      minH: string;
+      courseTitleSize: string;
+      courseSubSize?: string;
+      courseLocSize: string;
+      durationSize: string;
+      iconSize: string;
+    }
+  ) => {
     const code = course.course_id || course.kod_kursus;
     const loc = course.location || 'Dewan USAS';
     const duration = formatDurationRange(course.start_time || course.jadual, course.end_time);
@@ -437,80 +507,53 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
       if (contentDetail === 'CODE') return baseSize * 1.25;
       return baseSize;
     })();
-
     return (
       <div
-        className="flex flex-col items-center justify-center w-full h-full min-h-full overflow-hidden text-center"
-        style={{ height: badgeHeightPx, minHeight: badgeHeightPx }}
+        className="w-full flex flex-col justify-center items-center text-center p-0.5 overflow-hidden"
+        style={{ height: `${badgeHeightPx - 2}px` }}
       >
         {contentDetail === 'DETAILS' ? (
-          <div className="w-full h-full min-h-full px-1.5 py-1 flex flex-col justify-between">
-            <div className={`w-full flex justify-start text-left ${
-              wallpaperPreset === 'phone' 
-                ? 'text-[5.5px]' 
-                : wallpaperPreset === 'square' 
-                  ? 'text-[6.5px]' 
-                  : wallpaperPreset === 'tablet' 
-                    ? 'text-[7.2px]' 
-                    : 'text-[7.8px]'
-            } leading-none font-bold ${isLight ? 'text-slate-500' : 'text-white/60'}`}>
-              <span className="whitespace-nowrap">{shortDuration || duration}</span>
+          <div className="w-full flex flex-col justify-center items-center text-center gap-0.5">
+            <div className={`w-full text-center ${style.durationSize} leading-normal font-bold ${isLight ? 'text-slate-500' : 'text-white/60'}`}>
+              <span className="whitespace-nowrap text-center">{shortDuration || duration}</span>
             </div>
-            <div className="flex-grow flex items-center justify-center py-0.5 w-full">
-              <div
-                className={`w-full break-words font-black leading-tight tracking-tight text-center ${
+            <div className="w-full text-center">
+              <span
+                className={`block w-full break-words font-black leading-normal tracking-tight text-center ${
                   isLight ? 'text-slate-800' : 'text-white'
                 }`}
                 style={{ fontSize: `${codeOnlyFontSize}px` }}
                 title={code}
               >
                 {code}
-              </div>
+              </span>
             </div>
-            <div className={`w-full flex justify-center text-center ${
-              wallpaperPreset === 'phone' 
-                ? 'text-[5.5px]' 
-                : wallpaperPreset === 'square' 
-                  ? 'text-[6.5px]' 
-                  : wallpaperPreset === 'tablet' 
-                    ? 'text-[7.2px]' 
-                    : 'text-[7.8px]'
-            } leading-tight font-semibold ${isLight ? 'text-slate-500' : 'text-white/60'}`}>
+            <div className={`w-full text-center ${style.courseLocSize} leading-normal font-semibold ${isLight ? 'text-slate-500' : 'text-white/60'}`}>
               <span className="break-words whitespace-normal text-center" title={loc}>{loc}</span>
             </div>
           </div>
         ) : (
-          <div className="relative w-full h-full min-h-full overflow-hidden">
-            <div className="absolute inset-0 flex items-center justify-center px-1">
-              <span
-                className={`block break-words leading-tight tracking-tight text-center font-black ${isLight ? 'text-slate-800' : 'text-white'}`}
-                style={{ fontSize: `${codeOnlyFontSize}px`, letterSpacing: '-0.03em' }}
-                title={code}
-              >
-                {code}
-              </span>
-            </div>
+          <div className="w-full flex items-center justify-center text-center">
+            <span
+              className={`inline-block break-words leading-normal tracking-tight text-center font-black ${isLight ? 'text-slate-800' : 'text-white'}`}
+              style={{ fontSize: `${codeOnlyFontSize}px`, letterSpacing: '-0.03em' }}
+              title={code}
+            >
+              {code}
+            </span>
           </div>
         )}
       </div>
     );
   };
 
-  const wallpaperTopSpacer = wallpaperPreset === 'desktop'
-    ? 'h-[56px]'
-    : wallpaperPreset === 'square'
-      ? 'h-[64px]'
-      : wallpaperPreset === 'tablet'
-        ? 'h-[104px]'
-        : 'h-[96px]';
+  const getSpacerHeights = (preset: WallpaperPreset) => {
+    const top = preset === 'desktop' ? 56 : preset === 'square' ? 64 : preset === 'tablet' ? 104 : 96;
+    const bottom = preset === 'desktop' ? 28 : preset === 'square' ? 24 : preset === 'tablet' ? 22 : 18;
+    return { top, bottom };
+  };
 
-  const wallpaperBottomSpacer = wallpaperPreset === 'desktop'
-    ? 'h-[28px]'
-    : wallpaperPreset === 'square'
-      ? 'h-[24px]'
-      : wallpaperPreset === 'tablet'
-        ? 'h-[22px]'
-        : 'h-[18px]';
+  const currentSpacers = getSpacerHeights(wallpaperPreset);
 
   return (
     <div className={`fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 backdrop-blur-md transition-all duration-200 ${
@@ -802,7 +845,9 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                 maxHeight: '65vh' 
               }}
             >
-              {renderFloatingZoomWidget(true)}
+              <div className="absolute inset-0 pointer-events-none z-30">
+                {renderFloatingZoomWidget(true)}
+              </div>
               <div 
                 style={{ 
                   width: `${840 * finalScale}px`, 
@@ -814,6 +859,7 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
               >
                 <div
                   ref={pdfRef}
+                  data-export-root="formal-a4-export-root"
                   className="bg-white text-slate-950 p-4 sm:p-6 rounded-lg text-xs shadow-inner border border-slate-300 w-[840px] max-w-none absolute top-0 left-0"
                   style={{
                     transform: `scale(${finalScale})`,
@@ -858,35 +904,57 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
 
                   <table className="w-full table-fixed border-collapse border border-slate-400 text-[10px]">
                     <thead>
-                      <tr className="bg-slate-900 text-white font-bold">
-                        <th className="border border-slate-400 p-2 text-center w-20">{lang === 'en' ? 'DAY' : 'HARI'}</th>
-                        <th className="border border-slate-400 p-2 text-center w-28">{lang === 'en' ? 'TIME' : 'WAKTU'}</th>
-                        <th className="border border-slate-400 p-2 text-left w-24">{lang === 'en' ? 'CODE' : 'KOD'}</th>
-                        <th className="border border-slate-400 p-2 text-left">{lang === 'en' ? 'COURSE NAME' : 'NAMA KURSUS'}</th>
-                        <th className="border border-slate-400 p-2 text-center w-16">{lang === 'en' ? 'GROUP' : 'GROUP'}</th>
-                        <th className="border border-slate-400 p-2 text-left w-36">{lang === 'en' ? 'LOCATION' : 'LOKASI'}</th>
+                      <tr className="bg-slate-900 text-white font-bold" style={{ height: '32px' }}>
+                        <th className="border border-slate-400 px-2 py-1.5 text-center align-middle w-20">
+                          <span>{lang === 'en' ? 'DAY' : 'HARI'}</span>
+                        </th>
+                        <th className="border border-slate-400 px-2 py-1.5 text-center align-middle w-28">
+                          <span>{lang === 'en' ? 'TIME' : 'WAKTU'}</span>
+                        </th>
+                        <th className="border border-slate-400 px-2.5 py-1.5 text-left align-middle w-24">
+                          <span>{lang === 'en' ? 'CODE' : 'KOD'}</span>
+                        </th>
+                        <th className="border border-slate-400 px-2.5 py-1.5 text-left align-middle">
+                          <span>{lang === 'en' ? 'COURSE NAME' : 'NAMA KURSUS'}</span>
+                        </th>
+                        <th className="border border-slate-400 px-2 py-1.5 text-center align-middle w-16">
+                          <span>{lang === 'en' ? 'GROUP' : 'GROUP'}</span>
+                        </th>
+                        <th className="border border-slate-400 px-2.5 py-1.5 text-left align-middle w-36">
+                          <span>{lang === 'en' ? 'LOCATION' : 'LOKASI'}</span>
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {allCourses.map((c, i) => (
-                        <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                          <td className="border border-slate-300 p-2 text-center font-bold text-amber-805">{t(`days.${c.day?.toUpperCase()}`) || c.day}</td>
-                          <td className="border border-slate-300 p-2 text-center font-medium">
-                            {formatDurationRange(c.start_time || c.jadual, c.end_time)}
+                        <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'} style={{ height: '30px' }}>
+                          <td className="border border-slate-300 px-2 py-1 text-center align-middle font-bold text-amber-805">
+                            <span>{t(`days.${c.day?.toUpperCase()}`) || c.day}</span>
                           </td>
-                          <td className="border border-slate-300 p-2 font-bold text-blue-900">{c.course_id || c.kod_kursus}</td>
-                          <td className="border border-slate-300 p-2 font-semibold text-slate-900">{c.course_name || c.kursus}</td>
-                          <td className="border border-slate-300 p-2 text-center font-bold">{normalizeGroup(c.group || c.kumpulan || 'A')}</td>
-                          <td className="border border-slate-300 p-2 text-slate-800">{c.location || 'Dewan USAS'}</td>
+                          <td className="border border-slate-300 px-2 py-1 text-center align-middle font-medium">
+                            <span>{formatDurationRange(c.start_time || c.jadual, c.end_time)}</span>
+                          </td>
+                          <td className="border border-slate-300 px-2.5 py-1 text-left align-middle font-bold text-blue-900">
+                            <span>{c.course_id || c.kod_kursus}</span>
+                          </td>
+                          <td className="border border-slate-300 px-2.5 py-1 text-left align-middle font-semibold text-slate-900">
+                            <span>{c.course_name || c.kursus}</span>
+                          </td>
+                          <td className="border border-slate-300 px-2 py-1 text-center align-middle font-bold">
+                            <span>{normalizeGroup(c.group || c.kumpulan || 'A')}</span>
+                          </td>
+                          <td className="border border-slate-300 px-2.5 py-1 text-left align-middle text-slate-800">
+                            <span>{c.location || 'Dewan USAS'}</span>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
 
                   {/* Relocated Date & Time Footer */}
-                  <div className="mt-3 pt-1.5 border-t border-slate-200 text-[8.5px] text-slate-500 flex justify-between items-center font-medium">
-                    <span>{lang === 'en' ? 'This official document is generated from the USAS Student Timetable Portal.' : 'Dokumen rasmi ini dijana daripada Portal Jadual Waktu Kuliah USAS.'}</span>
-                    <span>{lang === 'en' ? 'Printed Date' : 'Tarikh Cetakan'}: {new Date().toLocaleDateString(lang === 'en' ? 'en-US' : 'ms-MY')} {new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ms-MY', { hour: '2-digit', minute: '2-digit' })}</span>
+                  <div className="mt-3 pt-1.5 border-t border-slate-200 text-[8px] text-slate-500 flex justify-between items-center font-medium gap-3">
+                    <span className="whitespace-nowrap">{lang === 'en' ? 'Generated by STEM USAS.' : 'Dijana oleh STEM USAS.'}</span>
+                    <span className="whitespace-nowrap">{lang === 'en' ? 'Printed Date' : 'Tarikh Cetakan'}: {new Date().toLocaleDateString(lang === 'en' ? 'en-US' : 'ms-MY')} {new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ms-MY', { hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
                 </div>
               </div>
@@ -901,9 +969,11 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
               <div className={`flex justify-center py-3 rounded-xl border overflow-auto usas-scrollbar relative ${
                 isLight ? 'bg-slate-100 border-slate-200' : 'bg-[#060D1A] border-white/[0.04]'
               }`} style={{ maxHeight: '65vh' }}>
-                {renderFloatingZoomWidget(isExportLight)}
+                <div className="absolute inset-0 pointer-events-none z-30">
+                  {renderFloatingZoomWidget(isExportLight)}
+                </div>
                 {(() => {
-                  const widthMap = { phone: 340, tablet: 520, square: 480, desktop: 780 };
+                  const widthMap = { phone: 360, tablet: 520, square: 480, desktop: 780 };
                   const heightMap = { phone: 640, tablet: 640, square: 480, desktop: 480 };
                   const w = widthMap[wallpaperPreset];
                   const h = heightMap[wallpaperPreset];
@@ -932,7 +1002,7 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                         }}
                       >
                   {/* Top Reserved Clock Area (Removed text labels) */}
-                  <div className={`${wallpaperTopSpacer} flex-shrink-0`} />
+                  <div style={{ height: `${currentSpacers.top}px` }} className="flex-shrink-0" />
 
                   {/* Lock Screen Matrix Grid */}
                   <div className={`border rounded-xl p-0 flex-1 min-h-0 flex flex-col justify-start overflow-hidden ${
@@ -950,42 +1020,68 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                           : wallpaperPreset === 'tablet'
                             ? 54
                             : 44;
-                      const rowHeightClass = wallpaperPreset === 'phone'
-                        ? 'h-[46px]'
-                        : wallpaperPreset === 'square'
-                          ? 'h-[42px]'
-                          : wallpaperPreset === 'tablet'
-                            ? 'h-[54px]'
-                            : 'h-[44px]';
+
+                      // Calculate the exact available width inside the padded and bordered grid container
+                      const wallpaperPadding = wallpaperPreset === 'phone' ? 12 : wallpaperPreset === 'square' ? 14 : 16;
+                      const gridInnerWidth = w - (wallpaperPadding * 2) - 2; // Subtracting 2px for grid borders
+                      const colWidth = (gridInnerWidth - 48) / 9; // Subtracting 48px for the day column
+
                       return (
                         <table className={`w-full h-full table-fixed border-collapse ${style.tableFontSize}`}>
+                          <colgroup>
+                            <col style={{ width: '48px' }} />
+                            {WALLPAPER_HOUR_STARTS.map((hourStart) => (
+                              <col key={hourStart} style={{ width: `${colWidth}px` }} />
+                            ))}
+                          </colgroup>
                           <thead>
-                            <tr>
-                              <th className={`text-center font-black uppercase tracking-wider w-12 border-r ${
-                                isExportLight ? 'text-slate-500 border-slate-200' : 'text-amber-400/80 border-white/[0.06]'
-                              } ${style.thPadding}`}>
-                                
-                              </th>
-                              {WALLPAPER_HOUR_STARTS.map((hourStart) => {
-                                return (
-                                  <th key={hourStart} className={`text-center font-black uppercase tracking-wider border-r ${
-                                    isExportLight ? 'border-slate-200' : 'border-white/[0.06]'
-                                  } ${style.thPadding}`}>
-                                    {formatWallpaperSlotLabel(hourStart)}
+                            {(() => {
+                              const headerHeightPx = wallpaperPreset === 'phone' ? 14 : wallpaperPreset === 'square' ? 16 : wallpaperPreset === 'tablet' ? 20 : 18;
+                              return (
+                                <tr style={{ height: `${headerHeightPx}px` }}>
+                                  <th 
+                                    className={`p-0 font-black uppercase tracking-wider border-r ${
+                                      isExportLight ? 'text-slate-500 border-slate-200' : 'text-amber-400/80 border-white/[0.06]'
+                                    }`}
+                                    style={{ height: `${headerHeightPx}px` }}
+                                  >
+                                    <div className="w-full flex items-center justify-center text-center" style={{ height: `${headerHeightPx}px` }}>
+                                      <span>&nbsp;</span>
+                                    </div>
                                   </th>
-                                );
-                              })}
-                            </tr>
+                                  {WALLPAPER_HOUR_STARTS.map((hourStart) => {
+                                    return (
+                                      <th 
+                                        key={hourStart} 
+                                        className={`p-0 font-black uppercase tracking-wider border-r ${
+                                          isExportLight ? 'text-slate-700 border-slate-200' : 'text-white border-white/[0.06]'
+                                        }`}
+                                        style={{ height: `${headerHeightPx}px` }}
+                                      >
+                                        <div className="w-full flex items-center justify-center text-center" style={{ height: `${headerHeightPx}px` }}>
+                                          <span>{formatWallpaperSlotLabel(hourStart)}</span>
+                                        </div>
+                                      </th>
+                                    );
+                                  })}
+                                </tr>
+                              );
+                            })()}
                           </thead>
                           <tbody>
                             {daysList.map((d) => {
                               const dayColor = getModalDayColors(d, isExportLight);
                               return (
-                              <tr key={d} className={`border-t ${rowHeightClass} ${isExportLight ? 'border-slate-200/60' : 'border-white/[0.04]'}`}>
-                                <td className={`font-bold border-r text-center ${
-                                  isExportLight ? 'text-slate-450 border-slate-200' : 'text-white/40 border-white/[0.06]'
-                                } ${style.tdPadding} ${dayColor.text}`}>
-                                  {t(`shortDays.${d?.toUpperCase()}`) || d}
+                              <tr key={d} style={{ height: `${rowHeightPx}px` }} className={`border-t ${isExportLight ? 'border-slate-200/60' : 'border-white/[0.04]'}`}>
+                                <td 
+                                  className={`p-0 font-bold border-r ${
+                                    isExportLight ? 'text-slate-450 border-slate-200' : 'text-white/40 border-white/[0.06]'
+                                  } ${dayColor.text}`}
+                                  style={{ height: `${rowHeightPx}px` }}
+                                >
+                                  <div className="w-full flex items-center justify-center text-center" style={{ height: `${rowHeightPx}px` }}>
+                                    <span>{t(`shortDays.${d?.toUpperCase()}`) || d}</span>
+                                  </div>
                                 </td>
                                 {WALLPAPER_HOUR_STARTS.map((hourStart) => {
                                   const course = getWallpaperCourseForHour(d, hourStart);
@@ -994,12 +1090,15 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                                   if (course) {
                                     const courseSpan = getWallpaperCourseSpan(course);
                                     return (
-                                      <td key={hourStart} colSpan={courseSpan} className={`border-r border-white/[0.04] align-middle p-0 ${
-                                        isExportLight ? 'border-slate-200/60' : 'border-white/[0.04]'
-                                      }`}>
-                                      <div className={`w-full h-full min-h-full border-0 flex flex-col justify-center items-center overflow-hidden ${dayColor.bg} ${dayColor.border}`}>
-                                          {renderWallpaperCourseContent(course, courseSpan, rowHeightPx, isExportLight)}
-                                        </div>
+                                      <td 
+                                        key={hourStart} 
+                                        colSpan={courseSpan} 
+                                        className={`border-r align-middle p-0.5 overflow-visible ${
+                                          isExportLight ? 'border-slate-200/60' : 'border-white/[0.04]'
+                                        } ${dayColor.bg} ${dayColor.border}`}
+                                        style={{ height: `${rowHeightPx}px` }}
+                                      >
+                                        {renderWallpaperCourseContent(course, courseSpan, rowHeightPx, isExportLight, style)}
                                       </td>
                                     );
                                   }
@@ -1018,7 +1117,7 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                     })()}
                   </div>
 
-                  <div className={`${wallpaperBottomSpacer} flex-shrink-0`} />
+                  <div style={{ height: `${currentSpacers.bottom}px` }} className="flex-shrink-0" />
                 </div>
               </div>
             );
@@ -1056,15 +1155,13 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
             {exporting ? (
               <>
                 <RotateCw className="w-3.5 h-3.5 animate-spin" />
-                <span>Generating...</span>
+                <span>{lang === 'en' ? 'Generating...' : 'Menjana...'}</span>
               </>
             ) : (
               <>
                 <Download className="w-3.5 h-3.5" />
                 <span>
-                  {exportMode === 'WALLPAPER'
-                    ? (lang === 'en' ? 'Download PNG' : 'Muat Turun PNG')
-                    : (lang === 'en' ? 'Download PDF' : 'Muat Turun PDF')}
+                  {lang === 'en' ? 'Download' : 'Muat Turun'}
                 </span>
               </>
             )}
@@ -1072,6 +1169,64 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
         </div>
 
       </div>
+
+      {exporting && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-md rounded-3xl overflow-hidden">
+          <div className={`p-6 rounded-2xl border flex flex-col items-center justify-center gap-4 text-center max-w-xs w-full shadow-2xl transition-all duration-300 ${
+            isLight 
+              ? 'bg-white/95 border-slate-200 text-slate-900 shadow-slate-900/10' 
+              : 'bg-[#0A1428]/95 border-white/10 text-white shadow-black/40'
+          }`}>
+            {/* Circular Gauge Meter */}
+            <div className="relative w-24 h-24 flex items-center justify-center">
+              {/* Circular SVG Gauge */}
+              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 80 80">
+                <circle
+                  cx="40"
+                  cy="40"
+                  r="34"
+                  className={isLight ? 'stroke-slate-100' : 'stroke-white/[0.04]'}
+                  strokeWidth="5"
+                  fill="transparent"
+                />
+                <circle
+                  cx="40"
+                  cy="40"
+                  r="34"
+                  className="stroke-amber-500 transition-all duration-300 ease-out"
+                  strokeWidth="5"
+                  fill="transparent"
+                  strokeDasharray={2 * Math.PI * 34}
+                  strokeDashoffset={2 * Math.PI * 34 - (progress / 100) * (2 * Math.PI * 34)}
+                  strokeLinecap="round"
+                />
+              </svg>
+              {/* Center percentage counter */}
+              <div className="absolute flex flex-col items-center justify-center">
+                <span className="text-lg font-black tracking-tight">{progress}%</span>
+              </div>
+            </div>
+
+            {/* Gauge Info Text */}
+            <div className="space-y-1">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-amber-500">
+                {lang === 'en' ? 'Exporting File' : 'Mengeksport Fail'}
+              </h3>
+              <p className="text-[11px] font-medium opacity-80 min-h-[32px] flex items-center justify-center px-2">
+                {progressStatus}
+              </p>
+            </div>
+            
+            {/* Simulated bar loader for secondary visual hint */}
+            <div className={`w-full h-1 rounded-full overflow-hidden ${isLight ? 'bg-slate-100' : 'bg-white/[0.04]'}`}>
+              <div 
+                className="h-full bg-gradient-to-r from-amber-500 to-amber-400 transition-all duration-300 ease-out rounded-full"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
