@@ -1161,7 +1161,9 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
               <>
                 <Download className="w-3.5 h-3.5" />
                 <span>
-                  {lang === 'en' ? 'Download' : 'Muat Turun'}
+                  {exportMode === 'WALLPAPER'
+                    ? (lang === 'en' ? 'Download PNG' : 'Muat Turun PNG')
+                    : (lang === 'en' ? 'Download PDF' : 'Muat Turun PDF')}
                 </span>
               </>
             )}

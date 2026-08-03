@@ -28,10 +28,10 @@ export default function Navbar({ onOpenTools }: NavbarProps) {
             <img src="/usas-logo.png" alt="USAS Emblem" className="w-8 h-8 object-contain drop-shadow-[0_2px_8px_rgba(212,175,55,0.2)]" />
             <div className="flex flex-col justify-center text-left leading-none min-w-0">
               <h2 className={`text-[12px] font-semibold tracking-tight leading-none whitespace-nowrap ${isLight ? 'text-slate-800' : 'text-white'}`}>
-                Universiti Sultan Azlan Shah
+                USAS Class Timetable
               </h2>
               <p className={`text-[9px] font-medium uppercase tracking-[0.15em] mt-0.5 whitespace-nowrap ${isLight ? 'text-amber-600' : 'text-amber-400/70'}`}>
-                Jadual Waktu Kuliah
+                Universiti Sultan Azlan Shah
               </p>
             </div>
           </div>
