@@ -62,11 +62,11 @@ export default function AttendanceHistoryModal({ isOpen, onClose, course }: Atte
   const groupDisplay = normalizeGroup(course.group || course.kumpulan || 'A');
 
   return (
-    <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md transition-all duration-200 ${
+    <div data-lenis-prevent className={`fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md transition-all duration-200 touch-pan-y overscroll-contain ${
       animate ? 'bg-slate-900/30 opacity-100' : 'bg-slate-900/0 opacity-0 pointer-events-none'
     }`}>
       
-      <div className={`rounded-xl w-full max-w-2xl border pt-4 px-6 pb-6 space-y-5 relative transition-all duration-200 transform ${
+      <div className={`rounded-xl w-full max-w-2xl border pt-4 px-6 pb-6 relative transition-all duration-200 transform flex flex-col gap-5 min-h-0 max-h-[85vh] sm:max-h-[90vh] ${
         animate ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
       } ${
         isLight 
@@ -104,7 +104,7 @@ export default function AttendanceHistoryModal({ isOpen, onClose, course }: Atte
             <div>Memuatkan rekod kehadiran USAS...</div>
           </div>
         ) : (
-          <div className="space-y-2 max-h-80 overflow-y-auto pr-1 usas-scrollbar">
+          <div data-lenis-prevent className="space-y-2 overflow-y-auto flex-1 min-h-0 pr-1 usas-scrollbar touch-pan-y overscroll-contain">
             {history.length === 0 ? (
               <div className={`p-6 text-center text-xs ${isLight ? 'text-slate-400' : 'text-slate-400'}`}>Tiada rekod mingguan dijumpai.</div>
             ) : (

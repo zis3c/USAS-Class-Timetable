@@ -59,7 +59,7 @@ export default function ExamScheduleModal({ isOpen, onClose, courses = [] }) {
       animate ? 'bg-slate-900/30 opacity-100' : 'bg-slate-900/0 opacity-0 pointer-events-none'
     }`}>
       
-      <div className={`rounded-xl w-full max-w-3xl border pt-4 px-6 pb-6 space-y-5 relative transition-all duration-200 transform ${
+      <div className={`rounded-xl w-full max-w-3xl border pt-4 px-6 pb-6 relative transition-all duration-200 transform flex flex-col gap-5 min-h-0 max-h-[85vh] sm:max-h-[90vh] ${
         animate ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
       } ${
         isLight 
@@ -89,7 +89,7 @@ export default function ExamScheduleModal({ isOpen, onClose, courses = [] }) {
         </div>
 
         {/* Exam Cards List */}
-        <div className="space-y-3 max-h-80 overflow-y-auto pr-1 usas-scrollbar">
+        <div data-lenis-prevent className="space-y-3 overflow-y-auto flex-1 min-h-0 pr-1 usas-scrollbar touch-pan-y overscroll-contain">
           {examList.map((e, idx) => (
             <div key={idx} className={`p-4 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-sm transition-all ${
               isLight 

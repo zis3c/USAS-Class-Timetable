@@ -58,12 +58,13 @@ export default function LoginForm() {
         }`}>
 
           {/* UMC Note */}
-          <div className={`mb-5 px-2.5 py-1.5 rounded-md text-[9px] sm:text-[9.5px] flex items-center gap-1.5 justify-center border ${
+          <div className={`mb-5 px-3 py-2 rounded-xl text-[10px] sm:text-[11px] flex items-start gap-2.5 border transition-all duration-300 ${
             isLight 
-              ? 'bg-amber-50/70 border-amber-200/60 text-amber-900' 
-              : 'bg-amber-500/[0.04] border-amber-500/10 text-slate-400'
+              ? 'bg-amber-500/[0.04] border-amber-500/20 text-amber-900 shadow-sm' 
+              : 'bg-amber-500/[0.03] border-amber-500/10 text-amber-200/90'
           }`}>
-            <span className="truncate">{t('loginUmcNoteDesc')}</span>
+            <ShieldCheck className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
+            <span className="leading-relaxed text-left">{t('loginUmcNoteDesc')}</span>
           </div>
 
           {error && (

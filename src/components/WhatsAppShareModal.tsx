@@ -78,10 +78,10 @@ export default function WhatsAppShareModal({ isOpen, onClose, timetable = [], st
   };
 
   return (
-    <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md transition-all duration-200 ${
+    <div data-lenis-prevent className={`fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md transition-all duration-200 touch-pan-y overscroll-contain ${
       animate ? 'bg-slate-900/30 opacity-100' : 'bg-slate-900/0 opacity-0 pointer-events-none'
     }`}>
-      <div className={`rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border pt-3 px-5 pb-5 space-y-4 relative transition-all duration-200 transform ${
+      <div className={`rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border pt-3 px-5 pb-5 space-y-4 relative transition-all duration-200 transform min-h-0 ${
         animate ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
       } ${
         isLight
@@ -113,7 +113,7 @@ export default function WhatsAppShareModal({ isOpen, onClose, timetable = [], st
           </div>
         </div>
 
-        <div className={`rounded-xl p-3 border max-h-52 overflow-y-auto text-left usas-scrollbar ${
+        <div data-lenis-prevent className={`rounded-xl p-3 border max-h-52 overflow-y-auto text-left usas-scrollbar touch-pan-y overscroll-contain ${
           isLight ? 'bg-slate-50 border-slate-200 text-slate-700 font-medium' : 'bg-[#070F22] border-slate-800 text-slate-300'
         }`}>
           <pre className="text-[10px] font-mono whitespace-pre-wrap leading-relaxed">{formattedText}</pre>

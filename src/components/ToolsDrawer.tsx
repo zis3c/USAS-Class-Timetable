@@ -4,10 +4,10 @@ import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
 import { 
   X, Download, Award, QrCode, 
-  GraduationCap, LogOut, Sun, Moon, MessageCircle
+  GraduationCap, LogOut, Sun, Moon, MessageCircle, Calculator
 } from 'lucide-react';
 
-export default function ToolsDrawer({ isOpen, onClose, onOpenPdf, onOpenExam, onOpenQr, onOpenWhatsApp }) {
+export default function ToolsDrawer({ isOpen, onClose, onOpenPdf, onOpenExam, onOpenQr, onOpenWhatsApp, onOpenGpa }) {
   const { session, timetableData, logout } = useAuth();
   const { lang, t } = useLanguage();
   const { theme, changeTheme, THEMES } = useTheme();
@@ -93,7 +93,7 @@ export default function ToolsDrawer({ isOpen, onClose, onOpenPdf, onOpenExam, on
         )}
 
         {/* Action List */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-0.5">
+        <div data-lenis-prevent className="flex-1 overflow-y-auto p-3 space-y-0.5 usas-scrollbar touch-pan-y overscroll-contain">
           
           {/* Export Section */}
           <p className={`text-[9px] font-semibold uppercase tracking-widest px-2 pt-2 pb-1 ${
@@ -163,6 +163,21 @@ export default function ToolsDrawer({ isOpen, onClose, onOpenPdf, onOpenExam, on
             <div>
               <div className="text-xs font-semibold">{t('examTitle')}</div>
               <div className={`text-[10px] ${isLight ? 'text-slate-400' : 'text-white/25'}`}>{t('examDesc')}</div>
+            </div>
+          </button>
+
+          <button
+            onClick={onOpenGpa}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors text-left ${
+              isLight ? 'hover:bg-slate-50 text-slate-700 hover:text-slate-900' : 'hover:bg-white/[0.04] text-white/70 hover:text-white'
+            }`}
+          >
+            <Calculator className={`w-4 h-4 ${isLight ? 'text-blue-600' : 'text-blue-400/70'}`} />
+            <div>
+              <div className="text-xs font-semibold">{t('gpaBtn')}</div>
+              <div className={`text-[10px] ${isLight ? 'text-slate-400' : 'text-white/25'}`}>
+                {lang === 'ms' ? 'Kira anggaran GPA & sasaran keputusan semester' : 'Estimate GPA & academic semester target goals'}
+              </div>
             </div>
           </button>
 

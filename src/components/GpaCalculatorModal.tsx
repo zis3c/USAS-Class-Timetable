@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { X, Calculator, Award } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
+import { X, Calculator, Award, ChevronDown, ExternalLink, BadgeInfo } from 'lucide-react';
 import type { TimetableItem } from '../types/usas';
 
 type GpaCalculatorModalProps = {
@@ -14,25 +15,143 @@ type CourseTarget = {
   grade: string;
 };
 
+type GpaCustomDropdownProps<T> = {
+  value: T;
+  options: { label: string; labelShort?: string; value: T }[];
+  onChange: (val: T) => void;
+  isLight: boolean;
+  minWidth: string;
+  textColorClass?: string;
+};
+
+function GpaCustomDropdown<T extends string | number>({
+  value,
+  options,
+  onChange,
+  isLight,
+  minWidth,
+  textColorClass = ''
+}: GpaCustomDropdownProps<T>) {
+  const [open, setOpen] = useState(false);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    if (!open) return;
+    const handleGlobalClick = () => setOpen(false);
+    window.addEventListener('click', handleGlobalClick);
+    return () => window.removeEventListener('click', handleGlobalClick);
+  }, [open]);
+
+  const selectedOption = options.find(opt => opt.value === value);
+  const labelText = selectedOption 
+    ? (selectedOption.labelShort || selectedOption.label) 
+    : String(value);
+
+  return (
+    <div className="relative inline-block text-left" onClick={(e) => e.stopPropagation()}>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-semibold transition-all shadow-sm justify-between ${minWidth} ${
+          isLight
+            ? 'bg-white border-slate-200 text-slate-800 hover:bg-slate-100 shadow-slate-100/50'
+            : 'bg-white/[0.04] border-white/10 text-white hover:bg-white/[0.08]'
+        } ${textColorClass}`}
+      >
+        <span>{labelText}</span>
+        <ChevronDown className={`w-3.5 h-3.5 opacity-60 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div
+          data-lenis-prevent
+          className={`absolute top-full right-0 mt-1 z-50 rounded-lg border shadow-xl max-h-48 overflow-y-auto usas-scrollbar focus:outline-none transition-all py-1 min-w-[120px] ${
+            isLight
+              ? 'bg-white border-slate-200 text-slate-800'
+              : 'bg-[#0E1B35] border-white/10 text-white'
+          }`}
+        >
+          {options.map((opt) => (
+            <button
+              key={String(opt.value)}
+              type="button"
+              onClick={() => {
+                onChange(opt.value);
+                setOpen(false);
+              }}
+              className={`w-full text-left px-3 py-1.5 text-[11px] transition-colors ${
+                opt.value === value
+                  ? (isLight ? 'bg-amber-100 font-bold text-amber-900' : 'bg-amber-400/20 font-bold text-amber-300')
+                  : (isLight ? 'hover:bg-slate-100' : 'hover:bg-white/[0.05]')
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: GpaCalculatorModalProps) {
-  const { t } = useLanguage();
+  const { lang, t } = useLanguage();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
 
   const gradePoints = {
     'A': 4.0, 'A-': 3.67, 'B+': 3.33, 'B': 3.0,
-    'B-': 2.67, 'C+': 2.33, 'C': 2.0, 'D': 1.0, 'F': 0.0
+    'B-': 2.67, 'C+': 2.33, 'C': 2.0, 'C-': 1.67,
+    'D+': 1.33, 'D': 1.0, 'F': 0.0
   };
 
-  // State mapping course id to { credits, grade }
-  const [courseTargets, setCourseTargets] = useState<Record<string, CourseTarget>>(() => {
-    const initial: Record<string, CourseTarget> = {};
-    courses.forEach((c) => {
-      const id = c.course_id || c.kod_kursus || c.course_name || 'course';
-      initial[id] = { credits: 3, grade: 'A' };
-    });
-    return initial;
-  });
+  // Group courses by ID/name to avoid duplicate slots having separate inputs
+  const uniqueCourses = courses.reduce<TimetableItem[]>((acc, item) => {
+    const id = item.course_id || item.kod_kursus || item.course_name;
+    if (id && !acc.some(x => (x.course_id || x.kod_kursus || x.course_name) === id)) {
+      acc.push(item);
+    }
+    return acc;
+  }, []);
 
-  if (!isOpen) return null;
+  // State mapping course id to { credits, grade }
+  const [courseTargets, setCourseTargets] = useState<Record<string, CourseTarget>>({});
+
+  // Reset/Initialize state when courses list changes or modal opens
+  useEffect(() => {
+    if (isOpen) {
+      const initial: Record<string, CourseTarget> = {};
+      uniqueCourses.forEach((c) => {
+        const id = c.course_id || c.kod_kursus || c.course_name || 'course';
+        initial[id] = { credits: 3, grade: 'A' };
+      });
+      setCourseTargets(initial);
+    }
+  }, [isOpen, courses]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const [shouldRender, setShouldRender] = useState(isOpen);
+  const [animate, setAnimate] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setShouldRender(true);
+      let raf1 = 0;
+      let raf2 = 0;
+      raf1 = requestAnimationFrame(() => {
+        raf2 = requestAnimationFrame(() => setAnimate(true));
+      });
+      return () => {
+        cancelAnimationFrame(raf1);
+        cancelAnimationFrame(raf2);
+      };
+    } else {
+      setAnimate(false);
+      const timer = setTimeout(() => setShouldRender(false), 200);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
+
+  if (!shouldRender) return null;
 
   const handleTargetChange = (courseId: string, field: keyof CourseTarget, value: string | number) => {
     setCourseTargets(prev => ({
@@ -50,7 +169,7 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: Gp
 
   Object.values(courseTargets).forEach((item) => {
     const cred = Number(item.credits) || 0;
-    const pts = gradePoints[item.grade] || 4.0;
+    const pts = gradePoints[item.grade as keyof typeof gradePoints] || 4.0;
     totalPoints += pts * cred;
     totalCredits += cred;
   });
@@ -58,96 +177,160 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: Gp
   const estGpa = totalCredits > 0 ? (totalPoints / totalCredits).toFixed(2) : '4.00';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#070F22]/90 backdrop-blur-md overflow-y-auto">
+    <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md transition-all duration-200 ${
+      animate ? 'bg-slate-900/30 opacity-100' : 'bg-slate-900/0 opacity-0 pointer-events-none'
+    }`}>
       
-      <div className="glass-card rounded-3xl w-full max-w-2xl border border-amber-500/20 bg-[#0F2148] shadow-2xl overflow-hidden my-6">
-        
+      <div className={`rounded-xl w-full max-w-2xl border pt-4 px-6 pb-6 relative transition-all duration-200 transform flex flex-col gap-5 max-h-[85vh] sm:max-h-[90vh] ${
+        animate ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
+      } ${
+        isLight 
+          ? 'bg-white border-slate-200 shadow-xl text-slate-800' 
+          : 'bg-[#0A1428]/95 border-white/10 text-white shadow-2xl'
+      }`}>
+        <button
+          onClick={onClose}
+          className={`absolute top-4 right-4 p-2 rounded-md transition-colors ${
+            isLight ? 'text-slate-400 hover:text-slate-650 hover:bg-slate-100' : 'text-white/30 hover:text-white hover:bg-white/[0.06]'
+          }`}
+        >
+          <X className="w-4 h-4" />
+        </button>
+
         {/* Modal Header */}
-        <div className="p-6 border-b border-amber-500/15 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-400/10 border border-amber-400/20 text-amber-400 flex items-center justify-center">
-              <Calculator className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-lg font-extrabold text-white">{t('gpaTitle')}</h3>
-              <p className="text-xs text-amber-400/90 font-medium">Kira anggaran GPA semester berdasarkan sasaran gred subjek anda</p>
-            </div>
+        <div className="flex items-center space-x-3 pt-0">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border ${
+            isLight ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-amber-400/10 border-amber-400/20 text-amber-400'
+          }`}>
+            <Calculator className="w-5 h-5" />
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="text-left">
+            <h3 className={`text-base font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>{t('gpaBtn')}</h3>
+            <p className={`text-xs font-semibold ${isLight ? 'text-amber-750' : 'text-amber-400/90'}`}>
+              {lang === 'ms' ? 'Kira anggaran GPA semester berdasarkan sasaran gred subjek anda' : 'Estimate your semester GPA based on target subject grades'}
+            </p>
+          </div>
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 space-y-5">
+        <div data-lenis-prevent className="space-y-4 flex-1 overflow-y-auto pr-1 usas-scrollbar touch-pan-y overscroll-contain">
           
           {/* GPA Result Display Banner */}
-          <div className="p-5 rounded-2xl bg-gradient-to-r from-[#070F22] via-[#0B1B3D] to-[#070F22] border border-amber-500/30 flex items-center justify-between shadow-inner">
-            <div>
-              <div className="text-xs font-bold text-slate-300 uppercase tracking-wider">{t('estGpa')}</div>
-              <div className="text-3xl font-black text-amber-400 mt-0.5">{estGpa} <span className="text-xs font-semibold text-slate-400">/ 4.00</span></div>
+          <div className={`p-4 rounded-xl border flex items-center justify-between shadow-sm ${
+            isLight 
+              ? 'bg-amber-500/[0.04] border-amber-500/20' 
+              : 'bg-amber-400/[0.02] border-amber-500/15'
+          }`}>
+            <div className="text-left">
+              <div className={`text-[10px] font-bold uppercase tracking-wider ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{t('estGpa')}</div>
+              <div className="text-2.5xl font-black text-amber-500 mt-0.5">{estGpa} <span className="text-xs font-semibold opacity-50">/ 4.00</span></div>
             </div>
 
             <div className="text-right">
               {parseFloat(estGpa) >= 3.75 ? (
-                <span className="px-3 py-1 rounded-full text-xs font-black bg-amber-400/10 text-amber-300 border border-amber-400/30 flex items-center gap-1.5">
-                  <Award className="w-4 h-4 text-amber-400" /> Target Anugerah Dekan
+                <span className={`px-2.5 py-1 rounded-full text-[10px] font-black border inline-flex items-center gap-1.5 ${
+                  isLight 
+                    ? 'bg-amber-100 border-amber-300 text-amber-850' 
+                    : 'bg-amber-400/10 border-amber-400/30 text-amber-300'
+                }`}>
+                  <Award className="w-3.5 h-3.5 text-amber-500" /> Target Anugerah Dekan
                 </span>
               ) : parseFloat(estGpa) >= 3.0 ? (
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
-                  Kepujian Baik (First/Second Upper)
+                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border inline-flex items-center ${
+                  isLight 
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
+                    : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+                }`}>
+                  {lang === 'ms' ? 'Kepujian Baik' : 'Good Standing'}
                 </span>
               ) : (
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700">
-                  Status Memuaskan
+                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border inline-flex items-center ${
+                  isLight 
+                    ? 'bg-slate-100 border-slate-200 text-slate-700' 
+                    : 'bg-slate-800 border-slate-700 text-slate-300'
+                }`}>
+                  {lang === 'ms' ? 'Status Memuaskan' : 'Satisfactory Status'}
                 </span>
               )}
-              <div className="text-[10px] text-slate-400 mt-1 font-semibold">Jumlah Kredit: {totalCredits} jam kredit</div>
+              <div className={`text-[10px] font-semibold mt-1.5 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                {lang === 'ms' ? 'Jumlah Kredit:' : 'Total Credits:'} {totalCredits}
+              </div>
             </div>
           </div>
 
+          <div className={`flex items-center gap-2 text-[10px] px-1 ${isLight ? 'text-slate-500' : 'text-white/45'}`}>
+            <BadgeInfo className={`w-3.5 h-3.5 flex-shrink-0 ${isLight ? 'text-sky-600' : 'text-sky-400'}`} />
+            <span className="font-medium">
+              {lang === 'ms' ? 'Rujukan gred:' : 'Grade source:'}
+            </span>
+            <a
+              href="https://www.instagram.com/p/DAcy0xzSUqG/"
+              target="_blank"
+              rel="noreferrer"
+              className={`inline-flex items-center gap-1 font-semibold transition-colors ${
+                isLight ? 'text-sky-700 hover:text-sky-900' : 'text-sky-300 hover:text-sky-200'
+              }`}
+            >
+              <span>MPMUSAS</span>
+              <ExternalLink className="w-3 h-3 flex-shrink-0" />
+            </a>
+          </div>
+
           {/* Subject Grade Target Table */}
-          <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-            {courses.map((c, i) => {
+          <div className="space-y-2 pr-1">
+            {uniqueCourses.map((c, i) => {
               const id = c.course_id || c.kod_kursus || c.course_name || `course-${i}`;
               const target = courseTargets[id] || { credits: 3, grade: 'A' };
               return (
-                <div key={i} className="p-3.5 rounded-xl bg-[#070F22] border border-slate-800 flex items-center justify-between gap-3 text-xs">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-extrabold text-amber-400">{id}</div>
-                    <div className="font-semibold text-white truncate">{c.course_name || c.kursus}</div>
+                <div key={i} className={`p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs transition-colors ${
+                  isLight 
+                    ? 'bg-slate-50/50 border-slate-200 hover:bg-slate-50' 
+                    : 'bg-white/[0.02] border-white/[0.05] hover:bg-white/[0.04]'
+                }`}>
+                  <div className="flex-1 min-w-0 text-left">
+                    <div className={`font-extrabold text-[10px] tracking-wide ${isLight ? 'text-amber-700' : 'text-amber-400'}`}>{id}</div>
+                    <div className="font-bold leading-snug mt-0.5 truncate">{c.course_name || c.kursus}</div>
                   </div>
 
-                  {/* Credit Hours Input */}
-                  <div className="flex items-center space-x-1.5">
-                    <span className="text-slate-400 font-medium">Jam Kredit:</span>
-                    <select
-                      value={target.credits}
-                      onChange={(e) => handleTargetChange(id, 'credits', e.target.value)}
-                      className="bg-[#0F2148] border border-amber-500/20 text-white rounded-lg px-2 py-1 font-bold text-xs focus:outline-none"
-                    >
-                      <option value="1">1</option>
-                      <option value="2">2</option>
-                      <option value="3">3</option>
-                      <option value="4">4</option>
-                    </select>
-                  </div>
+                  {/* Custom Styled Select wrappers using Chevron and absolute overlays */}
+                  <div className="flex flex-wrap items-center gap-2.5 sm:justify-end">
+                    {/* Credit Selector */}
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-[10px] font-medium whitespace-nowrap ${isLight ? 'text-slate-500' : 'text-slate-450'}`}>
+                        {lang === 'ms' ? 'Kredit:' : 'Credits:'}
+                      </span>
+                      <GpaCustomDropdown
+                        value={target.credits}
+                        options={[
+                          { label: '1', value: 1 },
+                          { label: '2', value: 2 },
+                          { label: '3', value: 3 },
+                          { label: '4', value: 4 }
+                        ]}
+                        onChange={(val) => handleTargetChange(id, 'credits', val)}
+                        isLight={isLight}
+                        minWidth="min-w-[64px]"
+                        textColorClass={isLight ? 'text-slate-805' : 'text-white/90'}
+                      />
+                    </div>
 
-                  {/* Target Grade Selector */}
-                  <div className="flex items-center space-x-1.5">
-                    <span className="text-slate-400 font-medium">Sasaran:</span>
-                    <select
-                      value={target.grade}
-                      onChange={(e) => handleTargetChange(id, 'grade', e.target.value)}
-                      className="bg-[#0F2148] border border-amber-500/20 text-amber-300 font-black rounded-lg px-2.5 py-1 text-xs focus:outline-none"
-                    >
-                      {Object.keys(gradePoints).map(g => (
-                        <option key={g} value={g}>{g} ({gradePoints[g]})</option>
-                      ))}
-                    </select>
+                    {/* Target Grade Selector */}
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-[10px] font-medium whitespace-nowrap ${isLight ? 'text-slate-500' : 'text-slate-450'}`}>
+                        {lang === 'ms' ? 'Sasaran:' : 'Target:'}
+                      </span>
+                      <GpaCustomDropdown
+                        value={target.grade}
+                        options={Object.keys(gradePoints).map(g => ({
+                          label: g,
+                          value: g
+                        }))}
+                        onChange={(val) => handleTargetChange(id, 'grade', val)}
+                        isLight={isLight}
+                        minWidth="min-w-[56px]"
+                        textColorClass={isLight ? 'text-amber-600 font-black' : 'text-amber-400 font-black'}
+                      />
+                    </div>
                   </div>
                 </div>
               );
@@ -157,10 +340,14 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: Gp
         </div>
 
         {/* Modal Footer */}
-        <div className="p-6 border-t border-amber-500/15 flex items-center justify-end">
+        <div className={`p-4 border-t flex items-center justify-end ${isLight ? 'border-slate-200' : 'border-white/10'}`}>
           <button
             onClick={onClose}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 text-slate-950 font-black text-xs shadow-md"
+            className={`px-5 py-2.5 rounded-xl font-black text-xs shadow-md transition-all active:scale-95 ${
+              isLight 
+                ? 'bg-[#0B1E43] hover:bg-[#152e63] text-white shadow-slate-900/10' 
+                : 'bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-amber-400/10'
+            }`}
           >
             {t('close')}
           </button>

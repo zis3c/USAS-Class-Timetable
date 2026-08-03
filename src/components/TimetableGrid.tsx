@@ -7,7 +7,6 @@ import AttendanceMeter from './AttendanceMeter';
 import LecturerModal from './LecturerModal';
 import MatrixGridView from './MatrixGridView';
 import AttendanceHistoryModal from './AttendanceHistoryModal';
-import ScheduleClashDetector from './ScheduleClashDetector';
 import type { TimetableItem } from '../types/usas';
 import {
   getActiveCourseHighlights,
@@ -264,11 +263,6 @@ export default function TimetableGrid() {
       <div className={`flex-1 ${viewMode === 'matrix' ? 'flex flex-col min-h-0 overflow-hidden' : 'overflow-y-auto'}`}>
         <div className={`w-full px-4 sm:px-6 pt-3 pb-4 space-y-3 ${viewMode === 'matrix' ? 'flex-1 flex flex-col min-h-0' : ''}`}>
           
-          {/* Clash Detector — collapsible, only if clashes exist */}
-          {allCourses.length > 1 && (
-            <ScheduleClashDetector timetable={allCourses} />
-          )}
-
           {/* View Content */}
           {viewMode === 'matrix' ? (
             <MatrixGridView timetable={allCourses} days={daysList} activeHighlights={activeClassKeys} />

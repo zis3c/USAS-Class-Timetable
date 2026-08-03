@@ -14,6 +14,7 @@ const ExamScheduleModal = lazy(() => import('./components/ExamScheduleModal'));
 const QrShareModal = lazy(() => import('./components/QrShareModal'));
 const WhatsAppShareModal = lazy(() => import('./components/WhatsAppShareModal'));
 const ToolsDrawer = lazy(() => import('./components/ToolsDrawer'));
+const GpaCalculatorModal = lazy(() => import('./components/GpaCalculatorModal'));
 
 function MainContent() {
   const { session, timetableData } = useAuth();
@@ -103,6 +104,7 @@ function MainContent() {
   const [isExamModalOpen, setIsExamModalOpen] = useState(false);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
+  const [isGpaModalOpen, setIsGpaModalOpen] = useState(false);
   const [isToolsOpen, setIsToolsOpen] = useState(false);
 
   const isLight = theme === 'light';
@@ -155,6 +157,7 @@ function MainContent() {
           onOpenExam={() => { setIsExamModalOpen(true); }}
           onOpenQr={() => { setIsQrModalOpen(true); }}
           onOpenWhatsApp={() => { setIsWhatsAppModalOpen(true); }}
+          onOpenGpa={() => { setIsGpaModalOpen(true); }}
         />
 
         {/* Modals */}
@@ -168,6 +171,7 @@ function MainContent() {
           studentName={timetableData?.studentName} 
           matricNo={session?.user_id} 
         />
+        <GpaCalculatorModal isOpen={isGpaModalOpen} onClose={() => setIsGpaModalOpen(false)} courses={timetableData?.timetable || []} />
       </Suspense>
     </div>
   );

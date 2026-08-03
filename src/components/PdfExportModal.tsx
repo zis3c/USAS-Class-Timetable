@@ -209,7 +209,7 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
   const isExportLight = exportTheme === 'light';
 
   const renderFloatingZoomWidget = (isLightBg) => (
-    <div className={`sticky top-4 left-4 z-30 w-fit self-start flex items-center gap-1.5 p-1 rounded-xl shadow-lg border backdrop-blur-xl transition-all pointer-events-auto ${
+    <div className={`absolute top-6 left-4 z-30 w-fit flex items-center gap-1.5 p-1 rounded-xl shadow-lg border backdrop-blur-xl transition-all pointer-events-auto ${
       isLightBg 
         ? 'bg-white/90 border-slate-200 text-slate-700 shadow-slate-900/5' 
         : 'bg-[#0A1428]/90 border-white/10 text-white/95 shadow-black/20'
@@ -556,12 +556,12 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
   const currentSpacers = getSpacerHeights(wallpaperPreset);
 
   return (
-    <div className={`fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 backdrop-blur-md transition-all duration-200 ${
+    <div data-lenis-prevent className={`fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 backdrop-blur-md transition-all duration-200 touch-pan-y overscroll-contain ${
       animate ? 'bg-slate-900/30 opacity-100' : 'bg-slate-900/0 opacity-0 pointer-events-none'
     }`}>
       
       {/* Spacious Modal Frame */}
-      <div className={`rounded-xl w-[96vw] max-w-6xl h-[92vh] max-h-[92vh] border flex flex-col overflow-hidden my-auto transition-all duration-200 transform ${
+      <div className={`rounded-xl w-[96vw] max-w-6xl h-[92vh] max-h-[92vh] border flex flex-col min-h-0 overflow-hidden my-auto transition-all duration-200 transform ${
         animate ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
       } ${
         isLight 
@@ -593,7 +593,7 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
         </div>
 
         {/* Scrollable Body */}
-        <div className="p-4 flex-1 overflow-y-auto space-y-4">
+        <div data-lenis-prevent className="p-4 flex-1 min-h-0 overflow-y-auto space-y-4 touch-pan-y overscroll-contain">
           
           {/* Main Mode Tabs */}
           <div className={`grid grid-cols-2 gap-2 p-1 rounded-xl border ${
@@ -839,10 +839,11 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
           {exportMode === 'FORMAL_A4' && (
             <div
               ref={previewShellRef}
-              className={`border rounded-xl p-2 sm:p-3 bg-white overflow-auto usas-scrollbar relative ${isLight ? 'border-slate-200 shadow-sm' : 'border-white/10 shadow-inner'}`}
+              data-lenis-prevent
+            className={`border rounded-xl p-2 sm:p-3 bg-white overflow-visible relative ${isLight ? 'border-slate-200 shadow-sm' : 'border-white/10 shadow-inner'}`}
               style={{ 
-                height: previewHeight ? `${Math.ceil(previewHeight * finalScale) + 16}px` : 'auto', 
-                maxHeight: '65vh' 
+                height: previewHeight ? `${Math.ceil(previewHeight * finalScale) + 48}px` : 'auto',
+                maxHeight: 'none'
               }}
             >
               <div className="absolute inset-0 pointer-events-none z-30">
@@ -966,9 +967,9 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
           {/* ── MODE 3: DEVICE LOCK SCREEN WALLPAPER (Custom Presets & Content Controls) ── */}
           {exportMode === 'WALLPAPER' && (
             <div className="space-y-3">
-              <div className={`flex justify-center py-3 rounded-xl border overflow-auto usas-scrollbar relative ${
+              <div data-lenis-prevent className={`flex justify-center py-3 rounded-xl border overflow-visible relative ${
                 isLight ? 'bg-slate-100 border-slate-200' : 'bg-[#060D1A] border-white/[0.04]'
-              }`} style={{ maxHeight: '65vh' }}>
+              }`}>
                 <div className="absolute inset-0 pointer-events-none z-30">
                   {renderFloatingZoomWidget(isExportLight)}
                 </div>

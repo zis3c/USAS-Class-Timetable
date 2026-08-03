@@ -78,6 +78,10 @@
   width: 4px;
   height: 4px;
 }
+.usas-scrollbar {
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
 .usas-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
