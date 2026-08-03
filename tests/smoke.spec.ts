@@ -3,8 +3,13 @@ import { test, expect } from '@playwright/test';
 test('demo login opens timetable and export modal', async ({ page }) => {
   await page.goto('/');
 
+  await expect(page.getByText(/jadual kuliah yang rasa premium/i)).toBeVisible();
+  await page.getByRole('button', { name: /log masuk/i }).first().click();
+  await expect(page).toHaveURL(/\/login$/);
+
   await expect(page.getByRole('button', { name: /log masuk tanpa akaun/i })).toBeVisible();
   await page.getByRole('button', { name: /log masuk tanpa akaun/i }).click();
+  await expect(page).toHaveURL(/\/app$/);
 
   await expect(page.getByRole('button', { name: /open tools and export/i })).toBeVisible();
   await expect(page.getByText('USAS Class Timetable')).toBeVisible();
@@ -23,6 +28,7 @@ test('demo login opens timetable and export modal', async ({ page }) => {
 test('png export flow downloads an image file', async ({ page }) => {
   await page.goto('/');
 
+  await page.getByRole('button', { name: /log masuk/i }).first().click();
   await page.getByRole('button', { name: /log masuk tanpa akaun/i }).click();
   await page.getByRole('button', { name: /open tools and export/i }).click();
   await page.getByRole('button', { name: /eksport pdf & wallpaper/i }).click();

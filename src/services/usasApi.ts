@@ -242,14 +242,14 @@ export async function loginStudentAPI(
     } else {
       return {
         success: false,
-        error: resp.message || "Log masuk gagal. Sila semak No. Matrik dan Kata Laluan."
+        error: "Wrong matric no. or password."
       };
     }
   }
 
   return {
     success: false,
-    error: "Log masuk gagal atau respons pelayan tidak sah. Sila semak No. Matrik & Kata Laluan."
+    error: "Wrong matric no. or password."
   };
 }
 

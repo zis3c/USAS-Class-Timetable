@@ -121,17 +121,23 @@ export default function TimetableGrid() {
     return (
       <div className="h-full flex items-center justify-center p-6">
         <div className="text-center space-y-4 animate-fade-in">
-          <CalendarOff className="w-12 h-12 text-white/10 mx-auto" />
+          <CalendarOff className={`w-12 h-12 mx-auto ${isLight ? 'text-slate-300' : 'text-white/10'}`} />
           <div>
-            <h3 className="text-sm font-semibold text-white/60">{lang === 'ms' ? 'Tiada Jadual Waktu' : 'No Timetable Found'}</h3>
-            <p className="text-xs text-white/25 mt-1 max-w-xs mx-auto">
-              {lang === 'ms' ? 'Akaun' : 'Account'} <span className="text-white/40">{session?.user_id}</span> {lang === 'ms' ? 'belum mempunyai rekod jadual waktu.' : 'has no timetable records yet.'}
+            <h3 className={`text-sm font-semibold ${isLight ? 'text-slate-700' : 'text-white/60'}`}>
+              {lang === 'ms' ? 'Tiada Jadual Waktu' : 'No Timetable Found'}
+            </h3>
+            <p className={`text-xs mt-1 max-w-xs mx-auto ${isLight ? 'text-slate-500' : 'text-white/25'}`}>
+              {lang === 'ms' ? 'Akaun' : 'Account'} <span className={isLight ? 'text-slate-700' : 'text-white/40'}>{session?.user_id}</span> {lang === 'ms' ? 'belum mempunyai rekod jadual waktu.' : 'has no timetable records yet.'}
             </p>
           </div>
           <button
             onClick={refreshTimetable}
             disabled={loading}
-            className="px-4 py-2 rounded-md bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] text-white/60 text-xs font-medium flex items-center gap-2 mx-auto transition-colors"
+            className={`px-4 py-2 rounded-md border text-xs font-medium flex items-center gap-2 mx-auto transition-colors ${
+              isLight
+                ? 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
+                : 'bg-white/[0.06] hover:bg-white/[0.1] border-white/[0.08] text-white/60'
+            }`}
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             {lang === 'ms' ? 'Muat Semula' : 'Refresh'}
@@ -273,7 +279,7 @@ export default function TimetableGrid() {
               {filteredCourses.length === 0 ? (
                 <div className="py-16 text-center">
                   <BookOpen className={`w-8 h-8 mx-auto mb-3 ${isLight ? 'text-slate-300' : 'text-white/8'}`} />
-                  <p className={`text-xs font-medium ${isLight ? 'text-slate-400' : 'text-white/25'}`}>{t('noClassesOnDay')} {t(`days.${selectedDay}`) || selectedDay}</p>
+                  <p className={`text-xs font-medium ${isLight ? 'text-slate-500' : 'text-white/25'}`}>{t('noClassesOnDay')} {t(`days.${selectedDay}`) || selectedDay}</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 items-start">
@@ -342,12 +348,12 @@ export default function TimetableGrid() {
                             </h3>
 
                             {/* Location Row */}
-                            <div className={`flex items-center justify-between gap-2 mt-0.5 text-[9.5px] ${
+                            <div className={`flex items-center justify-between gap-2 mt-0.5 text-[9.5px] leading-none ${
                               isLight ? 'text-slate-500 font-semibold' : 'text-white/45'
                             }`}>
-                              <span className="flex items-center gap-1.5 truncate max-w-[85%]">
-                                <MapPin className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#ed4134' }} />
-                                <span className="truncate leading-none" style={{ transform: 'translateY(0.5px)' }}>{course.location || 'TBA'}</span>
+                              <span className="flex items-center gap-1.5 min-w-0 max-w-[85%]">
+                                <MapPin className="w-3.5 h-3.5 flex-shrink-0 self-center" style={{ color: '#ed4134' }} />
+                                <span className="truncate leading-none self-center">{course.location || 'TBA'}</span>
                               </span>
                               <div className="flex items-center gap-1 flex-shrink-0">
                                 {currentNote && (

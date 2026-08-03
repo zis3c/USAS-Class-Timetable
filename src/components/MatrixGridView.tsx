@@ -268,11 +268,11 @@ export default function MatrixGridView({
                             }`} style={{ fontSize: `${autoScale * 10}px` }}>
                               {course.course_name || course.kursus}
                             </div>
-                            <div className={`truncate flex items-center gap-1 ${
+                            <div className={`truncate flex items-center gap-1 leading-none ${
                               isLight ? 'text-slate-500' : 'text-white/50'
                             }`} style={{ fontSize: `${autoScale * 10.5}px` }}>
-                              <MapPin style={{ width: `${autoScale * 10.5}px`, height: `${autoScale * 10.5}px`, color: '#ed4134' }} className="flex-shrink-0" />
-                              <span className="leading-tight">{course.location}</span>
+                              <MapPin style={{ width: `${autoScale * 10.5}px`, height: `${autoScale * 10.5}px`, color: '#ed4134' }} className="flex-shrink-0 self-center" />
+                              <span className="leading-none self-center">{course.location}</span>
                             </div>
                           </div>
                         ) : (

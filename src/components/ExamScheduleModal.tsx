@@ -12,8 +12,15 @@ export default function ExamScheduleModal({ isOpen, onClose, courses = [] }) {
   useEffect(() => {
     if (isOpen) {
       setShouldRender(true);
-      const timer = setTimeout(() => setAnimate(true), 10);
-      return () => clearTimeout(timer);
+      let raf1 = 0;
+      let raf2 = 0;
+      raf1 = requestAnimationFrame(() => {
+        raf2 = requestAnimationFrame(() => setAnimate(true));
+      });
+      return () => {
+        cancelAnimationFrame(raf1);
+        cancelAnimationFrame(raf2);
+      };
     } else {
       setAnimate(false);
       const timer = setTimeout(() => setShouldRender(false), 200);

@@ -176,7 +176,7 @@ export default function ToolsDrawer({ isOpen, onClose, onOpenPdf, onOpenExam, on
           }`}>
             <span className="text-xs font-semibold flex items-center gap-2">
               {isLight ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-amber-400" />}
-              {lang === 'ms' ? 'Mod Gelap' : 'Dark Mode'}
+              {theme === THEMES.LIGHT ? t('themeLight') : t('themeDark')}
             </span>
             <button
               onClick={handleToggleTheme}

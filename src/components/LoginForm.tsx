@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
-import { Lock, User, Sparkles, ShieldCheck, ArrowRight, AlertCircle, Info, Eye, EyeOff } from 'lucide-react';
+import { Lock, User, Sparkles, ShieldCheck, ArrowRight, XCircle, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginForm() {
   const { login, loading, error, setError } = useAuth();
@@ -18,7 +18,7 @@ export default function LoginForm() {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!userId.trim() || !password.trim()) {
-      setError(lang === 'ms' ? 'Sila masukkan No. Matrik dan Kata Laluan anda.' : 'Please enter your Matric No. and Password.');
+      setError(lang === 'ms' ? 'Isi no. matrik dan kata laluan.' : 'Enter matric no. and password.');
       return;
     }
     await login(userId.trim(), password);
@@ -63,20 +63,17 @@ export default function LoginForm() {
               ? 'bg-amber-50/70 border-amber-200/60 text-amber-900' 
               : 'bg-amber-500/[0.04] border-amber-500/10 text-slate-400'
           }`}>
-            <Info className={`w-3.5 h-3.5 flex-shrink-0 ${
-              isLight ? 'text-amber-600' : 'text-amber-400/60'
-            }`} />
             <span className="truncate">{t('loginUmcNoteDesc')}</span>
           </div>
 
           {error && (
-            <div className={`mb-4 px-3 py-2.5 rounded-md text-[11px] flex items-start gap-2.5 animate-fade-in border ${
+            <div className={`mb-4 px-3 py-2.5 rounded-md text-[11px] flex items-center gap-2.5 animate-fade-in border ${
               isLight 
                 ? 'bg-red-50 border-red-200 text-red-700' 
                 : 'bg-red-500/10 border-red-500/20 text-red-400'
             }`}>
-              <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-              <span className="font-medium leading-relaxed">{error}</span>
+              <XCircle className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="font-medium leading-none whitespace-nowrap">{error}</span>
             </div>
           )}
 
@@ -91,8 +88,8 @@ export default function LoginForm() {
               <div className="relative">
                 <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-colors duration-150 ${
                   isFocused === 'userId' 
-                    ? (isLight ? 'text-amber-650 font-semibold' : 'text-amber-400') 
-                    : (isLight ? 'text-slate-400' : 'text-white/25')
+                    ? (isLight ? 'text-amber-600 font-semibold' : 'text-amber-300') 
+                    : (isLight ? 'text-slate-500' : 'text-amber-400/70')
                 }`}>
                   <User className="w-4 h-4" />
                 </div>
@@ -104,10 +101,10 @@ export default function LoginForm() {
                   onFocus={() => setIsFocused('userId')}
                   onBlur={() => setIsFocused(null)}
                   placeholder="AI210042"
-                  className={`w-full pl-10 pr-4 py-2.5 rounded-md text-xs font-medium focus:outline-none transition-colors duration-150 border ${
+                  className={`login-input appearance-none w-full pl-10 pr-4 py-2.5 rounded-md text-xs font-medium focus:outline-none focus:ring-0 focus:shadow-none transition-colors duration-150 border ${
                     isLight 
-                      ? 'bg-white border-slate-200 text-slate-900 placeholder-slate-400 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20' 
-                      : 'bg-[#060E1F] border-white/[0.08] text-white placeholder-white/20 focus:border-amber-400/40 focus:ring-1 focus:ring-amber-400/20'
+                      ? 'bg-white border-slate-200 text-slate-900 placeholder-slate-400 focus:border-amber-500' 
+                      : 'bg-[#060E1F] border-white/[0.08] text-white placeholder-white/20 focus:border-amber-400/40'
                   }`}
                 />
               </div>
@@ -123,8 +120,8 @@ export default function LoginForm() {
               <div className="relative">
                 <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-colors duration-150 ${
                   isFocused === 'password' 
-                    ? (isLight ? 'text-amber-650 font-semibold' : 'text-amber-400') 
-                    : (isLight ? 'text-slate-400' : 'text-white/25')
+                    ? (isLight ? 'text-amber-600 font-semibold' : 'text-amber-300') 
+                    : (isLight ? 'text-slate-500' : 'text-amber-400/70')
                 }`}>
                   <Lock className="w-4 h-4" />
                 </div>
@@ -136,10 +133,10 @@ export default function LoginForm() {
                   onFocus={() => setIsFocused('password')}
                   onBlur={() => setIsFocused(null)}
                   placeholder={lang === 'ms' ? 'Masukkan kata laluan' : 'Enter password'}
-                  className={`w-full pl-10 pr-10 py-2.5 rounded-md text-xs font-medium focus:outline-none transition-colors duration-150 border ${
+                  className={`login-input appearance-none w-full pl-10 pr-10 py-2.5 rounded-md text-xs font-medium focus:outline-none focus:ring-0 focus:shadow-none transition-colors duration-150 border ${
                     isLight 
-                      ? 'bg-white border-slate-200 text-slate-900 placeholder-slate-400 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20' 
-                      : 'bg-[#060E1F] border-white/[0.08] text-white placeholder-white/20 focus:border-amber-400/40 focus:ring-1 focus:ring-amber-400/20'
+                      ? 'bg-white border-slate-200 text-slate-900 placeholder-slate-400 focus:border-amber-500' 
+                      : 'bg-[#060E1F] border-white/[0.08] text-white placeholder-white/20 focus:border-amber-400/40'
                   }`}
                 />
                 <button

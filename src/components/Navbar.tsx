@@ -1,22 +1,25 @@
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
-import { Menu, RefreshCw, Sparkles, WifiOff } from 'lucide-react';
+import { Menu, RefreshCw, Sparkles, WifiOff, Sun, Moon, ArrowRight } from 'lucide-react';
 
 type NavbarProps = {
   onOpenTools: () => void;
   onOpenPdfModal?: () => void;
+  onNavigateHome: () => void;
+  onNavigateLogin: () => void;
+  view: 'landing' | 'login' | 'app';
 };
 
-export default function Navbar({ onOpenTools }: NavbarProps) {
+export default function Navbar({ onOpenTools, onNavigateHome, onNavigateLogin, view }: NavbarProps) {
   const { session, refreshTimetable, loading, isOffline } = useAuth();
   const { lang, toggleLanguage, t } = useLanguage();
-  const { theme } = useTheme();
+  const { theme, changeTheme, THEMES } = useTheme();
 
   const isLight = theme === 'light';
 
   return (
-    <header className={`h-12 sm:h-14 flex-shrink-0 border-b px-4 sm:px-6 relative z-50 transition-colors duration-150 ${isLight
+    <header className={`sticky top-0 h-12 sm:h-14 flex-shrink-0 border-b px-4 sm:px-6 relative z-50 transition-colors duration-150 ${isLight
         ? 'bg-white border-slate-200 text-slate-800'
         : 'bg-[#060E1F]/98 border-white/[0.06] backdrop-blur-md text-white'
       }`}>
@@ -69,6 +72,45 @@ export default function Navbar({ onOpenTools }: NavbarProps) {
           >
             {lang === 'ms' ? 'BM' : 'EN'}
           </button>
+
+          <button
+            onClick={() => changeTheme(theme === THEMES.LIGHT ? THEMES.NAVY : THEMES.LIGHT)}
+            aria-label="Toggle theme"
+            className={`p-1.5 rounded-md transition-colors ${isLight
+                ? 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
+                : 'text-amber-400/70 hover:text-amber-300 hover:bg-white/[0.06]'
+              }`}
+          >
+            {isLight ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
+          </button>
+
+          {!session && view === 'landing' && (
+            <button
+              onClick={onNavigateLogin}
+              aria-label={lang === 'ms' ? 'Ke log masuk' : 'Go to login'}
+              className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[10px] font-semibold transition-colors ${isLight
+                  ? 'bg-[#0B1E43] text-white hover:bg-[#152e63]'
+                  : 'bg-amber-400 text-slate-950 hover:bg-amber-300'
+                }`}
+            >
+              {lang === 'ms' ? 'Log Masuk' : 'Login'}
+              <ArrowRight className="w-3 h-3" />
+            </button>
+          )}
+
+          {!session && view === 'login' && (
+            <button
+              onClick={onNavigateHome}
+              aria-label={lang === 'ms' ? 'Kembali ke landing' : 'Back to landing'}
+              className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[10px] font-semibold transition-colors ${isLight
+                  ? 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                  : 'bg-white/[0.04] border border-white/[0.08] text-slate-200 hover:bg-white/[0.06]'
+                }`}
+            >
+              <ArrowRight className="w-3 h-3 rotate-180" />
+              {lang === 'ms' ? 'Kembali' : 'Back'}
+            </button>
+          )}
 
           {session && (
             <>
