@@ -163,6 +163,9 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
             }`}>
             {copy.subtitle}
           </p>
+          <p className={`text-[11px] sm:text-xs font-semibold tracking-[0.24em] uppercase ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+            {lang === 'ms' ? 'Jadual kuliah yang rasa premium' : 'A premium-feel class timetable portal'}
+          </p>
 
           <div className="pt-4">
             <button
