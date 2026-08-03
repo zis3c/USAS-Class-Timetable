@@ -66,9 +66,9 @@ function MainContent() {
     const lenis = new Lenis({
       lerp: 0.09,
       smoothWheel: true,
-      smoothTouch: false,
     });
-    (window as Window & { lenis?: Lenis }).lenis = lenis;
+    const lenisWindow = window as unknown as Window & { usasLenis?: Lenis };
+    lenisWindow.usasLenis = lenis;
 
     let frame = 0;
     const raf = (time: number) => {
@@ -80,7 +80,7 @@ function MainContent() {
     return () => {
       cancelAnimationFrame(frame);
       lenis.destroy();
-      delete (window as Window & { lenis?: Lenis }).lenis;
+      delete lenisWindow.usasLenis;
     };
   }, []);
 

@@ -105,7 +105,7 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
   const scrollToFeatures = () => {
     const target = document.getElementById('landing-features');
     if (!target) return;
-    const lenis = (window as Window & { lenis?: { scrollTo: (target: Element | string) => void } }).lenis;
+    const lenis = (window as unknown as Window & { usasLenis?: { scrollTo: (target: Element | string) => void } }).usasLenis;
     if (lenis) {
       lenis.scrollTo(target);
       return;
