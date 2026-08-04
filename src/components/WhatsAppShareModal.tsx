@@ -81,7 +81,7 @@ export default function WhatsAppShareModal({ isOpen, onClose, timetable = [], st
     <div data-lenis-prevent className={`fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md transition-all duration-200 touch-pan-y overscroll-contain ${
       animate ? 'bg-slate-900/30 opacity-100' : 'bg-slate-900/0 opacity-0 pointer-events-none'
     }`}>
-      <div className={`rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border pt-3 px-5 pb-5 space-y-4 relative transition-all duration-200 transform min-h-0 ${
+      <div className={`rounded-xl w-full max-w-[92vw] sm:max-w-2xl max-h-[90dvh] overflow-y-auto border pt-3 px-4 sm:px-5 pb-5 space-y-4 relative transition-all duration-200 transform min-h-0 ${
         animate ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
       } ${
         isLight
@@ -97,17 +97,17 @@ export default function WhatsAppShareModal({ isOpen, onClose, timetable = [], st
           <X className="w-4 h-4" />
         </button>
 
-        <div className="flex items-center space-x-3 pt-0">
+        <div className="flex items-center gap-3 pt-0 min-w-0">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md border ${
             isLight ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
           }`}>
             <MessageCircle className="w-5 h-5" />
           </div>
-          <div className="text-left">
-            <h3 className={`text-sm font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
+          <div className="text-left min-w-0">
+            <h3 className={`text-sm font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>
               {lang === 'ms' ? 'Kongsi ke WhatsApp / Telegram' : 'Share to WhatsApp / Telegram'}
             </h3>
-            <p className={`text-xs font-semibold ${isLight ? 'text-slate-500' : 'text-white/40'}`}>
+            <p className={`text-xs font-semibold truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>
               {studentName} ({matricNo})
             </p>
           </div>
@@ -119,7 +119,7 @@ export default function WhatsAppShareModal({ isOpen, onClose, timetable = [], st
           <pre className="text-[10px] font-mono whitespace-pre-wrap leading-relaxed">{formattedText}</pre>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <button
             onClick={handleWhatsApp}
             className={`py-2.5 px-3 rounded-md border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
@@ -145,7 +145,7 @@ export default function WhatsAppShareModal({ isOpen, onClose, timetable = [], st
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <button
             onClick={() => handleCopy(formattedText, 'full')}
             className={`py-2 px-3 rounded-md border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${

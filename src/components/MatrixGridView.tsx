@@ -152,7 +152,7 @@ export default function MatrixGridView({
     <div className={`border rounded-lg overflow-auto flex-1 min-h-0 flex flex-col transition-colors duration-150 ${
       isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-white/[0.025] border-white/[0.06]'
     }`}>
-      <div className="min-w-[700px] flex-1 overflow-y-auto flex flex-col">
+      <div className="min-w-[460px] sm:min-w-[600px] lg:min-w-[700px] flex-1 overflow-y-auto flex flex-col">
         <table className="w-full table-fixed border-collapse flex-1 h-full">
           {/* Head - Transposed: Waktu slots as columns */}
           <thead>

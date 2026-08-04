@@ -66,7 +66,7 @@ export default function AttendanceHistoryModal({ isOpen, onClose, course }: Atte
       animate ? 'bg-slate-900/30 opacity-100' : 'bg-slate-900/0 opacity-0 pointer-events-none'
     }`}>
       
-      <div className={`rounded-xl w-full max-w-2xl border pt-4 px-6 pb-6 relative transition-all duration-200 transform flex flex-col gap-5 min-h-0 max-h-[85vh] sm:max-h-[90vh] ${
+      <div className={`rounded-xl w-full max-w-[92vw] sm:max-w-2xl border pt-4 px-4 sm:px-6 pb-6 relative transition-all duration-200 transform flex flex-col gap-5 min-h-0 max-h-[85dvh] sm:max-h-[90dvh] ${
         animate ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
       } ${
         isLight 
@@ -83,15 +83,15 @@ export default function AttendanceHistoryModal({ isOpen, onClose, course }: Atte
         </button>
 
         {/* Left-Aligned Icon Modal Header */}
-        <div className="flex items-center space-x-3 pt-0">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-0">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md border ${
             isLight ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-amber-400/10 border-amber-400/20 text-amber-400'
           }`}>
             <CalendarCheck className="w-5 h-5" />
           </div>
-          <div className="text-left">
-            <h3 className={`text-base font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>Laporan Kehadiran Mingguan (Week 1 - 14)</h3>
-            <p className={`text-xs font-semibold ${isLight ? 'text-amber-750' : 'text-amber-400/90'}`}>
+          <div className="text-left min-w-0">
+            <h3 className={`text-base font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>Laporan Kehadiran Mingguan (Week 1 - 14)</h3>
+            <p className={`text-xs font-semibold truncate ${isLight ? 'text-amber-750' : 'text-amber-400/90'}`}>
               {course.course_id || course.kod_kursus} ({groupDisplay}): {course.course_name || course.kursus}
             </p>
           </div>
@@ -111,20 +111,20 @@ export default function AttendanceHistoryModal({ isOpen, onClose, course }: Atte
               history.map((h, i) => {
                 const isPresent = (h.status_hadir || '').toLowerCase().includes('present') || (h.status_hadir || '').toLowerCase().includes('hadir');
                 return (
-                  <div key={i} className={`p-3 rounded-xl border flex items-center justify-between text-xs transition-colors ${
+                  <div key={i} className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs transition-colors ${
                     isLight 
                       ? 'bg-slate-50/50 border-slate-200 hover:bg-slate-50' 
                       : 'bg-white/[0.02] border-white/[0.05] hover:bg-white/[0.04]'
                   }`}>
-                    <div className="flex items-center space-x-3 text-left">
-                      <span className={`font-bold w-20 ${isLight ? 'text-amber-700' : 'text-amber-400'}`}>{h.minggu || `Minggu ${i+1}`}</span>
-                      <span className={`font-medium ${isLight ? 'text-slate-500' : 'text-white/40'}`}>{h.tarikh || '-'}</span>
+                    <div className="flex items-center gap-3 text-left min-w-0">
+                      <span className={`font-bold w-20 shrink-0 ${isLight ? 'text-amber-700' : 'text-amber-400'}`}>{h.minggu || `Minggu ${i+1}`}</span>
+                      <span className={`font-medium truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>{h.tarikh || '-'}</span>
                     </div>
 
-                    <div className="flex items-center space-x-3 text-right">
-                      <span className={`truncate max-w-[150px] ${isLight ? 'text-slate-500' : 'text-white/30'}`}>{h.catatan || 'Scan QR App'}</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 text-left sm:text-right min-w-0">
+                      <span className={`truncate max-w-[150px] sm:max-w-[180px] ${isLight ? 'text-slate-500' : 'text-white/30'}`}>{h.catatan || 'Scan QR App'}</span>
                       {isPresent ? (
-                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold border flex items-center gap-1 ${
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold border flex items-center gap-1 self-start sm:self-auto ${
                           isLight 
                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
                             : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'
@@ -132,7 +132,7 @@ export default function AttendanceHistoryModal({ isOpen, onClose, course }: Atte
                           <CheckCircle2 className="w-3 h-3" /> Hadir
                         </span>
                       ) : (
-                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold border flex items-center gap-1 ${
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold border flex items-center gap-1 self-start sm:self-auto ${
                           isLight 
                             ? 'bg-red-50 text-red-700 border-red-200' 
                             : 'bg-red-500/15 text-red-400 border border-red-500/20'

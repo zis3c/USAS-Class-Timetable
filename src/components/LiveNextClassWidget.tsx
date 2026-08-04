@@ -126,19 +126,19 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
   // Ultra-compact one-liner when all classes for today are completed
   if (!ongoingClass && !nextClass) {
     return (
-      <div className={`py-2 px-3.5 rounded-xl border text-[10px] flex items-center justify-between transition-all duration-350 shadow-sm ${
+      <div className={`py-2 px-3.5 rounded-xl border text-[10px] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 transition-all duration-350 shadow-sm ${
         isLight 
           ? 'bg-gradient-to-r from-emerald-50/70 to-teal-50/70 border-emerald-100/80 text-emerald-900 shadow-emerald-500/5' 
           : 'bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-emerald-500/20 text-emerald-300 shadow-black/10'
       }`}>
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 min-w-0">
           <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
             isLight ? 'bg-emerald-100 text-emerald-650' : 'bg-emerald-500/20 text-emerald-400'
           }`}>
             <CheckCircle2 className="w-3 h-3" />
           </div>
-          <span className="font-semibold tracking-wide">
-            {t('noClassRemaining')} ({t(`days.${currentDayName}`) || currentDayName}) • {t('restWell')}
+          <span className="font-semibold tracking-wide truncate">
+            {t('noClassRemaining')} ({t(`days.${currentDayName}`) || currentDayName}) - {t('restWell')}
           </span>
         </div>
         <button
@@ -163,7 +163,7 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
   const activeCourse = ongoingClass || nextClass;
 
   return (
-    <div className={`py-2 px-3 rounded-lg border flex items-center justify-between gap-3 text-xs transition-colors duration-150 ${
+    <div className={`py-2 px-3 rounded-lg border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs transition-colors duration-150 ${
       isLight ? 'bg-white border-slate-200 text-slate-700' : 'bg-white/[0.03] border-white/[0.05] text-slate-100'
     }`}>
       <div className="flex items-center gap-2.5 min-w-0">
@@ -178,8 +178,8 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
         }`}>
           <Clock className="w-3.5 h-3.5" />
         </div>
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
+        <div className="min-w-0 flex-1 space-y-0.5">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className={`text-[9px] font-bold uppercase tracking-wider ${
               ongoingClass 
                 ? (isLight ? 'text-emerald-600' : 'text-emerald-400') 
@@ -193,16 +193,18 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
               </span>
             )}
           </div>
-          <div className={`text-[11px] font-semibold truncate ${isLight ? 'text-slate-800' : 'text-white/90'}`}>
-            {activeCourse.course_id}: {activeCourse.course_name}
-            <span className={`ml-2 ${isLight ? 'text-slate-400 font-normal' : 'text-white/30 font-normal'}`}>
+          <div className="flex flex-col gap-0.5">
+            <div className={`text-[11px] font-semibold truncate ${isLight ? 'text-slate-800' : 'text-white/90'}`}>
+              {activeCourse.course_id}: {activeCourse.course_name}
+            </div>
+            <div className={`text-[10px] truncate ${isLight ? 'text-slate-400 font-normal' : 'text-white/30 font-normal'}`}>
               {activeCourse.location}
-            </span>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 flex-shrink-0">
+      <div className="flex items-center gap-1.5 flex-shrink-0 self-end sm:self-auto">
         <button
           onClick={toggleAutoNotify}
           className={`p-1 rounded transition-colors text-[9px] font-semibold flex items-center gap-1 ${
@@ -215,7 +217,7 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
           title="Peringatan Auto 15 Minit"
         >
           {autoNotifyEnabled ? <Bell className="w-3 h-3 text-emerald-500" /> : <BellOff className="w-3 h-3" />}
-          {autoNotifyEnabled && <span>Chime ON</span>}
+          {autoNotifyEnabled && <span className="hidden sm:inline">Chime ON</span>}
         </button>
       </div>
     </div>

@@ -66,7 +66,7 @@ export default function LecturerModal({ lecturerName, isOpen, onClose }: Lecture
       animate ? 'bg-slate-900/30 opacity-100' : 'bg-slate-900/0 opacity-0 pointer-events-none'
     }`}>
       
-      <div className={`rounded-xl w-full max-w-md border pt-4 px-6 pb-6 space-y-5 relative transition-all duration-200 transform ${
+      <div className={`rounded-xl w-full max-w-[92vw] sm:max-w-md border pt-4 px-4 sm:px-6 pb-6 space-y-5 relative transition-all duration-200 transform ${
         animate ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
       } ${
         isLight 
@@ -83,15 +83,15 @@ export default function LecturerModal({ lecturerName, isOpen, onClose }: Lecture
         </button>
 
         {/* Left-Aligned Icon Modal Header */}
-        <div className="flex items-center space-x-3 pt-0">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-0">
           <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md border ${
             isLight ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-amber-400/10 border-amber-400/20 text-amber-400'
           }`}>
             <User className="w-6 h-6" />
           </div>
-          <div className="text-left">
-            <h3 className={`text-base font-bold leading-tight ${isLight ? 'text-slate-800' : 'text-white'}`}>{cachedName}</h3>
-            <p className={`text-xs font-semibold ${isLight ? 'text-slate-500' : 'text-white/40'}`}>Pensyarah Universiti Sultan Azlan Shah</p>
+          <div className="text-left min-w-0">
+            <h3 className={`text-base font-bold leading-tight truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>{cachedName}</h3>
+            <p className={`text-xs font-semibold truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>Pensyarah Universiti Sultan Azlan Shah</p>
           </div>
         </div>
 
@@ -100,26 +100,26 @@ export default function LecturerModal({ lecturerName, isOpen, onClose }: Lecture
           isLight ? 'bg-slate-50/50 border-slate-200/80' : 'bg-white/[0.02] border-white/[0.05]'
         }`}>
           
-          <div className="flex items-center space-x-3">
+          <div className="flex items-start gap-3">
             <Building className="w-4 h-4 text-sky-500 flex-shrink-0" />
-            <div className="text-left">
+            <div className="text-left min-w-0">
               <div className={`text-[10px] font-semibold ${isLight ? 'text-slate-400' : 'text-white/40'}`}>Fakulti / Jabatan</div>
-              <div className={`font-semibold ${isLight ? 'text-slate-700' : 'text-white'}`}>Fakulti Teknologi & Sains Maklumat (FTMK)</div>
+              <div className={`font-semibold break-words ${isLight ? 'text-slate-700' : 'text-white'}`}>Fakulti Teknologi & Sains Maklumat (FTMK)</div>
             </div>
           </div>
 
-          <div className={`flex items-center space-x-3 pt-2 border-t text-left ${isLight ? 'border-slate-200' : 'border-white/[0.05]'}`}>
+          <div className={`flex items-start gap-3 pt-2 border-t text-left ${isLight ? 'border-slate-200' : 'border-white/[0.05]'}`}>
             <Clock className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-            <div>
+            <div className="min-w-0">
               <div className={`text-[10px] font-semibold ${isLight ? 'text-slate-400' : 'text-white/40'}`}>Waktu Konsultasi Pelajar</div>
-              <div className={`font-semibold ${isLight ? 'text-slate-700' : 'text-white'}`}>Selasa & Khamis (02:00 PM - 04:00 PM)</div>
+              <div className={`font-semibold break-words ${isLight ? 'text-slate-700' : 'text-white'}`}>Selasa & Khamis (02:00 PM - 04:00 PM)</div>
             </div>
           </div>
 
-          <div className={`flex items-center justify-between pt-2 border-t ${isLight ? 'border-slate-200' : 'border-white/[0.05]'}`}>
-            <div className="flex items-center space-x-3 truncate text-left">
+          <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t ${isLight ? 'border-slate-200' : 'border-white/[0.05]'}`}>
+            <div className="flex items-center gap-3 min-w-0 truncate text-left">
               <Mail className="w-4 h-4 text-amber-500 flex-shrink-0" />
-              <div className="truncate">
+              <div className="min-w-0 truncate">
                 <div className={`text-[10px] font-semibold ${isLight ? 'text-slate-400' : 'text-white/40'}`}>E-mel Rasmi</div>
                 <div className={`font-semibold truncate ${isLight ? 'text-slate-600' : 'text-white/80'}`}>{email}</div>
               </div>
@@ -127,7 +127,7 @@ export default function LecturerModal({ lecturerName, isOpen, onClose }: Lecture
 
             <button
               onClick={handleCopyEmail}
-              className={`p-2 rounded-md text-xs font-semibold transition-all flex-shrink-0 flex items-center gap-1 border ${
+              className={`w-full sm:w-auto p-2 rounded-md text-xs font-semibold transition-all flex-shrink-0 flex items-center justify-center gap-1 border ${
                 isLight 
                   ? 'bg-white hover:bg-slate-100 border-slate-300 text-slate-700' 
                   : 'bg-white/[0.04] hover:bg-white/[0.08] text-amber-400 border-amber-400/20'

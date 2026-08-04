@@ -77,7 +77,7 @@ export default function WhatsAppShareButton({ timetable = [], studentName = '', 
       </button>
 
       {showPanel && (
-        <div className={`mt-2 border rounded-xl p-4 space-y-3 shadow-xl z-50 animate-in slide-in-from-top-1 ${
+        <div className={`mt-2 w-full sm:w-[22rem] max-w-[92vw] border rounded-xl p-4 space-y-3 shadow-xl z-50 animate-in slide-in-from-top-1 ${
           isLight
             ? 'bg-white border-slate-200 text-slate-800'
             : 'border-emerald-500/20 bg-[#0F2148]/95 backdrop-blur-xl text-white/80'
@@ -90,7 +90,7 @@ export default function WhatsAppShareButton({ timetable = [], studentName = '', 
             </pre>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <button
               onClick={handleWhatsApp}
               className={`py-2.5 px-3 rounded-md border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
@@ -115,7 +115,7 @@ export default function WhatsAppShareButton({ timetable = [], studentName = '', 
             </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <button
               onClick={() => handleCopy(formattedText)}
               className={`py-2 px-3 rounded-md border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${

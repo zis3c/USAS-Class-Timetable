@@ -184,3 +184,61 @@
 .animate-scroll-wheel {
   animation: scrollWheel 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
+
+/* Lockscreen spacing slider */
+.usas-range {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 16px;
+  outline: none;
+  background: transparent;
+}
+
+.usas-range::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 999px;
+  background: #cbd5e1;
+}
+
+.usas-range::-moz-range-track {
+  height: 3px;
+  border-radius: 999px;
+  background: #cbd5e1;
+}
+
+.usas-range-dark::-webkit-slider-runnable-track {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.usas-range-dark::-moz-range-track {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.usas-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  border: 0;
+  background: #f59e0b;
+  box-shadow: 0 0 0 2px #ffffff;
+  margin-top: -4.5px;
+}
+
+.usas-range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  border: 0;
+  background: #f59e0b;
+  box-shadow: 0 0 0 2px #ffffff;
+}
+
+.usas-range-dark::-webkit-slider-thumb {
+  box-shadow: 0 0 0 2px #0a1428;
+}
+
+.usas-range-dark::-moz-range-thumb {
+  box-shadow: 0 0 0 2px #0a1428;
+}

@@ -27,8 +27,8 @@ export default function AttendanceMeter({ percentStr = '85%' }: AttendanceMeterP
 
   return (
     <div className="space-y-1 w-full">
-      <div className="flex items-center justify-between text-[10px] font-medium">
-        <span className={`flex items-center gap-1 ${isLight ? 'text-slate-500' : 'text-white/60'}`}>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-[10px] font-medium">
+        <span className={`flex items-center gap-1 min-w-0 ${isLight ? 'text-slate-500' : 'text-white/60'}`}>
           {num < 80 ? (
             <ShieldAlert className={`w-3 h-3 ${isLight ? 'text-red-650' : 'text-red-400'}`} />
           ) : num < 85 ? (
@@ -36,10 +36,10 @@ export default function AttendanceMeter({ percentStr = '85%' }: AttendanceMeterP
           ) : (
             <CheckCircle2 className={`w-3 h-3 ${isLight ? 'text-emerald-600' : 'text-emerald-400/80'}`} />
           )}
-          <span>{t('attendance')}: <strong className={`font-bold ${isLight ? 'text-slate-800' : 'text-white/90'}`}>{num}%</strong></span>
+          <span className="truncate">{t('attendance')}: <strong className={`font-bold ${isLight ? 'text-slate-800' : 'text-white/90'}`}>{num}%</strong></span>
         </span>
         {warningText && (
-          <span className={`text-[9px] font-bold ${num < 80 ? (isLight ? 'text-red-700' : 'text-red-400') : (isLight ? 'text-amber-700' : 'text-amber-400')}`}>
+          <span className={`text-[9px] font-bold self-start sm:self-auto ${num < 80 ? (isLight ? 'text-red-700' : 'text-red-400') : (isLight ? 'text-amber-700' : 'text-amber-400')}`}>
             {warningText}
           </span>
         )}

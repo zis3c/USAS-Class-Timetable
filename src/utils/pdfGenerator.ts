@@ -77,6 +77,7 @@ async function captureElement(elementRef: ExportElement | null, scale = 2, backg
         clonedRoot.style.overflow = 'hidden';
         clonedRoot.style.width = elementRef.style.width || `${exportWidth || elementRef.offsetWidth}px`;
         clonedRoot.style.height = elementRef.style.height || `${exportHeight || elementRef.offsetHeight}px`;
+        clonedRoot.style.borderRadius = '0';
       } else {
         // For formal document or auto-layout, expand height to fit content
         clonedRoot.style.overflow = 'visible';

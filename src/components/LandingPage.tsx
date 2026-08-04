@@ -133,7 +133,7 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
 
 
   return (
-    <div className={`relative isolate overflow-hidden min-h-[120vh] transition-colors duration-150 ${
+    <div className={`relative isolate overflow-hidden min-h-[120dvh] transition-colors duration-150 ${
       theme === THEMES.LIGHT ? 'bg-[#f8fafc] text-slate-800' :
       theme === THEMES.OLED ? 'bg-black text-slate-100' :
       theme === THEMES.EMERALD ? 'bg-[#012117] text-slate-100' :
@@ -145,7 +145,7 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
 
         {/* Colorful glowing ambient blobs */}
-        <div className={`absolute -top-40 left-1/2 -translate-x-1/2 h-[380px] w-[600px] rounded-full blur-[120px] opacity-40 transition-colors duration-500 ${isLight ? 'bg-gradient-to-tr from-amber-200 to-sky-200' : 'bg-gradient-to-tr from-amber-500/10 to-indigo-500/10'
+        <div className={`absolute -top-40 left-1/2 -translate-x-1/2 h-[380px] w-[min(600px,90vw)] rounded-full blur-[120px] opacity-40 transition-colors duration-500 ${isLight ? 'bg-gradient-to-tr from-amber-200 to-sky-200' : 'bg-gradient-to-tr from-amber-500/10 to-indigo-500/10'
           }`} />
         <div className={`absolute top-20 right-10 h-80 w-80 rounded-full blur-[100px] opacity-35 transition-colors duration-500 ${isLight ? 'bg-amber-200' : 'bg-amber-500/5'
           }`} />
@@ -154,7 +154,7 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
       </div>
 
       {/* SECTION 1: Above-the-fold Viewport (Hero Area) */}
-      <section className="relative w-full min-h-[calc(100vh-3.5rem)] lg:h-[calc(100vh-3.5rem)] flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 border-b border-slate-200/10 dark:border-white/5 overflow-hidden">
+      <section className="relative w-full min-h-[calc(100dvh-3.5rem)] lg:h-[calc(100dvh-3.5rem)] flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 border-b border-slate-200/10 dark:border-white/5 overflow-hidden">
         
         <div className="w-full max-w-4xl mx-auto flex flex-col justify-center items-center text-center space-y-4 lg:space-y-5 pt-4 pb-8 lg:py-0 lg:-translate-y-6 relative z-10">
           {/* Tech-Status Eyebrow Badge */}
@@ -171,7 +171,7 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
             </span>
           </div>
 
-          <h1 className={`text-4.5xl sm:text-6.5xl lg:text-[5rem] font-black tracking-tight leading-[1.08] ${isLight ? 'text-slate-900' : 'text-white'
+          <h1 className={`text-3xl sm:text-6.5xl lg:text-[5rem] font-black tracking-tight leading-[1.08] ${isLight ? 'text-slate-900' : 'text-white'
             }`}>
             {copy.titlePrefix}
             <span className="block sm:inline bg-clip-text text-transparent bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 dark:from-amber-400 dark:via-yellow-300 dark:to-amber-500 drop-shadow-sm">
@@ -256,7 +256,7 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
             >
               {/* Mockup Header */}
               <div
-                className="flex items-center justify-between pb-3 mb-4 border-b border-slate-200/50 dark:border-white/10 text-[9px] sm:text-[10px] font-bold opacity-60"
+                className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 pb-3 mb-4 border-b border-slate-200/50 dark:border-white/10 text-[9px] sm:text-[10px] font-bold opacity-60"
                 style={{ transform: 'translateZ(30px)' }}
               >
                 <span>MATRIK: AI210042</span>
@@ -418,7 +418,7 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
             {/* CARD 1: DOWNLOADABLE FORMATS (A4 PDF & Lockscreen Wallpapers) - md:col-span-2 */}
             <div className={`md:col-span-2 rounded-2xl border p-5 transition-all duration-300 hover:shadow-lg relative overflow-hidden flex flex-col justify-between min-h-[160px] ${isLight ? 'bg-white border-slate-200/60 shadow-sm' : 'bg-white/[0.015] border-white/[0.04] hover:bg-white/[0.025]'
               }`}>
-              <div className="space-y-2 max-w-[50%] sm:max-w-[52%]">
+              <div className="space-y-2 max-w-full sm:max-w-[52%]">
                 <div className="flex items-center gap-2">
                   <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${isLight ? 'bg-slate-50 text-slate-700' : 'bg-white/[0.06] text-amber-300'
                     }`}>
@@ -500,7 +500,7 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
             {/* CARD 4: CLASH DETECTION & ATTENDANCE - md:col-span-2 */}
             <div className={`md:col-span-2 rounded-2xl border p-5 transition-all duration-300 hover:shadow-lg relative overflow-hidden flex flex-col justify-between min-h-[160px] ${isLight ? 'bg-white border-slate-200/60 shadow-sm' : 'bg-white/[0.015] border-white/[0.04] hover:bg-white/[0.025]'
               }`}>
-              <div className="space-y-2 max-w-[50%] sm:max-w-[52%]">
+              <div className="space-y-2 max-w-full sm:max-w-[52%]">
                 <div className="flex items-center gap-2">
                   <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${isLight ? 'bg-slate-50 text-slate-700' : 'bg-white/[0.06] text-amber-300'
                     }`}>
@@ -542,7 +542,7 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
           </div>
 
           <div
-            className={`group rounded-2xl border p-4 transition-all duration-300 relative overflow-hidden aspect-video flex items-center justify-center cursor-pointer shadow-md ${isLight
+            className={`group rounded-2xl border p-4 transition-all duration-300 relative overflow-hidden aspect-[4/3] sm:aspect-video min-h-[220px] sm:min-h-0 flex items-center justify-center cursor-pointer shadow-md ${isLight
               ? 'bg-slate-100/50 border-slate-200'
               : 'bg-white/[0.015] border-white/[0.04] hover:border-white/[0.1] hover:bg-white/[0.025]'
               }`}
@@ -557,7 +557,7 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
             </div>
 
             {/* Minimal Playback HUD Controls Mockup */}
-            <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between text-[8px] tracking-widest font-mono text-white/50 z-10 select-none">
+            <div className="absolute bottom-3 left-4 right-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[8px] tracking-widest font-mono text-white/50 z-10 select-none">
               <span>0:00 / 0:59</span>
               <div className="flex-1 mx-3 h-[2px] rounded-full bg-white/20 overflow-hidden">
                 <div className="w-[18%] h-full bg-amber-500 rounded-full" />
@@ -760,10 +760,10 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
         </div>
 
         {/* Footer */}
-        <footer className="mt-20 border-t border-slate-200/40 dark:border-white/5 pt-6 flex items-center justify-between gap-3 text-[9px] uppercase tracking-[0.25em] opacity-60">
+        <footer className="mt-20 border-t border-slate-200/40 dark:border-white/5 pt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-[9px] uppercase tracking-[0.25em] opacity-60">
           <div className="flex items-center gap-1.5 font-bold">
             <span className="text-amber-500">STEM USAS</span>
-            <span className="opacity-30 text-[8px]">•</span>
+            <span className="opacity-30 text-[8px]">-</span>
             <span className={isLight ? 'text-slate-650' : 'text-slate-450'}>zis3c</span>
           </div>
           <div className="flex items-center gap-2">

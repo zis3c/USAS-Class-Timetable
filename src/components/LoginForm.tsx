@@ -51,7 +51,7 @@ export default function LoginForm() {
         }`} />
       </div>
 
-      <div className={`w-full max-w-md rounded-2xl border p-6 sm:p-8 shadow-2xl transition-all duration-300 ${
+      <div className={`w-full max-w-md rounded-2xl border p-5 sm:p-8 shadow-2xl transition-all duration-300 ${
         isLight 
           ? 'bg-white border-slate-200/90 shadow-slate-200/50' 
           : theme === THEMES.OLED 
@@ -218,9 +218,9 @@ export default function LoginForm() {
         </div>
 
         {/* Privacy — outside the card */}
-        <div className="mt-5 flex items-center justify-center gap-1.5 text-[10px] text-center text-slate-500">
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-1.5 text-[10px] text-center text-slate-500">
           <ShieldCheck className="w-3 h-3 text-emerald-500/60 flex-shrink-0" />
-          <span className="whitespace-nowrap">{t('privacyNote')}</span>
+          <span className="max-w-full">{t('privacyNote')}</span>
         </div>
 
       </div>

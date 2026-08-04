@@ -67,6 +67,7 @@ function MainContent() {
     const lenis = new Lenis({
       lerp: 0.09,
       smoothWheel: true,
+      allowNestedScroll: true,
     });
     const lenisWindow = window as unknown as Window & { usasLenis?: Lenis };
     lenisWindow.usasLenis = lenis;
@@ -122,7 +123,7 @@ function MainContent() {
       : 'landing';
 
   return (
-    <div className={`w-full ${view === 'app' ? 'h-screen max-h-screen overflow-hidden' : 'min-h-screen'} flex flex-col font-sans selection:bg-amber-400 selection:text-slate-950 antialiased ${
+    <div className={`w-full ${view === 'app' ? 'h-[100dvh] max-h-[100dvh] overflow-hidden' : 'min-h-screen'} flex flex-col font-sans selection:bg-amber-400 selection:text-slate-950 antialiased ${
       theme === THEMES.LIGHT ? 'bg-[#f8fafc] text-slate-800' :
       theme === THEMES.OLED ? 'bg-black text-slate-100' :
       theme === THEMES.EMERALD ? 'bg-[#012117] text-slate-100' :
@@ -137,7 +138,7 @@ function MainContent() {
       />
       {session && <PrayerTimesNotifier />}
       
-      <main className={view === 'app' ? 'flex-1 overflow-hidden relative' : 'flex-1 relative'}>
+      <main className={view === 'app' ? 'flex-1 min-h-0 overflow-hidden relative' : 'flex-1 relative'}>
         {!session && view === 'landing' && (
           <LandingPage onGoToLogin={() => navigateTo('/login')} />
         )}

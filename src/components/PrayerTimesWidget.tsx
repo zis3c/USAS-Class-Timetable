@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { fetchPrayerTimesAPI, MOCK_PRAYER_TIMES } from '../services/usasApi';
 import type { PrayerTimeItem } from '../types/usas';
@@ -106,12 +106,12 @@ export default function PrayerTimesWidget() {
     <div className="glass-card rounded-2xl p-4 border border-amber-500/20 bg-[#0F2148]/70 space-y-3 shadow-lg">
       
       {/* Header */}
-      <div className="flex items-center justify-between text-xs border-b border-amber-500/10 pb-2">
-        <div className="flex items-center space-x-2">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs border-b border-amber-500/10 pb-2">
+        <div className="flex items-center gap-2 min-w-0">
           <Moon className="w-4 h-4 text-amber-400" />
-          <span className="font-extrabold text-white">Waktu Solat USAS</span>
+          <span className="font-extrabold text-white truncate">Waktu Solat USAS</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="text-[10px] font-bold text-amber-300 bg-[#070F22] px-2 py-0.5 rounded-full border border-amber-500/20">
             {prayerData.location}
           </span>
@@ -132,14 +132,14 @@ export default function PrayerTimesWidget() {
 
       {/* Friday Prayer Break Banner */}
       {isFriday && (
-        <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-400/30 text-amber-300 text-[11px] font-bold flex items-center gap-2">
+        <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-400/30 text-amber-300 text-[11px] font-bold flex flex-col sm:flex-row sm:items-center gap-2">
           <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
-          <span>Rehat Solat Jumaat: <strong>12:15 PM – 2:30 PM</strong> (Tiada kuliah berlangsung).</span>
+          <span>Rehat Solat Jumaat: <strong>12:15 PM - 2:30 PM</strong> (Tiada kuliah berlangsung).</span>
         </div>
       )}
 
       {/* Prayer Times Grid */}
-      <div className="grid grid-cols-6 gap-1.5 text-center text-[10px]">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-1.5 text-center text-[10px]">
         {prayerData.times.map((p, idx) => (
           <div key={idx} className="bg-[#070F22] p-1.5 rounded-xl border border-amber-500/10">
             <div className="text-slate-400 font-semibold">{p.label}</div>
@@ -151,7 +151,6 @@ export default function PrayerTimesWidget() {
     </div>
   );
 }
-
 export function PrayerTimesNotifier() {
   const { session } = useAuth();
   const [prayerData, setPrayerData] = useState<PrayerData>({

@@ -34,16 +34,16 @@ export default function Navbar({ onOpenTools, onNavigateHome, onNavigateLogin, v
           <div className="flex items-center gap-1.5 min-w-0">
             <img src="/usas-logo.png" alt="USAS Emblem" className="w-8 h-8 object-contain drop-shadow-[0_2px_8px_rgba(212,175,55,0.2)]" />
             <div className="flex flex-col justify-center text-left leading-none min-w-0">
-              <h2 className={`text-[12px] font-semibold tracking-tight leading-none whitespace-nowrap ${isLight ? 'text-slate-800' : 'text-white'}`}>
+              <h2 className={`max-w-[11rem] sm:max-w-none truncate text-[11px] sm:text-[12px] font-semibold tracking-tight leading-none whitespace-nowrap ${isLight ? 'text-slate-800' : 'text-white'}`}>
                 USAS Class Timetable
               </h2>
-              <p className={`text-[9px] font-medium uppercase tracking-[0.15em] mt-0.5 whitespace-nowrap ${isLight ? 'text-amber-600' : 'text-amber-400/70'}`}>
+              <p className={`hidden sm:block text-[9px] font-medium uppercase tracking-[0.15em] mt-0.5 whitespace-nowrap ${isLight ? 'text-amber-600' : 'text-amber-400/70'}`}>
                 Universiti Sultan Azlan Shah
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="hidden md:flex items-center gap-1.5">
             {session?.isDemo && (
               <span className={`flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-semibold border flex-shrink-0 ${isLight
                   ? 'bg-amber-50 text-amber-700 border-amber-200'
@@ -64,7 +64,7 @@ export default function Navbar({ onOpenTools, onNavigateHome, onNavigateLogin, v
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-2 flex-1 justify-end">
+        <div className="flex items-center gap-2 flex-shrink-0 min-w-0 justify-end">
           {/* Language toggle */}
           <button
             onClick={toggleLanguage}

@@ -52,20 +52,20 @@ function GpaCustomDropdown<T extends string | number>({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-semibold transition-all shadow-sm justify-between ${minWidth} ${
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-semibold transition-all shadow-sm justify-between max-w-full ${minWidth} ${
           isLight
             ? 'bg-white border-slate-200 text-slate-800 hover:bg-slate-100 shadow-slate-100/50'
             : 'bg-white/[0.04] border-white/10 text-white hover:bg-white/[0.08]'
         } ${textColorClass}`}
       >
-        <span>{labelText}</span>
+        <span className="truncate">{labelText}</span>
         <ChevronDown className={`w-3.5 h-3.5 opacity-60 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
         <div
           data-lenis-prevent
-          className={`absolute top-full right-0 mt-1 z-50 rounded-lg border shadow-xl max-h-48 overflow-y-auto usas-scrollbar focus:outline-none transition-all py-1 min-w-[120px] ${
+          className={`absolute top-full right-0 mt-1 z-50 rounded-lg border shadow-xl max-h-48 overflow-y-auto usas-scrollbar focus:outline-none transition-all py-1 min-w-[100px] sm:min-w-[120px] ${
             isLight
               ? 'bg-white border-slate-200 text-slate-800'
               : 'bg-[#0E1B35] border-white/10 text-white'
@@ -181,7 +181,7 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: Gp
       animate ? 'bg-slate-900/30 opacity-100' : 'bg-slate-900/0 opacity-0 pointer-events-none'
     }`}>
       
-      <div className={`rounded-xl w-full max-w-2xl border pt-4 px-6 pb-6 relative transition-all duration-200 transform flex flex-col gap-5 max-h-[85vh] sm:max-h-[90vh] ${
+      <div className={`rounded-xl w-full max-w-[92vw] sm:max-w-2xl border pt-4 px-4 sm:px-6 pb-6 relative transition-all duration-200 transform flex flex-col gap-5 max-h-[85dvh] sm:max-h-[90dvh] ${
         animate ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
       } ${
         isLight 
@@ -198,15 +198,15 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: Gp
         </button>
 
         {/* Modal Header */}
-        <div className="flex items-center space-x-3 pt-0">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-0">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border ${
             isLight ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-amber-400/10 border-amber-400/20 text-amber-400'
           }`}>
             <Calculator className="w-5 h-5" />
           </div>
-          <div className="text-left">
-            <h3 className={`text-base font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>{t('gpaBtn')}</h3>
-            <p className={`text-xs font-semibold ${isLight ? 'text-amber-750' : 'text-amber-400/90'}`}>
+          <div className="text-left min-w-0">
+            <h3 className={`text-base font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>{t('gpaBtn')}</h3>
+            <p className={`text-xs font-semibold truncate ${isLight ? 'text-amber-750' : 'text-amber-400/90'}`}>
               {lang === 'ms' ? 'Kira anggaran GPA semester berdasarkan sasaran gred subjek anda' : 'Estimate your semester GPA based on target subject grades'}
             </p>
           </div>
@@ -216,7 +216,7 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: Gp
         <div data-lenis-prevent className="space-y-4 flex-1 overflow-y-auto pr-1 usas-scrollbar touch-pan-y overscroll-contain">
           
           {/* GPA Result Display Banner */}
-          <div className={`p-4 rounded-xl border flex items-center justify-between shadow-sm ${
+          <div className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm ${
             isLight 
               ? 'bg-amber-500/[0.04] border-amber-500/20' 
               : 'bg-amber-400/[0.02] border-amber-500/15'
@@ -296,7 +296,7 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: Gp
                   <div className="flex flex-wrap items-center gap-2.5 sm:justify-end">
                     {/* Credit Selector */}
                     <div className="flex items-center gap-1.5">
-                      <span className={`text-[10px] font-medium whitespace-nowrap ${isLight ? 'text-slate-500' : 'text-slate-450'}`}>
+                      <span className={`text-[10px] font-medium break-words ${isLight ? 'text-slate-500' : 'text-slate-450'}`}>
                         {lang === 'ms' ? 'Kredit:' : 'Credits:'}
                       </span>
                       <GpaCustomDropdown
@@ -309,14 +309,14 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: Gp
                         ]}
                         onChange={(val) => handleTargetChange(id, 'credits', val)}
                         isLight={isLight}
-                        minWidth="min-w-[64px]"
+                        minWidth="min-w-[54px] sm:min-w-[64px]"
                         textColorClass={isLight ? 'text-slate-805' : 'text-white/90'}
                       />
                     </div>
 
                     {/* Target Grade Selector */}
                     <div className="flex items-center gap-1.5">
-                      <span className={`text-[10px] font-medium whitespace-nowrap ${isLight ? 'text-slate-500' : 'text-slate-450'}`}>
+                      <span className={`text-[10px] font-medium break-words ${isLight ? 'text-slate-500' : 'text-slate-450'}`}>
                         {lang === 'ms' ? 'Sasaran:' : 'Target:'}
                       </span>
                       <GpaCustomDropdown
@@ -327,7 +327,7 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: Gp
                         }))}
                         onChange={(val) => handleTargetChange(id, 'grade', val)}
                         isLight={isLight}
-                        minWidth="min-w-[56px]"
+                        minWidth="min-w-[48px] sm:min-w-[56px]"
                         textColorClass={isLight ? 'text-amber-600 font-black' : 'text-amber-400 font-black'}
                       />
                     </div>

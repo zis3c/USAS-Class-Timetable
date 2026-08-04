@@ -194,6 +194,7 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
   const [userZoom, setUserZoom] = useState(1);
   const [exportTheme, setExportTheme] = useState<ExportTheme>('light');
   const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
+  const [wallpaperYOffset, setWallpaperYOffset] = useState(0);
 
   useEffect(() => {
     if (isOpen) {
@@ -515,7 +516,7 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
         {contentDetail === 'DETAILS' ? (
           <div className="w-full flex flex-col justify-center items-center text-center gap-0.5">
             <div className={`w-full text-center ${style.durationSize} leading-normal font-bold ${isLight ? 'text-slate-500' : 'text-white/60'}`}>
-              <span className="whitespace-nowrap text-center">{shortDuration || duration}</span>
+              <span className="break-words text-center leading-tight">{shortDuration || duration}</span>
             </div>
             <div className="w-full text-center">
               <span
@@ -547,13 +548,18 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
     );
   };
 
-  const getSpacerHeights = (preset: WallpaperPreset) => {
+  const getSpacerHeights = (preset: WallpaperPreset, offset = 0) => {
     const top = preset === 'desktop' ? 56 : preset === 'square' ? 64 : preset === 'tablet' ? 104 : 96;
     const bottom = preset === 'desktop' ? 28 : preset === 'square' ? 24 : preset === 'tablet' ? 22 : 18;
-    return { top, bottom };
+    const clampedOffset = Math.max(-48, Math.min(48, offset));
+    return {
+      top: Math.max(12, top + clampedOffset),
+      bottom: Math.max(8, bottom - clampedOffset),
+      offset: clampedOffset,
+    };
   };
 
-  const currentSpacers = getSpacerHeights(wallpaperPreset);
+  const currentSpacers = getSpacerHeights(wallpaperPreset, wallpaperYOffset);
 
   return (
     <div data-lenis-prevent className={`fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 backdrop-blur-md transition-all duration-200 touch-pan-y overscroll-contain ${
@@ -561,7 +567,7 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
     }`}>
       
       {/* Spacious Modal Frame */}
-      <div className={`rounded-xl w-[96vw] max-w-6xl h-[92vh] max-h-[92vh] border flex flex-col min-h-0 overflow-hidden my-auto transition-all duration-200 transform ${
+      <div className={`rounded-xl w-[96vw] max-w-6xl h-[92dvh] max-h-[92dvh] border flex flex-col min-h-0 overflow-hidden my-auto transition-all duration-200 transform ${
         animate ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
       } ${
         isLight 
@@ -570,14 +576,14 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
       }`}>
         
         {/* Header */}
-        <div className={`p-4 border-b flex items-center justify-between flex-shrink-0 ${
+        <div className={`p-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3 flex-shrink-0 ${
           isLight ? 'border-slate-200 bg-slate-50/50' : 'border-white/[0.06] bg-[#0A1428]/95'
         }`}>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <img src="/usas-logo.png" alt="USAS Logo" className="w-7 h-7 object-contain" />
-            <div>
+            <div className="min-w-0">
               <h3 className={`text-xs font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>{t('exportPdfTitle')}</h3>
-              <p className={`text-[10px] ${isLight ? 'text-slate-500 font-semibold' : 'text-white/40'}`}>
+              <p className={`text-[10px] break-words ${isLight ? 'text-slate-500 font-semibold' : 'text-white/40'}`}>
                 Eksport Dokumen Rasmi A4 atau Custom Wallpaper Lockscreen peranti
               </p>
             </div>
@@ -601,42 +607,42 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
           }`}>
             <button
               onClick={() => setExportMode('FORMAL_A4')}
-              className={`py-2 px-3 rounded-lg text-[11px] font-bold flex items-center justify-center gap-2 transition-all ${
+              className={`py-2 px-3 rounded-lg text-[10px] sm:text-[11px] font-bold flex items-center justify-center gap-2 transition-all min-w-0 ${
                 exportMode === 'FORMAL_A4'
                   ? (isLight ? 'bg-[#0B1E43] text-white shadow-md' : 'bg-amber-400 text-slate-950 shadow-md')
                   : (isLight ? 'text-slate-500 hover:text-slate-800' : 'text-white/40 hover:text-white')
               }`}
             >
               <Award className="w-3.5 h-3.5" />
-              <span>Dokumen Rasmi (Formal A4)</span>
+              <span className="truncate">Dokumen Rasmi (Formal A4)</span>
             </button>
 
             <button
               onClick={() => setExportMode('WALLPAPER')}
-              className={`py-2 px-3 rounded-lg text-[11px] font-bold flex items-center justify-center gap-2 transition-all ${
+              className={`py-2 px-3 rounded-lg text-[10px] sm:text-[11px] font-bold flex items-center justify-center gap-2 transition-all min-w-0 ${
                 exportMode === 'WALLPAPER'
                   ? (isLight ? 'bg-[#0B1E43] text-white shadow-md' : 'bg-amber-400 text-slate-950 shadow-md')
                   : (isLight ? 'text-slate-500 hover:text-slate-800' : 'text-white/40 hover:text-white')
               }`}
             >
               <Smartphone className="w-3.5 h-3.5" />
-              <span>Wallpaper Lockscreen (Custom)</span>
+              <span className="truncate">Wallpaper Lockscreen (Custom)</span>
             </button>
           </div>
 
           {exportMode !== 'WALLPAPER' && (
-            <div className={`p-2.5 rounded-xl border flex items-center justify-between gap-3 text-[11px] font-medium transition-colors ${
+            <div className={`p-2.5 rounded-xl border flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-[11px] font-medium transition-colors ${
               isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-white/[0.02] border-white/[0.04] text-white/70'
             }`}>
               <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${
                 isLight ? 'text-amber-800' : 'text-amber-400/90'
               }`}>Format Muat Turun:</span>
-              <div className="flex items-center gap-1">
+              <div className="flex flex-wrap items-center gap-1">
                 {fileTypeOptions.map((item) => (
                   <button
                     key={item.id}
                     onClick={() => setExportFileType(item.id)}
-                    className={`px-2.5 py-1 rounded text-[10px] font-semibold border transition-all ${
+                    className={`px-2.5 py-1 rounded text-[10px] font-semibold border transition-all min-w-0 ${
                       exportFileType === item.id
                         ? (isLight ? 'bg-[#0B1E43] text-white border-slate-800 shadow-sm' : 'bg-amber-400 text-slate-950 border-amber-400')
                         : (isLight ? 'bg-white border-slate-200 text-slate-500 hover:bg-slate-100/50' : 'bg-white/[0.02] border-white/10 text-white/50')
@@ -651,7 +657,7 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
 
           {/* MINIMALIST CUSTOMIZERS (Horizontal Segmented Controls for Height Reduction) */}
           {exportMode !== 'FORMAL_A4' && (
-            <div className={`p-2.5 rounded-xl border flex flex-col sm:flex-row gap-3 items-center justify-between text-[11px] font-medium transition-colors relative ${
+            <div className={`p-2.5 rounded-xl border flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between text-[11px] font-medium transition-colors relative ${
               isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-white/[0.02] border-white/[0.04] text-white/70'
             }`}>
               
@@ -668,10 +674,10 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                 />
               )}
 
-              <div className="flex flex-col sm:flex-row gap-4 items-center w-full justify-between sm:justify-start relative z-40">
+              <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center w-full justify-between sm:justify-start relative z-40">
                 {/* 1. Device Ratio Selector (WALLPAPER only) */}
                 {exportMode === 'WALLPAPER' && (
-                  <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start relative z-40">
+                  <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start relative z-40 min-w-0">
                     <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${
                       isLight ? 'text-amber-800' : 'text-amber-400/90'
                     }`}>{t('deviceRatio')}:</span>
@@ -727,7 +733,7 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                 )}
 
                 {/* 2. Content Detail Selector */}
-                <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start relative z-20">
+                <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start relative z-20 min-w-0">
                   <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${
                     isLight ? 'text-amber-800' : 'text-amber-400/90'
                   }`}>{t('cardContent')}:</span>
@@ -780,7 +786,7 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                 </div>
 
                 {/* 3. Tema Jadual Selector */}
-                <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start relative z-20">
+                <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start relative z-20 min-w-0">
                   <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${
                     isLight ? 'text-amber-800' : 'text-amber-400/90'
                   }`}>{t('tableTheme')}:</span>
@@ -830,6 +836,50 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                     )}
                   </div>
                 </div>
+
+                {exportMode === 'WALLPAPER' && (
+                  <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start relative z-20">
+                    <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${
+                      isLight ? 'text-amber-800' : 'text-amber-400/90'
+                    }`}>Posisi:</span>
+                    <div className={`flex items-center gap-2 rounded-lg border px-2 py-1 ${
+                      isLight
+                        ? 'bg-white border-slate-200'
+                        : 'bg-white/[0.04] border-white/10'
+                    }`}>
+                      <input
+                        type="range"
+                        min={-48}
+                        max={48}
+                        step={1}
+                        value={wallpaperYOffset}
+                        onChange={(e) => setWallpaperYOffset(Number(e.target.value))}
+                        className={`usas-range w-24 cursor-pointer ${isLight ? '' : 'usas-range-dark'}`}
+                        aria-label="Laraskan posisi jadual pada lockscreen"
+                      />
+                      <span className={`w-9 text-right text-[10px] font-semibold tabular-nums ${
+                        isLight ? 'text-slate-500' : 'text-white/55'
+                      }`}>
+                        {currentSpacers.offset > 0 ? '+' : ''}{currentSpacers.offset}
+                      </span>
+                      {wallpaperYOffset !== 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setWallpaperYOffset(0)}
+                          className={`rounded p-0.5 transition-colors ${
+                            isLight
+                              ? 'text-slate-400 hover:bg-slate-100 hover:text-slate-700'
+                              : 'text-white/40 hover:bg-white/[0.08] hover:text-white/80'
+                          }`}
+                          aria-label="Reset posisi lockscreen"
+                          title="Reset posisi"
+                        >
+                          <RotateCw className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
             </div>
@@ -953,9 +1003,9 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                   </table>
 
                   {/* Relocated Date & Time Footer */}
-                  <div className="mt-3 pt-1.5 border-t border-slate-200 text-[8px] text-slate-500 flex justify-between items-center font-medium gap-3">
-                    <span className="whitespace-nowrap">{lang === 'en' ? 'Generated by STEM USAS.' : 'Dijana oleh STEM USAS.'}</span>
-                    <span className="whitespace-nowrap">{lang === 'en' ? 'Printed Date' : 'Tarikh Cetakan'}: {new Date().toLocaleDateString(lang === 'en' ? 'en-US' : 'ms-MY')} {new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ms-MY', { hour: '2-digit', minute: '2-digit' })}</span>
+                  <div className="mt-3 pt-1.5 border-t border-slate-200 text-[8px] text-slate-500 flex flex-wrap justify-between items-center font-medium gap-x-3 gap-y-1">
+                    <span>{lang === 'en' ? 'Generated by STEM USAS.' : 'Dijana oleh STEM USAS.'}</span>
+                    <span>{lang === 'en' ? 'Printed Date' : 'Tarikh Cetakan'}: {new Date().toLocaleDateString(lang === 'en' ? 'en-US' : 'ms-MY')} {new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'ms-MY', { hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
                 </div>
               </div>
@@ -971,7 +1021,7 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                 isLight ? 'bg-slate-100 border-slate-200' : 'bg-[#060D1A] border-white/[0.04]'
               }`}>
                 <div className="absolute inset-0 pointer-events-none z-30">
-                  {renderFloatingZoomWidget(isExportLight)}
+                {renderFloatingZoomWidget(isLight)}
                 </div>
                 {(() => {
                   const widthMap = { phone: 360, tablet: 520, square: 480, desktop: 780 };
@@ -990,7 +1040,7 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                       <div
                         ref={wallpaperRef}
                         data-export-root="wallpaper-export-root"
-                        className="font-sans flex flex-col justify-start gap-2 select-none border rounded-3xl absolute top-0 left-0 origin-top-left"
+                        className="font-sans flex flex-col justify-start gap-2 select-none border absolute top-0 left-0 origin-top-left"
                         style={{
                           width: `${w}px`,
                           height: `${h}px`,
@@ -1006,7 +1056,7 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                   <div style={{ height: `${currentSpacers.top}px` }} className="flex-shrink-0" />
 
                   {/* Lock Screen Matrix Grid */}
-                  <div className={`border rounded-xl p-0 flex-1 min-h-0 flex flex-col justify-start overflow-hidden ${
+                  <div className={`border p-0 flex-1 min-h-0 flex flex-col justify-start overflow-hidden ${
                     isExportLight ? 'bg-slate-50 border-slate-200' : 'bg-[#0A1428] border-white/[0.08]'
                   }`}>
                     {/* (Top Header Brand Row Removed per Request) */}

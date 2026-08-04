@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+﻿import React, { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
@@ -147,27 +147,27 @@ export default function TimetableGrid() {
   }
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
+    <div className="h-full flex flex-col min-h-0 overflow-hidden">
       
-      {/* ── TOP FILTER BAR ── */}
+      {/* TOP FILTER BAR */}
       <div className={`flex-shrink-0 px-4 sm:px-6 py-2.5 border-b transition-colors duration-150 ${
         isLight ? 'bg-white border-slate-200' : 'border-white/[0.06]'
       }`}>
-        <div className="w-full flex items-center gap-3 flex-wrap">
+        <div className="w-full flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
           
           {/* Quick Stats */}
           <div className="hidden sm:flex items-center gap-1.5 mr-2">
             <span className={`text-[10px] font-medium ${isLight ? 'text-slate-400' : 'text-white/25'}`}>
               {totalSubjects} {t('subjects').toLowerCase()}
             </span>
-            <span className={isLight ? 'text-slate-200' : 'text-white/10'}>·</span>
+            <span className={isLight ? 'text-slate-200' : 'text-white/10'}>-</span>
             <span className={`text-[10px] font-medium ${isLight ? 'text-slate-400' : 'text-white/25'}`}>
               {allCourses.length} {t('sessions').toLowerCase()}
             </span>
           </div>
 
           {/* Day Filter Pills */}
-          <div className="flex items-center gap-0.5 flex-1 overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-0.5 w-full sm:flex-1 overflow-x-auto no-scrollbar">
             {daysList.map(day => {
               const color = getCardDayColor(day, isLight);
               const count = allCourses.filter(c => c.day?.toUpperCase() === day).length;
@@ -195,7 +195,7 @@ export default function TimetableGrid() {
           </div>
 
           {/* Search */}
-          <div className="relative w-40 sm:w-48">
+          <div className="relative w-full sm:w-48 md:w-56 min-w-0 sm:ml-auto">
             <Search className={`w-3 h-3 absolute left-2.5 top-1/2 -translate-y-1/2 ${isLight ? 'text-slate-450' : 'text-white/20'}`} />
             <input
               type="text"
@@ -211,7 +211,7 @@ export default function TimetableGrid() {
           </div>
 
           {/* View Toggle & Expand All */}
-          <div className={`flex items-center gap-0.5 border rounded-md p-0.5 ${
+          <div className={`flex items-center gap-0.5 border rounded-md p-0.5 self-start sm:self-auto ${
             isLight ? 'bg-slate-100/80 border-slate-200/80' : 'bg-white/[0.04] border-white/[0.06]'
           }`}>
             {viewMode === 'cards' && (
@@ -259,9 +259,12 @@ export default function TimetableGrid() {
         </div>
       </div>
 
-      {/* ── MAIN CONTENT ── */}
-      <div className={`flex-1 ${viewMode === 'matrix' ? 'flex flex-col min-h-0 overflow-hidden' : 'overflow-y-auto'}`}>
-        <div className={`w-full px-4 sm:px-6 pt-3 pb-4 space-y-3 ${viewMode === 'matrix' ? 'flex-1 flex flex-col min-h-0' : ''}`}>
+      {/* MAIN CONTENT */}
+      <div
+        data-lenis-prevent-touch
+        className={`flex-1 min-h-0 ${viewMode === 'matrix' ? 'flex flex-col overflow-hidden' : 'overflow-y-auto usas-scrollbar touch-pan-y overscroll-contain [-webkit-overflow-scrolling:touch]'}`}
+      >
+        <div className={`w-full px-4 sm:px-6 pt-3 pb-4 space-y-3 ${viewMode === 'matrix' ? 'flex-1 flex flex-col min-h-0' : 'min-h-0'}`}>
           
           {/* View Content */}
           {viewMode === 'matrix' ? (
@@ -301,14 +304,10 @@ export default function TimetableGrid() {
                               : ''
                         }`}
                       >
-                        {/* Card Header — Click to expand/collapse independently */}
+                        {/* Card Header - Click to expand/collapse independently */}
                         <div 
                           className={`p-3 cursor-pointer select-none rounded-lg ${
-                            courseStatus === 'ongoing'
-                              ? 'bg-emerald-500/10'
-                              : courseStatus === 'upcoming'
-                                ? 'bg-amber-500/10'
-                                : ''
+                            ''
                           }`}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -324,9 +323,9 @@ export default function TimetableGrid() {
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex flex-col gap-0.5">
                                 <span className={`text-[10px] font-black tracking-wider ${dayColor.text}`}>{courseId}</span>
-                                <div className={`flex items-center gap-1 text-[9.5px] ${isLight ? 'text-slate-500 font-semibold' : 'text-white/45'}`}>
-                                  <Clock className={`w-3 h-3 ${isLight ? 'text-amber-650' : 'text-amber-400/70'}`} />
-                                  <span className="leading-none">{getShortTimeRange(course.start_time, course.end_time)}</span>
+                                <div className={`flex items-center gap-1 text-[9.5px] leading-none ${isLight ? 'text-slate-500 font-semibold' : 'text-white/45'}`}>
+                                  <Clock className={`w-3 h-3 flex-shrink-0 self-center ${isLight ? 'text-amber-650' : 'text-amber-400/70'}`} />
+                                  <span className="inline-flex items-center leading-none self-center">{getShortTimeRange(course.start_time, course.end_time)}</span>
                                 </div>
                               </div>
                               <span className={`px-1.5 py-0.5 rounded text-[8px] font-extrabold uppercase shrink-0 ${dayColor.badge}`}>
@@ -365,7 +364,7 @@ export default function TimetableGrid() {
                           </div>
                         </div>
 
-                        {/* Expanded Details — Isolated from header toggle with height transitions */}
+                        {/* Expanded Details - Isolated from header toggle with height transitions */}
                         <div 
                           className={`transition-all duration-300 ease-in-out overflow-hidden ${
                             isExpanded 
@@ -394,8 +393,8 @@ export default function TimetableGrid() {
 
                             {/* Group (Normalized display) */}
                             <div className="flex items-center gap-2 text-[9.5px]">
-                              <GraduationCap className={`w-3 h-3 flex-shrink-0 ${isLight ? 'text-slate-400' : 'text-white/25'}`} />
-                              <span className={`font-medium ${isLight ? 'text-slate-500' : 'text-white/35'}`}>
+                              <GraduationCap className={`w-3 h-3 flex-shrink-0 ${isLight ? 'text-amber-600/75' : 'text-amber-400/55'}`} />
+                              <span className={`font-medium leading-none ${isLight ? 'text-slate-500' : 'text-white/35'}`}>
                                 {t('group')}: {normalizeGroup(course.group || course.kumpulan || 'A')}
                               </span>
                             </div>

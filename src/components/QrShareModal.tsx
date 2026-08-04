@@ -51,7 +51,7 @@ export default function QrShareModal({ isOpen, onClose, studentName = 'Pelajar U
       animate ? 'bg-slate-900/30 opacity-100' : 'bg-slate-900/0 opacity-0 pointer-events-none'
     }`}>
       
-      <div className={`rounded-xl w-full max-w-sm border pt-3 px-5 pb-5 space-y-4 relative transition-all duration-200 transform ${
+      <div className={`rounded-xl w-full max-w-[92vw] sm:max-w-sm border pt-3 px-4 sm:px-5 pb-5 space-y-4 relative transition-all duration-200 transform ${
         animate ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
       } ${
         isLight 
@@ -68,15 +68,15 @@ export default function QrShareModal({ isOpen, onClose, studentName = 'Pelajar U
         </button>
 
         {/* Left-Aligned Icon Modal Header */}
-        <div className="flex items-center space-x-3 pt-0">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-0 min-w-0">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md border ${
             isLight ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-amber-400/10 border-amber-400/20 text-amber-400'
           }`}>
             <QrCode className="w-5 h-5" />
           </div>
-          <div>
-            <h3 className={`text-sm font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>Kongsi Jadual Waktu Kuliah</h3>
-            <p className={`text-xs font-semibold ${isLight ? 'text-amber-700' : 'text-amber-400'}`}>{studentName} ({matricNo})</p>
+          <div className="min-w-0 text-left">
+            <h3 className={`text-sm font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>Kongsi Jadual Waktu Kuliah</h3>
+            <p className={`text-xs font-semibold truncate ${isLight ? 'text-amber-700' : 'text-amber-400'}`}>{studentName} ({matricNo})</p>
           </div>
         </div>
 
@@ -85,7 +85,7 @@ export default function QrShareModal({ isOpen, onClose, studentName = 'Pelajar U
           <div className={`p-3.5 rounded-xl border inline-block shadow-inner ${
             isLight ? 'bg-slate-50 border-slate-200/80' : 'bg-white/[0.02] border-white/10'
           }`}>
-            <div className="relative w-44 h-44 mx-auto">
+            <div className="relative w-40 h-40 sm:w-44 sm:h-44 mx-auto">
               {/* Skeleton loader — shown while image is loading */}
               {!qrLoaded && (
                 <div className={`absolute inset-0 rounded-lg flex flex-col items-center justify-center gap-2 animate-pulse ${
@@ -115,7 +115,7 @@ export default function QrShareModal({ isOpen, onClose, studentName = 'Pelajar U
                 src={qrUrl}
                 alt="Timetable QR Code"
                 onLoad={() => setQrLoaded(true)}
-                className={`w-44 h-44 object-contain rounded-lg shadow transition-opacity duration-300 ${
+                className={`w-40 h-40 sm:w-44 sm:h-44 object-contain rounded-lg shadow transition-opacity duration-300 ${
                   qrLoaded ? 'opacity-100' : 'opacity-0'
                 }`}
               />
@@ -125,12 +125,12 @@ export default function QrShareModal({ isOpen, onClose, studentName = 'Pelajar U
         </div>
 
         {/* Copy Share Link */}
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           <input
             type="text"
             readOnly
             value={shareUrl}
-            className={`flex-1 rounded-md px-3 py-2 text-xs font-mono truncate focus:outline-none transition-colors border ${
+            className={`flex-1 min-w-0 rounded-md px-3 py-2 text-xs font-mono truncate focus:outline-none transition-colors border ${
               isLight 
                 ? 'bg-slate-50 border-slate-200 text-slate-700 focus:border-slate-300' 
                 : 'bg-white/[0.03] border-white/10 text-white/70 focus:border-white/20'
@@ -138,7 +138,7 @@ export default function QrShareModal({ isOpen, onClose, studentName = 'Pelajar U
           />
           <button
             onClick={handleCopyLink}
-            className={`px-3.5 py-2 rounded-md font-bold text-xs flex items-center gap-1 shadow-md transition-all flex-shrink-0 ${
+            className={`px-3.5 py-2 rounded-md font-bold text-xs flex items-center justify-center gap-1 shadow-md transition-all flex-shrink-0 ${
               isLight 
                 ? 'bg-[#0B1E43] hover:bg-[#152e63] text-white shadow-slate-900/10' 
                 : 'bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-amber-400/10'
