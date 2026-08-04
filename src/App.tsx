@@ -107,8 +107,6 @@ function MainContent() {
   const [isGpaModalOpen, setIsGpaModalOpen] = useState(false);
   const [isToolsOpen, setIsToolsOpen] = useState(false);
 
-  const isLight = theme === 'light';
-
   const navigateTo = (nextPath: '/' | '/login' | '/app') => {
     if (window.location.pathname !== nextPath) {
       window.history.pushState({}, '', nextPath);

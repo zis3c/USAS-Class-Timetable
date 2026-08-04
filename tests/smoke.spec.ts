@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test('demo login opens timetable and export modal', async ({ page }) => {
   await page.goto('/');
 
-  await expect(page.getByText(/jadual kuliah yang rasa premium/i)).toBeVisible();
+  await expect(page.getByText(/Portal Jadual Waktu Kuliah/i)).toBeVisible();
   await page.getByRole('button', { name: /log masuk/i }).first().click();
   await expect(page).toHaveURL(/\/login$/);
 
