@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowRight, Download, Moon, ShieldAlert, AlertTriangle, Share2, CheckCircle2, Clock, MapPin, Github, Play, Send, ExternalLink } from 'lucide-react';
+import { ArrowRight, Download, Moon, ShieldAlert, AlertTriangle, Share2, CheckCircle2, Clock, MapPin, Github, Play, Send, ExternalLink, Instagram } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
 
@@ -9,7 +9,7 @@ type LandingPageProps = {
 
 export default function LandingPage({ onGoToLogin }: LandingPageProps) {
   const { lang } = useLanguage();
-  const { theme } = useTheme();
+  const { theme, THEMES } = useTheme();
   const isLight = theme === 'light';
 
   // Scroll offset tracking for parallax scale and layout transformations
@@ -52,9 +52,11 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
   const copy = lang === 'ms'
     ? {
       eyebrow: 'Jadual Kuliah USAS',
-      title: 'Portal Jadual Waktu Kuliah USAS Pelajar.',
+      titlePrefix: 'Portal Jadual Waktu Kuliah ',
+      titleHighlight: 'USAS Pelajar.',
       subtitle: 'Satu halaman akademik untuk mengambil, memformat, dan mengeksport jadual kuliah USAS anda secara langsung ke kalendar peranti, PDF cetakan A4, dan kertas dinding skrin kunci telefon.',
       cta: 'Log Masuk Sekarang',
+      ctaSecondary: 'Tonton Panduan Video',
       disclaimerTitle: 'Keselamatan Data & Penafian Rasmi',
       disclaimerText: 'Portal ini menghubungi API rasmi UMC USAS secara terus. Kami (pembangun & STEM USAS) tidak mempunyai pelayan tengah, tidak menyimpan, tidak memodifikasi, dan tidak menyentuh sebarang data peribadi mahupun kredensial log masuk pelajar.',
       createdBy: 'Projek Pembelajaran Bebas oleh STEM USAS',
@@ -81,9 +83,11 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
     }
     : {
       eyebrow: 'USAS Class Timetable',
-      title: 'The Premium Timetable Portal for USAS Students.',
+      titlePrefix: 'The Premium Timetable Portal for ',
+      titleHighlight: 'USAS Students.',
       subtitle: 'A minimalist academic utility to fetch, format, and export your USAS class timetable directly into device calendars, printable A4 PDFs, and lockscreen wallpapers.',
       cta: 'Log In Now',
+      ctaSecondary: 'Watch Guide Video',
       disclaimerTitle: 'Data Security & Official Disclaimer',
       disclaimerText: 'This portal connects directly to the official USAS UMC API. We (the developers & STEM USAS) do not run middle servers, do not store, do not modify, and do not touch any personal student data or login credentials.',
       createdBy: 'An Independent Project by STEM USAS',
@@ -129,59 +133,108 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
 
 
   return (
-    <div className={`relative isolate overflow-hidden min-h-[120vh] transition-colors duration-150 ${isLight ? 'bg-[#f8fafc] text-slate-800' : 'bg-[#060E1F] text-slate-100'
-      }`}>
+    <div className={`relative isolate overflow-hidden min-h-[120vh] transition-colors duration-150 ${
+      theme === THEMES.LIGHT ? 'bg-[#f8fafc] text-slate-800' :
+      theme === THEMES.OLED ? 'bg-black text-slate-100' :
+      theme === THEMES.EMERALD ? 'bg-[#012117] text-slate-100' :
+      'bg-[#060E1F] text-slate-100'
+    }`}>
       {/* Dynamic Background Blurs */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className={`absolute -top-20 right-10 h-80 w-80 rounded-full blur-3xl transition-colors ${isLight ? 'bg-amber-400/10' : 'bg-amber-400/5'
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {/* Subtle grid pattern overlay */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
+
+        {/* Colorful glowing ambient blobs */}
+        <div className={`absolute -top-40 left-1/2 -translate-x-1/2 h-[380px] w-[600px] rounded-full blur-[120px] opacity-40 transition-colors duration-500 ${isLight ? 'bg-gradient-to-tr from-amber-200 to-sky-200' : 'bg-gradient-to-tr from-amber-500/10 to-indigo-500/10'
           }`} />
-        <div className={`absolute top-60 left-10 h-96 w-96 rounded-full blur-3xl transition-colors ${isLight ? 'bg-sky-400/10' : 'bg-sky-400/5'
+        <div className={`absolute top-20 right-10 h-80 w-80 rounded-full blur-[100px] opacity-35 transition-colors duration-500 ${isLight ? 'bg-amber-200' : 'bg-amber-500/5'
+          }`} />
+        <div className={`absolute top-60 left-10 h-96 w-96 rounded-full blur-[100px] opacity-35 transition-colors duration-500 ${isLight ? 'bg-sky-200' : 'bg-sky-500/5'
           }`} />
       </div>
 
-      <section className="relative mx-auto max-w-4xl px-4 sm:px-6 pt-16 sm:pt-24 pb-20">
-
-        {/* Hero Area */}
-        <div className="text-center max-w-2xl mx-auto space-y-6 mb-16">
-          {/* Symmetrical Tech-Status Eyebrow */}
-          <div className="inline-flex items-center justify-center gap-2.5 text-[11.5px] sm:text-xs font-black tracking-[0.25em] uppercase select-none mb-6">
-            <span className="text-amber-500">STEM USAS</span>
-            <span className="opacity-30 text-slate-400 font-normal select-none">•</span>
-            <span className={isLight ? 'text-slate-500' : 'text-slate-400'}>{copy.eyebrow}</span>
+      {/* SECTION 1: Above-the-fold Viewport (Hero Area) */}
+      <section className="relative w-full min-h-[calc(100vh-3.5rem)] lg:h-[calc(100vh-3.5rem)] flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 border-b border-slate-200/10 dark:border-white/5 overflow-hidden">
+        
+        <div className="w-full max-w-4xl mx-auto flex flex-col justify-center items-center text-center space-y-4 lg:space-y-5 pt-4 pb-8 lg:py-0 lg:-translate-y-6 relative z-10">
+          {/* Tech-Status Eyebrow Badge */}
+          <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-[11px] sm:text-xs font-semibold tracking-wide backdrop-blur-md select-none transition-all duration-300 hover:scale-[1.02] shadow-sm cursor-default ${isLight
+              ? 'bg-slate-50/80 border-slate-200/85 text-slate-800 shadow-slate-200/50'
+              : 'bg-white/[0.03] border-white/[0.08] text-slate-200 shadow-black/10'
+            }`}>
+            <span className="text-amber-500 font-black tracking-wider">STEM USAS</span>
+            <span className="h-1.5 w-1.5 rounded-full bg-slate-300 dark:bg-white/20" />
+            <span className="opacity-75">{copy.eyebrow}</span>
             <span className="relative flex h-2 w-2 ml-1">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
           </div>
 
-          <h1 className={`text-4.5xl sm:text-6.5xl font-black tracking-tight leading-[0.95] ${isLight ? 'text-slate-900' : 'text-white'
+          <h1 className={`text-4.5xl sm:text-6.5xl lg:text-[5rem] font-black tracking-tight leading-[1.08] ${isLight ? 'text-slate-900' : 'text-white'
             }`}>
-            {copy.title}
+            {copy.titlePrefix}
+            <span className="block sm:inline bg-clip-text text-transparent bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 dark:from-amber-400 dark:via-yellow-300 dark:to-amber-500 drop-shadow-sm">
+              {copy.titleHighlight}
+            </span>
           </h1>
 
-          <p className={`max-w-xl mx-auto text-sm sm:text-base leading-relaxed opacity-75 ${isLight ? 'text-slate-650' : 'text-slate-300'
+          <p className={`max-w-2xl mx-auto text-sm sm:text-base md:text-[1.05rem] leading-relaxed opacity-85 ${isLight ? 'text-slate-660' : 'text-slate-300'
             }`}>
             {copy.subtitle}
           </p>
-          <p className={`text-[11px] sm:text-xs font-semibold tracking-[0.24em] uppercase ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-            {lang === 'ms' ? 'Jadual kuliah yang rasa premium' : 'A premium-feel class timetable portal'}
-          </p>
 
-          <div className="pt-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md mx-auto sm:max-w-none">
             <button
               type="button"
               onClick={onGoToLogin}
-              className={`inline-flex items-center gap-2.5 rounded-full px-6 py-3 text-sm font-extrabold transition-all shadow-xl hover:scale-105 active:scale-95 ${isLight
-                  ? 'bg-[#0B1E43] text-white hover:bg-[#152e63] shadow-slate-900/10'
-                  : 'bg-amber-400 text-slate-950 hover:bg-amber-300 shadow-amber-400/10'
+              className={`w-full sm:w-auto inline-flex items-center justify-center gap-2.5 rounded-full px-8 py-3.5 text-sm font-extrabold transition-all shadow-xl hover:scale-105 active:scale-95 ${isLight
+                  ? 'bg-[#0B1E43] text-white hover:bg-[#152e63] shadow-slate-900/10 hover:shadow-slate-900/20'
+                  : 'bg-amber-400 text-slate-950 hover:bg-amber-300 shadow-amber-400/10 hover:shadow-amber-400/20'
                 }`}
             >
               {copy.cta}
               <ArrowRight className="w-4 h-4" />
             </button>
+
+            <a
+              href="#guide-video"
+              onClick={(e) => {
+                e.preventDefault();
+                const target = document.querySelector('#guide-video');
+                if (target) {
+                  target.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
+              className={`w-full sm:w-auto inline-flex items-center justify-center gap-2.5 rounded-full px-8 py-3.5 text-sm font-extrabold transition-all border shadow-sm hover:scale-105 active:scale-95 ${isLight
+                  ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 shadow-slate-100/55'
+                  : 'border-white/[0.08] bg-white/[0.02] text-slate-200 hover:bg-white/[0.06]'
+                }`}
+            >
+              <Play className="w-3.5 h-3.5 fill-current" />
+              <span>{copy.ctaSecondary}</span>
+            </a>
           </div>
-        </div>        {/* 3D Mockup & Features Playground Grid */}
-        <div className="grid gap-8 md:grid-cols-2 mt-12 max-w-3xl mx-auto items-stretch">
+        </div>
+
+        {/* Desktop scroll down prompt */}
+        <div className="hidden lg:flex absolute bottom-5 left-1/2 -translate-x-1/2 flex-col items-center gap-2.5 z-20">
+          <span className="text-[9px] font-black tracking-[0.2em] uppercase opacity-60 text-slate-500 dark:text-slate-400 select-none">
+            {lang === 'ms' ? 'Skrol ke Bawah' : 'Scroll Down'}
+          </span>
+          {/* Sleek Mouse Wheel Icon */}
+          <div className="w-5.5 h-9 rounded-full border-2 border-slate-350 dark:border-white/25 flex justify-center p-1.5 opacity-70">
+            <div className="w-1 h-2 bg-amber-500 rounded-full animate-scroll-wheel" />
+          </div>
+        </div>
+
+      </section>
+
+      {/* SECTION 2: Scrollable Content Wrapper */}
+      <section className="relative mx-auto max-w-4xl px-4 sm:px-6 py-20 space-y-24">
+
+        {/* 3D Mockup & Features Playground Grid */}
+        <div className="grid gap-8 md:grid-cols-2 max-w-3xl mx-auto items-stretch">
 
           {/* Left Column: Interactive 3D Mockup */}
           <div
@@ -192,8 +245,8 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
           >
             <div
               className={`rounded-2xl border p-4 sm:p-5 shadow-2xl transition-all duration-100 ease-out origin-top-center h-full flex flex-col justify-between ${isLight
-                  ? 'border-slate-200 bg-white/95'
-                  : 'border-white/[0.08] bg-[#0A1428]/95'
+                ? 'border-slate-200 bg-white/95'
+                : 'border-white/[0.08] bg-[#0A1428]/95'
                 }`}
               style={{
                 transform: `rotateX(${(12 - progress * 12) + mouseRotate.x}deg) rotateY(${mouseRotate.y}deg) scale(${0.94 + progress * 0.06}) translateY(${(1 - progress) * 15}px)`,
@@ -227,8 +280,8 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
                       border: isLight ? 'border-emerald-500/20' : 'border-emerald-500/30',
                       bg: isLight ? 'bg-emerald-500/[0.08]' : 'bg-emerald-500/[0.15]',
                       text: isLight ? 'text-emerald-700' : 'text-emerald-350',
-                      badge: isLight 
-                        ? 'bg-emerald-600 text-white border-emerald-600/30' 
+                      badge: isLight
+                        ? 'bg-emerald-600 text-white border-emerald-600/30'
                         : 'bg-emerald-500/30 text-emerald-300 border-emerald-500/50'
                     }
                   },
@@ -243,8 +296,8 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
                       border: isLight ? 'border-blue-500/20' : 'border-blue-500/30',
                       bg: isLight ? 'bg-blue-500/[0.08]' : 'bg-blue-500/[0.15]',
                       text: isLight ? 'text-blue-700' : 'text-blue-350',
-                      badge: isLight 
-                        ? 'bg-blue-600 text-white border-blue-600/30' 
+                      badge: isLight
+                        ? 'bg-blue-600 text-white border-blue-600/30'
                         : 'bg-blue-500/30 text-blue-300 border-blue-500/50'
                     }
                   },
@@ -259,8 +312,8 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
                       border: isLight ? 'border-purple-500/20' : 'border-purple-500/30',
                       bg: isLight ? 'bg-purple-500/[0.08]' : 'bg-purple-500/[0.15]',
                       text: isLight ? 'text-purple-700' : 'text-purple-350',
-                      badge: isLight 
-                        ? 'bg-purple-600 text-white border-purple-600/30' 
+                      badge: isLight
+                        ? 'bg-purple-600 text-white border-purple-600/30'
                         : 'bg-purple-500/30 text-purple-300 border-purple-500/50'
                     }
                   }
@@ -331,8 +384,8 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
               <div
                 key={idx}
                 className={`relative p-5 rounded-2xl border transition-all duration-350 hover:-translate-y-1 hover:shadow-md ${isLight
-                    ? 'bg-white border-slate-200/60 shadow-sm'
-                    : 'bg-white/[0.015] border-white/[0.04] hover:bg-white/[0.03]'
+                  ? 'bg-white border-slate-200/60 shadow-sm'
+                  : 'bg-white/[0.015] border-white/[0.04] hover:bg-white/[0.03]'
                   }`}
               >
                 {/* Outline step number */}
@@ -482,7 +535,7 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
         </div>
 
         {/* Video Tutorial Walkthrough Section */}
-        <div className="mt-24 max-w-2xl mx-auto space-y-6">
+        <div id="guide-video" className="mt-24 max-w-2xl mx-auto space-y-6 scroll-mt-24">
           <div className="text-center md:text-left space-y-1">
             <h3 className="text-lg font-black tracking-tight text-amber-500">{copy.videoTitle}</h3>
             <p className="text-xs opacity-75">{copy.videoDesc}</p>
@@ -490,8 +543,8 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
 
           <div
             className={`group rounded-2xl border p-4 transition-all duration-300 relative overflow-hidden aspect-video flex items-center justify-center cursor-pointer shadow-md ${isLight
-                ? 'bg-slate-100/50 border-slate-200'
-                : 'bg-white/[0.015] border-white/[0.04] hover:border-white/[0.1] hover:bg-white/[0.025]'
+              ? 'bg-slate-100/50 border-slate-200'
+              : 'bg-white/[0.015] border-white/[0.04] hover:border-white/[0.1] hover:bg-white/[0.025]'
               }`}
             onClick={() => window.open('https://github.com/zis3c/USAS-Class-Timetable', '_blank')}
           >
@@ -527,7 +580,7 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
                 name: 'STEM USAS Bot',
                 tag: '@stemusasbot',
                 link: 'https://t.me/stemusasbot',
-                desc: lang === 'ms' 
+                desc: lang === 'ms'
                   ? 'Bot Telegram pengurusan ahli STEM USAS untuk semakan status keahlian, pengesahan kelayakan sistem ahli, dan rekod pangkalan data kelab secara automatik.'
                   : 'STEM USAS Telegram bot engineered to manage the membership verification process, status checks, and club directory system automations.',
                 color: 'text-emerald-500 dark:text-emerald-400 border-emerald-500/20 bg-emerald-500/[0.04]'
@@ -536,7 +589,7 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
                 name: 'USAS Due Bot',
                 tag: '@usas_duebot',
                 link: 'https://t.me/usas_duebot',
-                desc: lang === 'ms' 
+                desc: lang === 'ms'
                   ? 'Bot notifikasi tugasan USAS yang menyemak portal LMS secara pintar untuk menghantar peringatan tarikh akhir tugasan kuliah terus ke Telegram.'
                   : 'Automated assignment notifier bot that queries the USAS LMS portal and alerts students on upcoming coursework deadlines instantly.',
                 color: 'text-blue-500 dark:text-blue-400 border-blue-500/20 bg-blue-500/[0.04]'
@@ -548,8 +601,8 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
                 target="_blank"
                 rel="noopener noreferrer"
                 className={`p-5 rounded-2xl border transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between min-h-[140px] hover:shadow-lg ${isLight
-                    ? 'bg-white border-slate-200 shadow-sm'
-                    : 'bg-white/[0.015] border-white/[0.04] hover:bg-white/[0.025]'
+                  ? 'bg-white border-slate-200 shadow-sm'
+                  : 'bg-white/[0.015] border-white/[0.04] hover:bg-white/[0.025]'
                   }`}
               >
                 <div className="space-y-2">
@@ -573,8 +626,8 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
         {/* Join STEM USAS Membership Card */}
         <div className="mt-24 max-w-2xl mx-auto">
           <div className={`rounded-2xl border p-6 flex flex-col sm:flex-row items-center justify-between gap-5 relative overflow-hidden transition-all duration-300 hover:shadow-xl ${isLight
-              ? 'bg-white border-slate-200 shadow-sm'
-              : 'bg-gradient-to-br from-amber-500/[0.03] to-transparent border-white/[0.05] hover:border-white/[0.08]'
+            ? 'bg-white border-slate-200 shadow-sm'
+            : 'bg-gradient-to-br from-amber-500/[0.03] to-transparent border-white/[0.05] hover:border-white/[0.08]'
             }`}>
             <div className="space-y-2 text-center sm:text-left max-w-sm">
               <span className="px-2 py-0.5 rounded text-[8px] font-black tracking-widest bg-amber-500/10 text-amber-500">
@@ -598,8 +651,8 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
 
         {/* Security & Data Privacy Disclaimer Card */}
         <div className={`mt-12 border rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row items-center sm:items-start gap-4 max-w-2xl mx-auto ${isLight
-            ? 'bg-amber-50/40 border-amber-200/50 text-amber-900 shadow-sm'
-            : 'bg-amber-500/[0.02] border-amber-500/10 text-slate-300'
+          ? 'bg-amber-50/40 border-amber-200/50 text-amber-900 shadow-sm'
+          : 'bg-amber-500/[0.02] border-amber-500/10 text-slate-300'
           }`}>
           <div className={`h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isLight ? 'bg-amber-100 text-amber-800' : 'bg-amber-500/10 text-amber-400'
             }`}>
@@ -615,21 +668,147 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
           </div>
         </div>
 
+        {/* Unique Technical Helpdesk / Support Section */}
+        <div className="mt-12 max-w-2xl mx-auto text-slate-800 dark:text-slate-100">
+          <div className={`rounded-2xl border p-6 flex flex-col md:flex-row items-stretch justify-between gap-6 relative overflow-hidden transition-all duration-300 hover:shadow-xl ${
+            isLight
+              ? 'bg-white border-slate-200 shadow-sm'
+              : theme === THEMES.EMERALD
+                ? 'bg-gradient-to-br from-emerald-500/[0.04] to-transparent border-emerald-500/20 hover:border-emerald-500/30'
+                : theme === THEMES.OLED
+                  ? 'bg-black border-white/[0.08] hover:border-white/[0.12]'
+                  : 'bg-gradient-to-br from-amber-500/[0.02] to-transparent border-white/[0.05] hover:border-white/[0.08]'
+          }`}>
+            
+            {/* Left Column: Virtual Agent & Chat Status */}
+            <div className="flex-1 flex flex-col justify-between text-left space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                  <span className="text-[10px] font-black tracking-widest uppercase text-emerald-500 select-none">
+                    {lang === 'ms' ? 'SOKONGAN LIVE AKTIF' : 'LIVE HELPDESK ONLINE'}
+                  </span>
+                </div>
+                <h3 className="text-lg font-black tracking-tight">
+                  {lang === 'ms' ? 'Sokongan Teknikal STEM' : 'STEM Technical Support'}
+                </h3>
+                <p className="text-xs opacity-70 leading-relaxed">
+                  {lang === 'ms'
+                    ? 'Menghadapi pertindihan dewan kuliah, pepijat paparan, atau kesulitan import kalendar peranti? Kami sedia membantu secara percuma.'
+                    : 'Experiencing lecture hall overlaps, layout issues, or calendar sync bugs? Connect directly to resolve it.'}
+                </p>
+              </div>
+
+              {/* Symmetrical Mini Avatar Squad Indicator */}
+              <div className="flex items-center gap-2.5 pt-2">
+                <div className="flex -space-x-2">
+                  <div className={`h-6 w-6 rounded-full bg-amber-500 text-slate-950 font-bold border ${theme === THEMES.OLED ? 'border-black' : 'border-white dark:border-slate-950'} flex items-center justify-center text-[9px] select-none shadow-sm`}>
+                    CS
+                  </div>
+                  <div className={`h-6 w-6 rounded-full bg-blue-500 text-white font-bold border ${theme === THEMES.OLED ? 'border-black' : 'border-white dark:border-slate-950'} flex items-center justify-center text-[9px] select-none shadow-sm`}>
+                    TE
+                  </div>
+                  <div className={`h-6 w-6 rounded-full bg-emerald-500 text-white font-bold border ${theme === THEMES.OLED ? 'border-black' : 'border-white dark:border-slate-950'} flex items-center justify-center text-[9px] select-none shadow-sm`}>
+                    ST
+                  </div>
+                </div>
+                <span className="text-[9.5px] font-semibold opacity-50">
+                  {lang === 'ms' ? 'Pembangun & Skuad STEM' : 'Developers & STEM Squad'}
+                </span>
+              </div>
+            </div>
+
+            {/* Right Column: Interactive Support CTA Block */}
+            <div className="flex-1 flex flex-col justify-center items-stretch">
+              <a
+                href="https://t.me/STEMUSAS"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`group flex flex-col items-center justify-center gap-2.5 p-5 rounded-xl border text-center transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] ${
+                  isLight
+                    ? 'bg-slate-50 hover:bg-slate-100/80 border-slate-200 shadow-sm'
+                    : theme === THEMES.EMERALD
+                      ? 'bg-white/[0.015] border-emerald-500/15 hover:bg-white/[0.03] hover:border-emerald-500/30'
+                      : theme === THEMES.OLED
+                        ? 'bg-white/[0.015] border-white/[0.06] hover:bg-white/[0.035] hover:border-white/[0.1]'
+                        : 'bg-white/[0.015] border-white/[0.04] hover:bg-white/[0.035] hover:border-white/[0.08]'
+                }`}
+              >
+                <div className="h-10 w-10 rounded-full bg-[#0088cc]/10 text-[#0088cc] flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <Send className="w-5 h-5 fill-[#0088cc]/20" />
+                </div>
+                <div className="space-y-0.5">
+                  <h4 className="font-extrabold text-xs text-slate-800 dark:text-slate-200">
+                    {lang === 'ms' ? 'Hubungi kami di Telegram' : 'Chat via Telegram'}
+                  </h4>
+                  <p className={`text-[10px] font-extrabold tracking-wider uppercase leading-none mt-1 ${
+                    theme === THEMES.EMERALD ? 'text-emerald-500' : 'text-amber-500'
+                  }`}>
+                    @STEMUSAS
+                  </p>
+                </div>
+                <span className="text-[9px] font-semibold opacity-40 leading-none">
+                  {lang === 'ms' ? 'Purata Balas: < 10 Minit' : 'Avg Response: < 10 Mins'}
+                </span>
+              </a>
+            </div>
+
+          </div>
+        </div>
+
         {/* Footer */}
         <footer className="mt-20 border-t border-slate-200/40 dark:border-white/5 pt-6 flex items-center justify-between gap-3 text-[9px] uppercase tracking-[0.25em] opacity-60">
           <div className="flex items-center gap-1.5 font-bold">
             <span className="text-amber-500">STEM USAS</span>
             <span className="opacity-30 text-[8px]">•</span>
-            <span className={isLight ? 'text-slate-600' : 'text-slate-400'}>zis3c</span>
+            <span className={isLight ? 'text-slate-650' : 'text-slate-450'}>zis3c</span>
           </div>
-          <a
-            href="https://github.com/zis3c/USAS-Class-Timetable"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="h-8 w-8 rounded-full border border-slate-200 dark:border-white/10 flex items-center justify-center bg-slate-50 dark:bg-white/[0.02] text-slate-600 dark:text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 hover:border-amber-500/30 transition-all shadow-sm"
-          >
-            <Github className="w-4 h-4" />
-          </a>
+          <div className="flex items-center gap-2">
+            {/* Instagram */}
+            <a
+              href="https://www.instagram.com/persatuan.stem.usas/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`h-8 w-8 rounded-full border border-slate-200 dark:border-white/10 flex items-center justify-center bg-slate-50 dark:bg-white/[0.02] text-slate-600 dark:text-slate-400 transition-all shadow-sm ${
+                theme === THEMES.EMERALD
+                  ? 'hover:text-emerald-500 dark:hover:text-emerald-400 hover:border-emerald-500/30'
+                  : 'hover:text-amber-500 dark:hover:text-amber-400 hover:border-amber-500/30'
+              }`}
+            >
+              <Instagram className="w-4 h-4" />
+            </a>
+            {/* TikTok */}
+            <a
+              href="https://www.tiktok.com/@persatuan.stem.usas"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`h-8 w-8 rounded-full border border-slate-200 dark:border-white/10 flex items-center justify-center bg-slate-50 dark:bg-white/[0.02] text-slate-600 dark:text-slate-400 transition-all shadow-sm ${
+                theme === THEMES.EMERALD
+                  ? 'hover:text-emerald-500 dark:hover:text-emerald-400 hover:border-emerald-500/30'
+                  : 'hover:text-amber-500 dark:hover:text-amber-400 hover:border-amber-500/30'
+              }`}
+            >
+              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.02 1.63 4.18 1.02.99 2.4 1.52 3.82 1.63V9.79c-1.39-.08-2.76-.56-3.88-1.42-.49-.38-.91-.84-1.25-1.37v9.06c.05 1.54-.37 3.08-1.2 4.35-1.12 1.68-2.95 2.82-4.97 3.12-1.62.29-3.31.05-4.78-.68-1.84-.88-3.25-2.52-3.86-4.51-.59-1.85-.38-3.92.58-5.61 1.02-1.78 2.8-3.03 4.84-3.41 1.02-.2 2.07-.15 3.08.13V8.87c-.8-.23-1.65-.28-2.48-.15-1.2.18-2.32.79-3.15 1.69-.99 1.04-1.47 2.47-1.31 3.89.14 1.48.92 2.83 2.11 3.69.96.72 2.14 1.09 3.34 1.05 1.22-.01 2.41-.49 3.27-1.36.81-.84 1.22-2 1.2-3.17V.02z" />
+              </svg>
+            </a>
+            {/* GitHub */}
+            <a
+              href="https://github.com/zis3c/USAS-Class-Timetable"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`h-8 w-8 rounded-full border border-slate-200 dark:border-white/10 flex items-center justify-center bg-slate-50 dark:bg-white/[0.02] text-slate-600 dark:text-slate-400 transition-all shadow-sm ${
+                theme === THEMES.EMERALD
+                  ? 'hover:text-emerald-500 dark:hover:text-emerald-400 hover:border-emerald-500/30'
+                  : 'hover:text-amber-500 dark:hover:text-amber-400 hover:border-amber-500/30'
+              }`}
+            >
+              <Github className="w-4 h-4" />
+            </a>
+          </div>
         </footer>
 
       </section>

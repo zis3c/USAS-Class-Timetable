@@ -21,7 +21,11 @@ export default function Navbar({ onOpenTools, onNavigateHome, onNavigateLogin, v
   return (
     <header className={`sticky top-0 h-12 sm:h-14 flex-shrink-0 border-b px-4 sm:px-6 relative z-50 transition-colors duration-150 ${isLight
         ? 'bg-white border-slate-200 text-slate-800'
-        : 'bg-[#060E1F]/98 border-white/[0.06] backdrop-blur-md text-white'
+        : `${
+            theme === THEMES.OLED ? 'bg-black/98' :
+            theme === THEMES.EMERALD ? 'bg-[#012117]/98' :
+            'bg-[#060E1F]/98'
+          } border-white/[0.06] backdrop-blur-md text-white`
       }`}>
       <div className="h-full w-full flex items-center justify-between">
 
@@ -60,12 +64,12 @@ export default function Navbar({ onOpenTools, onNavigateHome, onNavigateLogin, v
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-0.5 flex-1 justify-end">
+        <div className="flex items-center gap-2 flex-1 justify-end">
           {/* Language toggle */}
           <button
             onClick={toggleLanguage}
             aria-label="Toggle language"
-            className={`px-2.5 py-1 rounded-md text-[10px] font-medium transition-colors ${isLight
+            className={`h-7 w-7 flex items-center justify-center rounded-md text-[10px] font-bold transition-colors ${isLight
                 ? 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
                 : 'text-amber-400/70 hover:text-amber-300 hover:bg-white/[0.06]'
               }`}
@@ -76,7 +80,7 @@ export default function Navbar({ onOpenTools, onNavigateHome, onNavigateLogin, v
           <button
             onClick={() => changeTheme(theme === THEMES.LIGHT ? THEMES.NAVY : THEMES.LIGHT)}
             aria-label="Toggle theme"
-            className={`p-1.5 rounded-md transition-colors ${isLight
+            className={`h-7 w-7 flex items-center justify-center rounded-md transition-colors ${isLight
                 ? 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
                 : 'text-amber-400/70 hover:text-amber-300 hover:bg-white/[0.06]'
               }`}
@@ -88,7 +92,7 @@ export default function Navbar({ onOpenTools, onNavigateHome, onNavigateLogin, v
             <button
               onClick={onNavigateLogin}
               aria-label={lang === 'ms' ? 'Ke log masuk' : 'Go to login'}
-              className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[10px] font-semibold transition-colors ${isLight
+              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[10px] font-semibold transition-colors ${isLight
                   ? 'bg-[#0B1E43] text-white hover:bg-[#152e63]'
                   : 'bg-amber-400 text-slate-950 hover:bg-amber-300'
                 }`}
@@ -102,7 +106,7 @@ export default function Navbar({ onOpenTools, onNavigateHome, onNavigateLogin, v
             <button
               onClick={onNavigateHome}
               aria-label={lang === 'ms' ? 'Kembali ke landing' : 'Back to landing'}
-              className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[10px] font-semibold transition-colors ${isLight
+              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[10px] font-semibold transition-colors ${isLight
                   ? 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
                   : 'bg-white/[0.04] border border-white/[0.08] text-slate-200 hover:bg-white/[0.06]'
                 }`}

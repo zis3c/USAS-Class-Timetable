@@ -173,3 +173,14 @@
 @media (max-width: 768px) {
   .glass-card-hover:hover { transform: none; }
 }
+
+/* ───── Scroll Down Mouse Indicator ───── */
+@keyframes scrollWheel {
+  0% { transform: translateY(0); opacity: 1; }
+  50% { transform: translateY(6px); opacity: 0.3; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.animate-scroll-wheel {
+  animation: scrollWheel 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}

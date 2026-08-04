@@ -2,7 +2,7 @@ import React, { Suspense, lazy, useState, useEffect } from 'react';
 import Lenis from 'lenis';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
-import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { ThemeProvider, useTheme, THEMES } from './context/ThemeContext';
 import { useLanguage } from './context/LanguageContext';
 import Navbar from './components/Navbar';
 import LandingPage from './components/LandingPage';
@@ -124,8 +124,11 @@ function MainContent() {
       : 'landing';
 
   return (
-    <div className={`w-screen ${view === 'app' ? 'h-screen max-h-screen overflow-hidden' : 'min-h-screen'} flex flex-col font-sans selection:bg-amber-400 selection:text-slate-950 antialiased ${
-      isLight ? 'bg-[#f8fafc] text-slate-800' : 'bg-[#060E1F] text-slate-100'
+    <div className={`w-full ${view === 'app' ? 'h-screen max-h-screen overflow-hidden' : 'min-h-screen'} flex flex-col font-sans selection:bg-amber-400 selection:text-slate-950 antialiased ${
+      theme === THEMES.LIGHT ? 'bg-[#f8fafc] text-slate-800' :
+      theme === THEMES.OLED ? 'bg-black text-slate-100' :
+      theme === THEMES.EMERALD ? 'bg-[#012117] text-slate-100' :
+      'bg-[#060E1F] text-slate-100'
     }`}>
       <Navbar 
         onOpenTools={() => setIsToolsOpen(true)}

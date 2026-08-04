@@ -1,4 +1,4 @@
-import { useTheme } from '../context/ThemeContext';
+import { useTheme, THEMES } from '../context/ThemeContext';
 import LoginForm from './LoginForm';
 
 export default function LoginPage() {
@@ -6,7 +6,12 @@ export default function LoginPage() {
   const isLight = theme === 'light';
 
   return (
-    <section className={`min-h-[calc(100vh-3rem)] px-4 sm:px-6 py-10 sm:py-14 flex items-center justify-center transition-colors duration-150 ${isLight ? 'bg-[#f8fafc] text-slate-800' : 'bg-[#060E1F] text-slate-100'}`}>
+    <section className={`min-h-[calc(100vh-3rem)] px-4 sm:px-6 py-10 sm:py-14 flex items-center justify-center transition-colors duration-150 ${
+      theme === THEMES.LIGHT ? 'bg-[#f8fafc] text-slate-800' :
+      theme === THEMES.OLED ? 'bg-black text-slate-100' :
+      theme === THEMES.EMERALD ? 'bg-[#012117] text-slate-100' :
+      'bg-[#060E1F] text-slate-100'
+    }`}>
       <div className="w-full max-w-md">
           <LoginForm />
       </div>

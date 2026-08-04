@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { useTheme } from '../context/ThemeContext';
-import { Lock, User, Sparkles, ShieldCheck, ArrowRight, XCircle, Eye, EyeOff } from 'lucide-react';
+import { useTheme, THEMES } from '../context/ThemeContext';
+import { Lock, User, Fingerprint, Sparkles, ShieldCheck, ArrowRight, XCircle, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginForm() {
   const { login, loading, error, setError } = useAuth();
@@ -13,7 +13,7 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isFocused, setIsFocused] = useState<string | null>(null);
 
-  const isLight = theme === 'light';
+  const isLight = theme === THEMES.LIGHT;
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -30,7 +30,10 @@ export default function LoginForm() {
 
   return (
     <div className={`h-full w-full overflow-hidden flex flex-col items-center justify-center p-4 relative transition-colors duration-150 ${
-      isLight ? 'bg-[#f8fafc]' : 'bg-[#060E1F]'
+      theme === THEMES.LIGHT ? 'bg-[#f8fafc]' :
+      theme === THEMES.OLED ? 'bg-black' :
+      theme === THEMES.EMERALD ? 'bg-[#012117]' :
+      'bg-[#060E1F]'
     }`}>
 
       {/* Subtle dot grid background */}
@@ -43,103 +46,115 @@ export default function LoginForm() {
       
       {/* Subtle ambient glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className={`absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full blur-[100px] ${
-          isLight ? 'bg-amber-500/[0.025]' : 'bg-amber-500/[0.04]'
+        <div className={`absolute -top-40 left-1/2 -translate-x-1/2 h-80 w-80 rounded-full blur-[100px] opacity-40 transition-colors duration-500 ${
+          isLight ? 'bg-amber-100' : 'bg-amber-400/10'
         }`} />
       </div>
 
-      <div className="w-full max-w-[380px] relative z-10 animate-fade-in-up">
-
-        {/* Form Card */}
-        <div className={`border rounded-lg p-6 animate-fade-in-up stagger-2 ${
-          isLight 
-            ? 'bg-white border-slate-200 shadow-md' 
-            : 'bg-white/[0.025] border-white/[0.06]'
-        }`}>
-
-          {/* UMC Note */}
-          <div className={`mb-5 px-3 py-2 rounded-xl text-[10px] sm:text-[11px] flex items-start gap-2.5 border transition-all duration-300 ${
-            isLight 
-              ? 'bg-amber-500/[0.04] border-amber-500/20 text-amber-900 shadow-sm' 
-              : 'bg-amber-500/[0.03] border-amber-500/10 text-amber-200/90'
+      <div className={`w-full max-w-md rounded-2xl border p-6 sm:p-8 shadow-2xl transition-all duration-300 ${
+        isLight 
+          ? 'bg-white border-slate-200/90 shadow-slate-200/50' 
+          : theme === THEMES.OLED 
+            ? 'bg-black border-white/[0.08] backdrop-blur-xl shadow-black/40' 
+            : theme === THEMES.EMERALD 
+              ? 'bg-[#022e20]/60 border-emerald-500/20 backdrop-blur-xl shadow-black/40' 
+              : 'bg-[#0a1428]/60 border-white/[0.08] backdrop-blur-xl shadow-black/40'
+      }`}>
+        <div className="flex flex-col items-center text-center space-y-1 mb-4">
+          <div className={`h-9 w-9 rounded-full flex items-center justify-center transition-colors duration-150 shadow-inner ${
+            isLight ? 'bg-amber-50 text-amber-600' : 'bg-amber-400/10 text-amber-400'
           }`}>
-            <ShieldCheck className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
-            <span className="leading-relaxed text-left">{t('loginUmcNoteDesc')}</span>
+            <Fingerprint className="w-4.5 h-4.5" />
           </div>
+          <h2 className="text-lg font-black tracking-tight">{t('loginTitle')}</h2>
+          <p className={`text-[10px] opacity-75 max-w-[260px] leading-relaxed ${
+            isLight ? 'text-slate-650' : 'text-slate-300'
+          }`}>{t('loginDesc')}</p>
+        </div>
 
+        <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className={`mb-4 px-3 py-2.5 rounded-md text-[11px] flex items-center gap-2.5 animate-fade-in border ${
+            <div className={`flex items-start gap-2.5 rounded-lg p-3 text-xs leading-relaxed border transition-colors ${
               isLight 
-                ? 'bg-red-50 border-red-200 text-red-700' 
-                : 'bg-red-500/10 border-red-500/20 text-red-400'
+                ? 'bg-rose-50 border-rose-200 text-rose-800' 
+                : 'bg-rose-950/20 border-rose-900/40 text-rose-400'
             }`}>
-              <XCircle className="w-3.5 h-3.5 flex-shrink-0" />
-              <span className="font-medium leading-none whitespace-nowrap">{error}</span>
+              <XCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span className="font-semibold text-left">{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Matric Number */}
-            <div>
-              <label className={`block text-[11px] font-medium mb-1.5 ${
-                isLight ? 'text-slate-600' : 'text-slate-400'
+          {/* User Matric */}
+          <div className="text-slate-800 dark:text-slate-100">
+            <label className={`block text-[11px] font-medium mb-1.5 ${
+              isLight ? 'text-slate-650' : 'text-slate-400'
+            }`}>
+              {t('loginMatric')}
+            </label>
+            <div className="relative">
+              <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-colors duration-150 ${
+                isFocused === 'userId' 
+                  ? (isLight ? 'text-amber-600 font-semibold' : 'text-amber-300') 
+                  : (isLight ? 'text-slate-500' : 'text-amber-400/70')
               }`}>
-                {t('loginMatric')}
-              </label>
-              <div className="relative">
-                <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-colors duration-150 ${
-                  isFocused === 'userId' 
-                    ? (isLight ? 'text-amber-600 font-semibold' : 'text-amber-300') 
-                    : (isLight ? 'text-slate-500' : 'text-amber-400/70')
-                }`}>
-                  <User className="w-4 h-4" />
-                </div>
-                <input
-                  type="text"
-                  required
-                  value={userId}
-                  onChange={(e) => setUserId(e.target.value)}
-                  onFocus={() => setIsFocused('userId')}
-                  onBlur={() => setIsFocused(null)}
-                  placeholder="AI210042"
-                  className={`login-input appearance-none w-full pl-10 pr-4 py-2.5 rounded-md text-xs font-medium focus:outline-none focus:ring-0 focus:shadow-none transition-colors duration-150 border ${
-                    isLight 
-                      ? 'bg-white border-slate-200 text-slate-900 placeholder-slate-400 focus:border-amber-500' 
-                      : 'bg-[#060E1F] border-white/[0.08] text-white placeholder-white/20 focus:border-amber-400/40'
-                  }`}
-                />
+                <User className="w-4 h-4" />
               </div>
+              <input
+                type="text"
+                required
+                value={userId}
+                onChange={(e) => setUserId(e.target.value)}
+                onFocus={() => setIsFocused('userId')}
+                onBlur={() => setIsFocused(null)}
+                placeholder="AI210042"
+                autoComplete="username"
+                className={`login-input appearance-none w-full pl-10 pr-4 py-2.5 rounded-md text-xs font-medium focus:outline-none focus:ring-0 focus:shadow-none transition-colors duration-150 border ${
+                  isLight 
+                    ? 'bg-white border-slate-200 text-slate-900 placeholder-slate-400 focus:border-amber-500' 
+                    : theme === THEMES.OLED 
+                      ? 'bg-black border-white/[0.08] text-white placeholder-white/20 focus:border-amber-400/40'
+                      : theme === THEMES.EMERALD
+                        ? 'bg-[#012117] border-white/[0.08] text-white placeholder-white/20 focus:border-amber-400/40'
+                        : 'bg-[#060E1F] border-white/[0.08] text-white placeholder-white/20 focus:border-amber-400/40'
+                }`}
+              />
             </div>
+          </div>
 
-            {/* Password */}
-            <div>
-              <label className={`block text-[11px] font-medium mb-1.5 ${
-                isLight ? 'text-slate-600' : 'text-slate-400'
+          {/* Password */}
+          <div className="text-slate-800 dark:text-slate-100">
+            <label className={`block text-[11px] font-medium mb-1.5 ${
+              isLight ? 'text-slate-600' : 'text-slate-400'
+            }`}>
+              {t('loginPass')}
+            </label>
+            <div className="relative">
+              <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-colors duration-150 ${
+                isFocused === 'password' 
+                  ? (isLight ? 'text-amber-600 font-semibold' : 'text-amber-300') 
+                  : (isLight ? 'text-slate-500' : 'text-amber-400/70')
               }`}>
-                {t('loginPass')}
-              </label>
-              <div className="relative">
-                <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-colors duration-150 ${
-                  isFocused === 'password' 
-                    ? (isLight ? 'text-amber-600 font-semibold' : 'text-amber-300') 
-                    : (isLight ? 'text-slate-500' : 'text-amber-400/70')
-                }`}>
-                  <Lock className="w-4 h-4" />
-                </div>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onFocus={() => setIsFocused('password')}
-                  onBlur={() => setIsFocused(null)}
-                  placeholder={lang === 'ms' ? 'Masukkan kata laluan' : 'Enter password'}
-                  className={`login-input appearance-none w-full pl-10 pr-10 py-2.5 rounded-md text-xs font-medium focus:outline-none focus:ring-0 focus:shadow-none transition-colors duration-150 border ${
-                    isLight 
-                      ? 'bg-white border-slate-200 text-slate-900 placeholder-slate-400 focus:border-amber-500' 
-                      : 'bg-[#060E1F] border-white/[0.08] text-white placeholder-white/20 focus:border-amber-400/40'
-                  }`}
-                />
+                <Lock className="w-4 h-4" />
+              </div>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onFocus={() => setIsFocused('password')}
+                onBlur={() => setIsFocused(null)}
+                placeholder={lang === 'ms' ? 'Masukkan kata laluan' : 'Enter password'}
+                autoComplete="current-password"
+                className={`login-input appearance-none w-full pl-10 pr-10 py-2.5 rounded-md text-xs font-medium focus:outline-none focus:ring-0 focus:shadow-none transition-colors duration-150 border ${
+                  isLight 
+                    ? 'bg-white border-slate-200 text-slate-900 placeholder-slate-400 focus:border-amber-500' 
+                    : theme === THEMES.OLED 
+                      ? 'bg-black border-white/[0.08] text-white placeholder-white/20 focus:border-amber-400/40'
+                      : theme === THEMES.EMERALD
+                        ? 'bg-[#012117] border-white/[0.08] text-white placeholder-white/20 focus:border-amber-400/40'
+                        : 'bg-[#060E1F] border-white/[0.08] text-white placeholder-white/20 focus:border-amber-400/40'
+                }`}
+              />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
@@ -203,14 +218,11 @@ export default function LoginForm() {
         </div>
 
         {/* Privacy — outside the card */}
-        <div className={`mt-5 flex items-center justify-center gap-1.5 text-[10px] text-center ${
-          isLight ? 'text-slate-500' : 'text-slate-500'
-        }`}>
+        <div className="mt-5 flex items-center justify-center gap-1.5 text-[10px] text-center text-slate-500">
           <ShieldCheck className="w-3 h-3 text-emerald-500/60 flex-shrink-0" />
           <span className="whitespace-nowrap">{t('privacyNote')}</span>
         </div>
 
       </div>
-    </div>
   );
 }
