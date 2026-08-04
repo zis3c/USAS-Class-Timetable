@@ -53,7 +53,7 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
     ? {
       eyebrow: 'Jadual Kuliah USAS',
       titlePrefix: 'Portal Jadual Waktu Kuliah ',
-      titleHighlight: 'USAS Pelajar.',
+      titleHighlight: 'Pelajar USAS.',
       subtitle: 'Satu halaman akademik untuk mengambil, memformat, dan mengeksport jadual kuliah USAS anda secara langsung ke kalendar peranti, PDF cetakan A4, dan kertas dinding skrin kunci telefon.',
       cta: 'Log Masuk Sekarang',
       ctaSecondary: 'Tonton Panduan Video',
@@ -692,10 +692,10 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
                     {lang === 'ms' ? 'SOKONGAN LIVE AKTIF' : 'LIVE HELPDESK ONLINE'}
                   </span>
                 </div>
-                <h3 className="text-lg font-black tracking-tight">
+                <h3 className={`text-lg font-black tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>
                   {lang === 'ms' ? 'Sokongan Teknikal STEM' : 'STEM Technical Support'}
                 </h3>
-                <p className="text-xs opacity-70 leading-relaxed">
+                <p className={`text-xs leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-350 opacity-70'}`}>
                   {lang === 'ms'
                     ? 'Menghadapi pertindihan dewan kuliah, pepijat paparan, atau kesulitan import kalendar peranti? Kami sedia membantu secara percuma.'
                     : 'Experiencing lecture hall overlaps, layout issues, or calendar sync bugs? Connect directly to resolve it.'}
@@ -715,7 +715,7 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
                     ST
                   </div>
                 </div>
-                <span className="text-[9.5px] font-semibold opacity-50">
+                <span className={`text-[9.5px] font-semibold ${isLight ? 'text-slate-500' : 'text-slate-400 opacity-50'}`}>
                   {lang === 'ms' ? 'Pembangun & Skuad STEM' : 'Developers & STEM Squad'}
                 </span>
               </div>
@@ -750,7 +750,7 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
                     @STEMUSAS
                   </p>
                 </div>
-                <span className="text-[9px] font-semibold opacity-40 leading-none">
+                <span className={`text-[9px] font-semibold leading-none ${isLight ? 'text-slate-500' : 'text-slate-400 opacity-40'}`}>
                   {lang === 'ms' ? 'Purata Balas: < 10 Minit' : 'Avg Response: < 10 Mins'}
                 </span>
               </a>

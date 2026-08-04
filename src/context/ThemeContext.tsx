@@ -35,6 +35,12 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     const root = document.documentElement;
     root.classList.remove('theme-light', 'theme-navy', 'theme-oled', 'theme-emerald');
     root.classList.add(`theme-${theme}`);
+    
+    if (theme === THEMES.LIGHT) {
+      root.classList.remove('dark');
+    } else {
+      root.classList.add('dark');
+    }
   }, [theme]);
 
   return (
