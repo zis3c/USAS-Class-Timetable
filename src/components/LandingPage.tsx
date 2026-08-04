@@ -741,7 +741,7 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
                   <Send className="w-5 h-5 fill-[#0088cc]/20" />
                 </div>
                 <div className="space-y-0.5">
-                  <h4 className="font-extrabold text-xs text-slate-800 dark:text-slate-200">
+                  <h4 className={`font-extrabold text-xs ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
                     {lang === 'ms' ? 'Hubungi kami di Telegram' : 'Chat via Telegram'}
                   </h4>
                   <p className={`text-[10px] font-extrabold tracking-wider uppercase leading-none mt-1 ${
