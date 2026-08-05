@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useLanguage } from '@/app/providers/LanguageProvider';
 import { useTheme } from '@/app/providers/ThemeProvider';
 import { X, Send, Copy, Check, Smartphone, MessageCircle } from 'lucide-react';
@@ -13,10 +13,13 @@ export default function WhatsAppShareModal({ isOpen, onClose, timetable = [], st
   const [copiedCompact, setCopiedCompact] = useState(false);
   const [shouldRender, setShouldRender] = useState(isOpen);
   const [animate, setAnimate] = useState(false);
+  const copiedTimerRef = useRef<number | null>(null);
+  const mountedRef = useRef(true);
 
   const isLight = theme === 'light';
 
   useEffect(() => {
+    mountedRef.current = true;
     if (isOpen) {
       setShouldRender(true);
       let raf1 = 0;
@@ -35,6 +38,16 @@ export default function WhatsAppShareModal({ isOpen, onClose, timetable = [], st
     return () => clearTimeout(timer);
   }, [isOpen]);
 
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      if (copiedTimerRef.current !== null) {
+        clearTimeout(copiedTimerRef.current);
+        copiedTimerRef.current = null;
+      }
+    };
+  }, []);
+
   const formattedText = useMemo(
     () => buildFullShareText(timetable, studentName, matricNo),
     [timetable, studentName, matricNo]
@@ -50,13 +63,28 @@ export default function WhatsAppShareModal({ isOpen, onClose, timetable = [], st
   const handleCopy = async (text, mode) => {
     await copyTextToClipboard(text);
 
+    if (copiedTimerRef.current !== null) {
+      clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = null;
+    }
+
+    const resetCopyState = () => {
+      if (!mountedRef.current) return;
+      if (mode === 'full') {
+        setCopiedFull(false);
+      } else {
+        setCopiedCompact(false);
+      }
+      copiedTimerRef.current = null;
+    };
+
     if (mode === 'full') {
       setCopiedFull(true);
-      setTimeout(() => setCopiedFull(false), 2000);
     } else {
       setCopiedCompact(true);
-      setTimeout(() => setCopiedCompact(false), 2000);
     }
+
+    copiedTimerRef.current = window.setTimeout(resetCopyState, 2000);
   };
 
   const handleWhatsApp = () => {
@@ -177,8 +205,3 @@ export default function WhatsAppShareModal({ isOpen, onClose, timetable = [], st
     </div>
   );
 }
-
-
-
-
-
