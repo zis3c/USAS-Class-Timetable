@@ -7,6 +7,25 @@
 
 type IcsTimeInput = string | undefined;
 
+export function escapeIcsText(value: unknown): string {
+  return String(value ?? '')
+    .replace(/\\/g, '\\\\')
+    .replace(/\r\n|\r|\n/g, '\\n')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .trim();
+}
+
+export function sanitizeFileNameSegment(value: unknown): string {
+  return String(value ?? '')
+    .trim()
+    .replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_')
+    .replace(/\s+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 80) || 'Pelajar_USAS';
+}
+
 function formatICSDatetime(dayName: string | undefined, timeStr: IcsTimeInput): string {
   // Map day names to day offset (Monday = 1, Friday = 5)
   const dayOffsets = {
@@ -69,7 +88,7 @@ export function exportTimetableICS(timetable: TimetableItem[] = [], studentName 
     'PRODID:-//Universiti Sultan Azlan Shah//USAS Student Timetable//MS',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
-    `X-WR-CALNAME:Jadual USAS - ${studentName}`,
+    `X-WR-CALNAME:Jadual USAS - ${escapeIcsText(studentName)}`,
     'X-WR-TIMEZONE:Asia/Kuala_Lumpur'
   ];
 
@@ -77,9 +96,9 @@ export function exportTimetableICS(timetable: TimetableItem[] = [], studentName 
     const startIso = formatICSDatetime(course.day, course.start_time || '09:00 AM');
     const endIso = formatICSDatetime(course.day, course.end_time || '11:00 AM');
 
-    const summary = `${course.course_id || course.kod_kursus}: ${course.course_name || course.kursus}`;
-    const location = course.location || 'Dewan Kuliah USAS';
-    const description = `Pensyarah: ${course.lecturer || 'Pensyarah USAS'}\\nKumpulan: ${course.group || 'GRP01'}\\nLokasi: ${location}`;
+    const summary = escapeIcsText(`${course.course_id || course.kod_kursus}: ${course.course_name || course.kursus}`);
+    const location = escapeIcsText(course.location || 'Dewan Kuliah USAS');
+    const description = escapeIcsText(`Pensyarah: ${course.lecturer || 'Pensyarah USAS'}\nKumpulan: ${course.group || 'GRP01'}\nLokasi: ${course.location || 'Dewan Kuliah USAS'}`);
 
     icsContent.push(
       'BEGIN:VEVENT',
@@ -101,7 +120,7 @@ export function exportTimetableICS(timetable: TimetableItem[] = [], studentName 
   const blob = new Blob([icsContent.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
   const link = document.createElement('a');
   link.href = window.URL.createObjectURL(blob);
-  link.setAttribute('download', `Jadual_USAS_${studentName.replace(/\s+/g, '_')}.ics`);
+  link.setAttribute('download', `Jadual_USAS_${sanitizeFileNameSegment(studentName)}.ics`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
