@@ -169,6 +169,14 @@ async function postUSAS(endpoint: string, payload: UsasPayload): Promise<unknown
     }
   };
 
+  const parseJsonResponse = (text: string) => {
+    try {
+      return JSON.parse(text);
+    } catch {
+      return null;
+    }
+  };
+
   // 1. Try application/json
   try {
     const jsonRes = await fetchWithTimeout(`${BASE_URL}${endpoint}`, {
@@ -179,10 +187,8 @@ async function postUSAS(endpoint: string, payload: UsasPayload): Promise<unknown
     if (jsonRes.ok) {
       const text = await jsonRes.text();
       if (text && !text.startsWith('Access Denied') && text.includes('{')) {
-        try {
-          const data = JSON.parse(text);
-          if (data) return data;
-        } catch (e) {}
+        const data = parseJsonResponse(text);
+        if (data) return data;
       }
     }
   } catch (err) {}
@@ -205,7 +211,8 @@ async function postUSAS(endpoint: string, payload: UsasPayload): Promise<unknown
     if (formRes.ok) {
       const formText = await formRes.text();
       if (formText && !formText.startsWith('Access Denied') && formText.includes('{')) {
-        return JSON.parse(formText);
+        const data = parseJsonResponse(formText);
+        if (data) return data;
       }
     }
   } catch (err) {}
