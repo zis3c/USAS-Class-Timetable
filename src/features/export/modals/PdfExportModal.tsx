@@ -250,6 +250,10 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
   const pdfRef = useRef<HTMLDivElement | null>(null);
   const previewShellRef = useRef<HTMLDivElement | null>(null);
   const wallpaperRef = useRef<HTMLDivElement | null>(null);
+  const exportIntervalRef = useRef<number | null>(null);
+  const exportStatusIntervalRef = useRef<number | null>(null);
+  const exportSettledTimeoutRef = useRef<number | null>(null);
+  const isMountedRef = useRef(true);
 
   const allCourses = useMemo(() => timetableData?.timetable || [], [timetableData?.timetable]);
   const studentName = timetableData?.studentName || session?.user_id || 'Pelajar USAS';
@@ -295,6 +299,24 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      if (exportIntervalRef.current !== null) {
+        clearInterval(exportIntervalRef.current);
+        exportIntervalRef.current = null;
+      }
+      if (exportStatusIntervalRef.current !== null) {
+        clearInterval(exportStatusIntervalRef.current);
+        exportStatusIntervalRef.current = null;
+      }
+      if (exportSettledTimeoutRef.current !== null) {
+        clearTimeout(exportSettledTimeoutRef.current);
+        exportSettledTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!shouldRender || exportMode === 'WALLPAPER') return;
@@ -376,8 +398,21 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
     setProgress(0);
     setProgressStatus(lang === 'en' ? 'Preparing template...' : 'Menyediakan template...');
     
+    if (exportIntervalRef.current !== null) {
+      clearInterval(exportIntervalRef.current);
+      exportIntervalRef.current = null;
+    }
+    if (exportStatusIntervalRef.current !== null) {
+      clearInterval(exportStatusIntervalRef.current);
+      exportStatusIntervalRef.current = null;
+    }
+    if (exportSettledTimeoutRef.current !== null) {
+      clearTimeout(exportSettledTimeoutRef.current);
+      exportSettledTimeoutRef.current = null;
+    }
+
     // Smooth progress simulation
-    const interval = setInterval(() => {
+    exportIntervalRef.current = window.setInterval(() => {
       setProgress((prev) => {
         if (prev >= 88) {
           // Slow down progress increments as we approach completion
@@ -390,7 +425,7 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
     }, 150);
 
     // Update statuses based on progress
-    const statusInterval = setInterval(() => {
+    exportStatusIntervalRef.current = window.setInterval(() => {
       setProgress((curr) => {
         if (curr < 30) {
           setProgressStatus(lang === 'en' ? 'Initializing render engine...' : 'Memulakan enjin jana...');
@@ -419,21 +454,40 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
       }
       
       // Complete progress on success
-      clearInterval(interval);
-      clearInterval(statusInterval);
+      if (exportIntervalRef.current !== null) {
+        clearInterval(exportIntervalRef.current);
+        exportIntervalRef.current = null;
+      }
+      if (exportStatusIntervalRef.current !== null) {
+        clearInterval(exportStatusIntervalRef.current);
+        exportStatusIntervalRef.current = null;
+      }
       setProgress(100);
       setProgressStatus(lang === 'en' ? 'Download completed!' : 'Muat turun berjaya!');
       
       // Delay before closing loading overlay
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise((resolve) => {
+        exportSettledTimeoutRef.current = window.setTimeout(() => {
+          exportSettledTimeoutRef.current = null;
+          resolve(null);
+        }, 800);
+      });
     } catch (err) {
-      clearInterval(interval);
-      clearInterval(statusInterval);
+      if (exportIntervalRef.current !== null) {
+        clearInterval(exportIntervalRef.current);
+        exportIntervalRef.current = null;
+      }
+      if (exportStatusIntervalRef.current !== null) {
+        clearInterval(exportStatusIntervalRef.current);
+        exportStatusIntervalRef.current = null;
+      }
       console.error('Export Error:', err);
       alert(lang === 'ms' ? 'Gagal menjana fail. Sila cuba lagi.' : 'Failed to generate file. Please try again.');
     } finally {
-      setExporting(false);
-      setProgress(0);
+      if (isMountedRef.current) {
+        setExporting(false);
+        setProgress(0);
+      }
     }
   };
 

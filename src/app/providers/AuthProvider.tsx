@@ -87,7 +87,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const normalizedUserId = sanitizeLoginUserId(userId);
       if (!isDemo && !normalizedUserId) {
         setError('Isi no. matrik yang sah.');
-        setLoading(false);
         return false;
       }
 
@@ -95,7 +94,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const throttleCheck = evaluateLoginThrottle(throttleState);
       if (!isDemo && !throttleCheck.allowed) {
         setError(`Log masuk disekat seketika. Cuba lagi selepas ${formatRetryAt(throttleCheck.retryAt)}.`);
-        setLoading(false);
         return false;
       }
 
@@ -110,15 +108,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
         writeThrottleState(recordLoginSuccess(throttleState));
 
-        // Fetch timetable data
-        const timetableRes = await fetchTimetableAPI(safeSession);
-        setTimetableData(timetableRes);
         try {
-          localStorage.setItem(CACHE_KEY_TIMETABLE, JSON.stringify(timetableRes));
+          const timetableRes = await fetchTimetableAPI(safeSession);
+          setTimetableData(timetableRes);
+          try {
+            localStorage.setItem(CACHE_KEY_TIMETABLE, JSON.stringify(timetableRes));
+          } catch {
+            // ignore storage failures
+          }
         } catch {
-          // ignore storage failures
+          setTimetableData(null);
+          setError('Gagal memuat jadual.');
         }
-        setLoading(false);
         return true;
       } else {
         if ('error' in res) {
@@ -127,7 +128,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (!isDemo) {
           writeThrottleState(recordLoginFailure(throttleState));
         }
-        setLoading(false);
         return false;
       }
     } catch (err) {
@@ -136,8 +136,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         writeThrottleState(recordLoginFailure(throttleState));
       }
       setError("Ralat sistem semasa log masuk.");
-      setLoading(false);
       return false;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -157,17 +158,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const refreshTimetable = async () => {
     if (!session) return;
     setLoading(true);
-    const res = await fetchTimetableAPI(session);
-    setTimetableData(res);
     try {
-      localStorage.setItem(CACHE_KEY_TIMETABLE, JSON.stringify(res));
+      const res = await fetchTimetableAPI(session);
+      setTimetableData(res);
+      try {
+        localStorage.setItem(CACHE_KEY_TIMETABLE, JSON.stringify(res));
+      } catch {
+        // ignore storage failures
+      }
     } catch {
-      // ignore storage failures
-    }
-    if (!res) {
       setError('Gagal memuat jadual.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
