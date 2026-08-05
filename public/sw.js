@@ -1,4 +1,4 @@
-const CACHE_NAME = 'usas-class-timetable-v1';
+const CACHE_NAME = 'usas-class-timetable-v2';
 const SHELL_ASSETS = [
   '/',
   '/index.html',
@@ -43,6 +43,27 @@ async function serveOfflineFallback(request) {
   return new Response('Offline', { status: 503, headers: { 'content-type': 'text/plain; charset=utf-8' } });
 }
 
+function shouldCacheRequest(pathname, destination) {
+  if (pathname.startsWith('/api/')) return false;
+  if (
+    pathname === '/' ||
+    pathname === '/index.html' ||
+    pathname === '/offline.html' ||
+    pathname === '/404.html' ||
+    pathname === '/500.html' ||
+    pathname === '/502.html' ||
+    pathname === '/503.html' ||
+    pathname === '/504.html' ||
+    pathname === '/error.css' ||
+    pathname === '/error-page.js' ||
+    pathname === '/usas-logo.png'
+  ) {
+    return true;
+  }
+
+  return destination === 'script' || destination === 'style' || destination === 'image' || destination === 'font';
+}
+
 self.addEventListener('fetch', (event) => {
   const { request } = event;
 
@@ -68,7 +89,7 @@ self.addEventListener('fetch', (event) => {
     caches.match(request).then((cachedResponse) => {
       const networkFetch = fetch(request)
         .then((response) => {
-          if (response && response.ok) {
+          if (response && response.ok && shouldCacheRequest(url.pathname, request.destination)) {
             caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone())).catch(() => {});
           }
           return response;
