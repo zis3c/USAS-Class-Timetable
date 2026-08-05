@@ -5,6 +5,28 @@ type ExportElement = HTMLElement & {
   getAttribute?: (name: string) => string | null;
 };
 
+export function sanitizeDownloadFileName(value: unknown, fallback: string): string {
+  const raw = String(value ?? '').trim();
+  let safeName = '';
+
+  for (const char of raw) {
+    const code = char.charCodeAt(0);
+    const isControl = code < 32 || code === 127;
+    if (isControl || '<>:"/\\|?*'.includes(char)) {
+      safeName += '_';
+    } else if (/\s/.test(char)) {
+      safeName += '_';
+    } else {
+      safeName += char;
+    }
+  }
+
+  safeName = safeName.replace(/_+/g, '_').replace(/^_+|_+$/g, '').slice(0, 120);
+
+  if (!safeName) return fallback;
+  return safeName;
+}
+
 async function captureElement(elementRef: ExportElement | null, scale = 2, backgroundColor = '#FFFFFF') {
   if (!elementRef) {
     throw new Error('Element template not found for export.');
@@ -125,7 +147,7 @@ export async function generateTimetablePdf(
   const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
   pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, Math.min(imgHeight, pageHeight));
-  pdf.save(fileName);
+  pdf.save(sanitizeDownloadFileName(fileName, 'Jadual_Kuliah_USAS.pdf'));
 }
 
 /**
@@ -139,7 +161,7 @@ export async function generateElementPng(
 ) {
   const canvas = await captureElement(elementRef, scale, backgroundColor);
   const link = document.createElement('a');
-  link.download = fileName;
+  link.download = sanitizeDownloadFileName(fileName, 'Jadual_Kuliah_USAS.png');
   link.href = canvas.toDataURL('image/png');
   link.click();
 }
