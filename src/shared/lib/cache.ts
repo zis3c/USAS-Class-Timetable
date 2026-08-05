@@ -1,10 +1,32 @@
 import type { StudentSession, TimetableData } from '../types/usas';
 import { isValidLoginUserId, sanitizeSession, sanitizeTimetableItem, sanitizeTextForShare } from './security';
 
+const POISON_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+function isSafeParsedValue(value: unknown): boolean {
+  if (Array.isArray(value)) {
+    return value.every(isSafeParsedValue);
+  }
+
+  if (typeof value !== 'object' || value === null) {
+    return true;
+  }
+
+  for (const key of Object.keys(value as Record<string, unknown>)) {
+    if (POISON_KEYS.has(key)) return false;
+    if (!isSafeParsedValue((value as Record<string, unknown>)[key])) return false;
+  }
+
+  return true;
+}
+
 export function parseJsonObject(value: string): Record<string, unknown> | null {
   try {
     const parsed = JSON.parse(value) as unknown;
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      return null;
+    }
+    if (!isSafeParsedValue(parsed)) {
       return null;
     }
     return parsed as Record<string, unknown>;

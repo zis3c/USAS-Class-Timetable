@@ -19,6 +19,11 @@ describe('cache restore helpers', () => {
     }))).toBeNull();
   });
 
+  it('rejects poison keys in cached blobs', () => {
+    expect(restoreSessionFromCache('{"user_id":"AI210042","sid_1":"a","sid_2":"b","sid_3":"c","isDemo":false,"__proto__":{"polluted":true}}')).toBeNull();
+    expect(restoreTimetableFromCache('{"success":true,"days":["isnin"],"timetable":[],"constructor":{"prototype":{"polluted":true}}}')).toBeNull();
+  });
+
   it('restores valid cached throttle state safely', () => {
     const state = restoreThrottleState('{"failedAttempts":2,"lockedUntil":123,"lastAttemptAt":456}');
     expect(state).toEqual({ failedAttempts: 2, lockedUntil: 123, lastAttemptAt: 456 });
