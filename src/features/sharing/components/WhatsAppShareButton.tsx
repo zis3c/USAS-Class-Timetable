@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useLanguage } from '@/app/providers/LanguageProvider';
 import { useTheme } from '@/app/providers/ThemeProvider';
 import { MessageCircle, Copy, Check, Send, Smartphone } from 'lucide-react';
@@ -10,6 +10,8 @@ export default function WhatsAppShareButton({ timetable = [], studentName = '', 
   const { theme } = useTheme();
   const [copied, setCopied] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
+  const copiedTimerRef = useRef<number | null>(null);
+  const mountedRef = useRef(true);
 
   const isLight = theme === 'light';
 
@@ -23,10 +25,26 @@ export default function WhatsAppShareButton({ timetable = [], studentName = '', 
     [timetable, matricNo]
   );
 
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      if (copiedTimerRef.current !== null) {
+        clearTimeout(copiedTimerRef.current);
+        copiedTimerRef.current = null;
+      }
+    };
+  }, []);
+
   const handleCopy = async (text) => {
     await copyTextToClipboard(text);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+    if (copiedTimerRef.current !== null) {
+      clearTimeout(copiedTimerRef.current);
+    }
+    copiedTimerRef.current = window.setTimeout(() => {
+      if (mountedRef.current) setCopied(false);
+      copiedTimerRef.current = null;
+    }, 2500);
   };
 
   const handleWhatsApp = () => {
@@ -144,8 +162,3 @@ export default function WhatsAppShareButton({ timetable = [], studentName = '', 
     </div>
   );
 }
-
-
-
-
-

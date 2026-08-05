@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTheme } from '@/app/providers/ThemeProvider';
 import { X, User, Mail, Building, Clock, Copy, Check } from 'lucide-react';
 import { copyTextToClipboard, sanitizeTextForShare } from '@/shared/lib/security';
@@ -14,10 +14,10 @@ export default function LecturerModal({ lecturerName, isOpen, onClose }: Lecture
   const { theme } = useTheme();
 
   const isLight = theme === 'light';
+  const copiedTimerRef = useRef<number | null>(null);
 
   const [shouldRender, setShouldRender] = useState(isOpen);
   const [animate, setAnimate] = useState(false);
-  // Cache the name so it persists during the exit animation after prop becomes null
   const [cachedName, setCachedName] = useState(lecturerName);
 
   useEffect(() => {
@@ -25,10 +25,17 @@ export default function LecturerModal({ lecturerName, isOpen, onClose }: Lecture
   }, [lecturerName]);
 
   useEffect(() => {
+    return () => {
+      if (copiedTimerRef.current !== null) {
+        clearTimeout(copiedTimerRef.current);
+        copiedTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (isOpen) {
       setShouldRender(true);
-      // Double rAF ensures the browser has painted the hidden state (scale-95/opacity-0)
-      // before starting the enter animation â€” fixes skipped transition on first open
       let raf1: number;
       let raf2: number;
       raf1 = requestAnimationFrame(() => {
@@ -38,16 +45,15 @@ export default function LecturerModal({ lecturerName, isOpen, onClose }: Lecture
         cancelAnimationFrame(raf1);
         cancelAnimationFrame(raf2);
       };
-    } else {
-      setAnimate(false);
-      const timer = setTimeout(() => setShouldRender(false), 200);
-      return () => clearTimeout(timer);
     }
+
+    setAnimate(false);
+    const timer = setTimeout(() => setShouldRender(false), 200);
+    return () => clearTimeout(timer);
   }, [isOpen]);
 
   if (!shouldRender || !cachedName) return null;
 
-  // Format sample email from lecturer name e.g. "DR. SMITH" -> "smith@usas.edu.my"
   const emailName = cachedName
     .replace(/^(DR\.|EN\.|PN\.|USTAZ|PM DR\.|PROF\.)\s*/i, '')
     .trim()
@@ -59,7 +65,13 @@ export default function LecturerModal({ lecturerName, isOpen, onClose }: Lecture
   const handleCopyEmail = () => {
     void copyTextToClipboard(email);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (copiedTimerRef.current !== null) {
+      clearTimeout(copiedTimerRef.current);
+    }
+    copiedTimerRef.current = window.setTimeout(() => {
+      setCopied(false);
+      copiedTimerRef.current = null;
+    }, 2000);
   };
 
   return (
@@ -83,7 +95,6 @@ export default function LecturerModal({ lecturerName, isOpen, onClose }: Lecture
           <X className="w-4 h-4" />
         </button>
 
-        {/* Left-Aligned Icon Modal Header */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-0">
           <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md border ${
             isLight ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-amber-400/10 border-amber-400/20 text-amber-400'
@@ -96,7 +107,6 @@ export default function LecturerModal({ lecturerName, isOpen, onClose }: Lecture
           </div>
         </div>
 
-        {/* Details Grid */}
         <div className={`space-y-3 text-xs p-4 rounded-xl border shadow-inner ${
           isLight ? 'bg-slate-50/50 border-slate-200/80' : 'bg-white/[0.02] border-white/[0.05]'
         }`}>
@@ -141,7 +151,6 @@ export default function LecturerModal({ lecturerName, isOpen, onClose }: Lecture
 
         </div>
 
-        {/* Action Button */}
         <button
           onClick={onClose}
           className={`w-full py-2.5 rounded-xl font-bold text-xs transition-colors border ${
@@ -158,6 +167,3 @@ export default function LecturerModal({ lecturerName, isOpen, onClose }: Lecture
     </div>
   );
 }
-
-
-

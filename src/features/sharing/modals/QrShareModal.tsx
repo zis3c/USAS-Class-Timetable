@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import { useTheme } from '@/app/providers/ThemeProvider';
 import { X, QrCode, Copy, Check } from 'lucide-react';
@@ -23,6 +23,8 @@ export default function QrShareModal({
   const [shouldRender, setShouldRender] = useState(isOpen);
   const [animate, setAnimate] = useState(false);
   const { theme } = useTheme();
+  const copiedTimerRef = useRef<number | null>(null);
+  const mountedRef = useRef(true);
 
   const isLight = theme === 'light';
   const safeStudentName = sanitizeTextForShare(studentName, 80);
@@ -30,6 +32,8 @@ export default function QrShareModal({
   const shareUrl = `${window.location.origin}/?student=${encodeURIComponent(safeStudentName)}&matric=${encodeURIComponent(safeMatricNo)}`;
 
   useEffect(() => {
+    mountedRef.current = true;
+
     if (isOpen) {
       setShouldRender(true);
       setQrLoaded(false);
@@ -48,8 +52,12 @@ export default function QrShareModal({
           light: isLight ? '#FFFFFF' : '#0B1B3D',
         },
       })
-        .then((dataUrl) => setQrUrl(dataUrl))
-        .catch(() => setQrUrl(''));
+        .then((dataUrl) => {
+          if (mountedRef.current) setQrUrl(dataUrl);
+        })
+        .catch(() => {
+          if (mountedRef.current) setQrUrl('');
+        });
 
       return () => {
         cancelAnimationFrame(raf1);
@@ -62,10 +70,26 @@ export default function QrShareModal({
     return () => clearTimeout(timer);
   }, [isOpen, isLight, shareUrl]);
 
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      if (copiedTimerRef.current !== null) {
+        clearTimeout(copiedTimerRef.current);
+        copiedTimerRef.current = null;
+      }
+    };
+  }, []);
+
   const handleCopyLink = async () => {
     await copyTextToClipboard(shareUrl);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (copiedTimerRef.current !== null) {
+      clearTimeout(copiedTimerRef.current);
+    }
+    copiedTimerRef.current = window.setTimeout(() => {
+      if (mountedRef.current) setCopied(false);
+      copiedTimerRef.current = null;
+    }, 2000);
   };
 
   if (!shouldRender) return null;
@@ -188,6 +212,3 @@ export default function QrShareModal({
     </div>
   );
 }
-
-
-
