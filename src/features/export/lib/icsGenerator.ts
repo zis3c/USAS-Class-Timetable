@@ -26,7 +26,7 @@ export function sanitizeFileNameSegment(value: unknown): string {
     .slice(0, 80) || 'Pelajar_USAS';
 }
 
-function formatICSDatetime(dayName: string | undefined, timeStr: IcsTimeInput): string {
+export function formatICSDatetime(dayName: string | undefined, timeStr: IcsTimeInput): string {
   // Map day names to day offset (Monday = 1, Friday = 5)
   const dayOffsets = {
     'ISNIN': 1, 'MONDAY': 1, 'MON': 1,
@@ -65,6 +65,14 @@ function formatICSDatetime(dayName: string | undefined, timeStr: IcsTimeInput): 
   }
 
   targetDate.setHours(hours, minutes, 0, 0);
+
+  if (dayIndex === currentDayIndex) {
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const targetMinutes = hours * 60 + minutes;
+    if (targetMinutes <= nowMinutes) {
+      targetDate.setDate(targetDate.getDate() + 7);
+    }
+  }
 
   // Format as YYYYMMDDTHHMMSSZ
   const year = targetDate.getUTCFullYear();
