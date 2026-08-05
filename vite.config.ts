@@ -15,11 +15,20 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          react: ['react', 'react-dom'],
-          jspdf: ['jspdf'],
-          canvas: ['html2canvas'],
-          icons: ['lucide-react'],
+        manualChunks(id) {
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+            return 'react';
+          }
+          if (id.includes('node_modules/jspdf')) {
+            return 'jspdf';
+          }
+          if (id.includes('node_modules/html2canvas')) {
+            return 'canvas';
+          }
+          if (id.includes('node_modules/lucide-react')) {
+            return 'icons';
+          }
+          return undefined;
         },
       },
     },
