@@ -15,6 +15,7 @@ import {
   restoreThrottleState,
   restoreTimetableFromCache,
 } from '@/shared/lib/cache';
+import { useRef } from 'react';
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
@@ -32,6 +33,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const loginRequestRef = useRef(0);
+  const refreshRequestRef = useRef(0);
+  const sessionRef = useRef<StudentSession | null>(null);
+
+  const getSessionKey = (value: StudentSession | null) => {
+    if (!value) return '';
+    return [value.user_id, value.sid_1, value.sid_2, value.sid_3].join('|');
+  };
+
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
 
   const readThrottleState = () => {
     try {
@@ -81,11 +94,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const login = async (userId: string, password: string, isDemo = false) => {
+    const requestId = ++loginRequestRef.current;
+    refreshRequestRef.current += 1;
     setLoading(true);
     setError(null);
     try {
       const normalizedUserId = sanitizeLoginUserId(userId);
       if (!isDemo && !normalizedUserId) {
+        if (loginRequestRef.current !== requestId) return false;
         setError('Isi no. matrik yang sah.');
         return false;
       }
@@ -93,11 +109,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const throttleState = readThrottleState();
       const throttleCheck = evaluateLoginThrottle(throttleState);
       if (!isDemo && !throttleCheck.allowed) {
+        if (loginRequestRef.current !== requestId) return false;
         setError(`Log masuk disekat seketika. Cuba lagi selepas ${formatRetryAt(throttleCheck.retryAt)}.`);
         return false;
       }
 
       const res = await loginStudentAPI(userId, password, isDemo);
+      if (loginRequestRef.current !== requestId) return false;
       if (res.success) {
         const safeSession = sanitizeSession(res.data);
         setSession(safeSession);
@@ -110,6 +128,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         try {
           const timetableRes = await fetchTimetableAPI(safeSession);
+          if (loginRequestRef.current !== requestId) return false;
           setTimetableData(timetableRes);
           try {
             localStorage.setItem(CACHE_KEY_TIMETABLE, JSON.stringify(timetableRes));
@@ -117,11 +136,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
             // ignore storage failures
           }
         } catch {
+          if (loginRequestRef.current !== requestId) return false;
           setTimetableData(null);
           setError('Gagal memuat jadual.');
         }
         return true;
       } else {
+        if (loginRequestRef.current !== requestId) return false;
         if ('error' in res) {
           setError(res.error);
         }
@@ -131,6 +152,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return false;
       }
     } catch (err) {
+      if (loginRequestRef.current !== requestId) return false;
       if (!isDemo) {
         const throttleState = readThrottleState();
         writeThrottleState(recordLoginFailure(throttleState));
@@ -138,11 +160,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setError("Ralat sistem semasa log masuk.");
       return false;
     } finally {
-      setLoading(false);
+      if (loginRequestRef.current === requestId) {
+        setLoading(false);
+      }
     }
   };
 
   const logout = () => {
+    loginRequestRef.current += 1;
+    refreshRequestRef.current += 1;
     setSession(null);
     setTimetableData(null);
     setError(null);
@@ -157,9 +183,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const refreshTimetable = async () => {
     if (!session) return;
+    const requestId = ++refreshRequestRef.current;
+    const sessionKey = getSessionKey(session);
     setLoading(true);
     try {
       const res = await fetchTimetableAPI(session);
+      if (refreshRequestRef.current !== requestId || getSessionKey(sessionRef.current) !== sessionKey) return;
       setTimetableData(res);
       try {
         localStorage.setItem(CACHE_KEY_TIMETABLE, JSON.stringify(res));
@@ -167,9 +196,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // ignore storage failures
       }
     } catch {
+      if (refreshRequestRef.current !== requestId || getSessionKey(sessionRef.current) !== sessionKey) return;
       setError('Gagal memuat jadual.');
     } finally {
-      setLoading(false);
+      if (refreshRequestRef.current === requestId && getSessionKey(sessionRef.current) === sessionKey) {
+        setLoading(false);
+      }
     }
   };
 
