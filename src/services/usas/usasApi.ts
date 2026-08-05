@@ -443,29 +443,15 @@ export async function fetchTimetableAPI(session: StudentSession): Promise<Timeta
 
     if (kehadiranPayloadRes?.server_response && kehadiranPayloadRes.server_response.length > 0) {
       rawItems = kehadiranPayloadRes.server_response.map((item, i) => {
-        let parsedDay = 'ISNIN';
-        let parsedTime = sanitizeSingleLine(item.jadual || 'Waktu ditetapkan', 64);
-        
-        if (item.jadual) {
-          const parts = item.jadual.trim().split(' ');
-          const dayMap = {
-            'MON': 'ISNIN', 'TUE': 'SELASA', 'WED': 'RABU', 'THU': 'KHAMIS', 'FRI': 'JUMAAT',
-            'SAT': 'SABTU', 'SUN': 'AHAD',
-            'ISNIN': 'ISNIN', 'SELASA': 'SELASA', 'RABU': 'RABU', 'KHAMIS': 'KHAMIS', 'JUMAAT': 'JUMAAT'
-          };
-          if (dayMap[parts[0]?.toUpperCase()]) {
-            parsedDay = dayMap[parts[0].toUpperCase()];
-            parsedTime = parts.slice(1).join(' ');
-          }
-        }
+        const parsed = parseFallbackJadual(item.jadual);
 
         return {
           id: sanitizeSingleLine(item.id || String(i + 1), 32),
-          day: parsedDay,
+          day: parsed.day,
           course_id: sanitizeSingleLine(item.kod_kursus || `SUBJ${i + 1}`, 64),
           course_name: sanitizeTextForShare(item.kursus || 'Kursus USAS', 160),
           group: sanitizeSingleLine(item.kumpulan || item.group_id || 'GRP01', 32),
-          start_time: parsedTime,
+          start_time: parsed.time,
           end_time: '',
           location: 'Dewan / Makmal USAS',
           lecturer: sanitizeTextForShare(item.pensyarah || 'Pensyarah USAS', 160),
@@ -523,6 +509,28 @@ export async function fetchPrayerTimesAPI(_session: StudentSession | null): Prom
     times: MOCK_PRAYER_TIMES,
     location: 'Kuala Kangsar (PRK02)',
   };
+}
+
+export function parseFallbackJadual(jadual: unknown): { day: string; time: string } {
+  const jadualText = sanitizeSingleLine(jadual || 'Waktu ditetapkan', 64);
+  let day = 'ISNIN';
+  let time = jadualText;
+
+  if (jadualText) {
+    const parts = jadualText.trim().split(' ');
+    const dayMap = {
+      'MON': 'ISNIN', 'TUE': 'SELASA', 'WED': 'RABU', 'THU': 'KHAMIS', 'FRI': 'JUMAAT',
+      'SAT': 'SABTU', 'SUN': 'AHAD',
+      'ISNIN': 'ISNIN', 'SELASA': 'SELASA', 'RABU': 'RABU', 'KHAMIS': 'KHAMIS', 'JUMAAT': 'JUMAAT'
+    } as const;
+    const parsedDay = dayMap[parts[0]?.toUpperCase() as keyof typeof dayMap];
+    if (parsedDay) {
+      day = parsedDay;
+      time = parts.slice(1).join(' ');
+    }
+  }
+
+  return { day, time };
 }
 
 export async function fetchAcademicCalendarAPI(_session: StudentSession | null): Promise<AcademicCalendarItem[]> {
