@@ -3,6 +3,12 @@ import { isValidLoginUserId, sanitizeSession, sanitizeTimetableItem, sanitizeTex
 
 const POISON_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
+function toNonNegativeInteger(value: unknown): number {
+  const next = Number(value);
+  if (!Number.isFinite(next) || next < 0) return 0;
+  return Math.floor(next);
+}
+
 function isSafeParsedValue(value: unknown): boolean {
   if (Array.isArray(value)) {
     return value.every(isSafeParsedValue);
@@ -88,8 +94,8 @@ export function restoreThrottleState(value: string): { failedAttempts: number; l
   if (!parsed) return null;
 
   return {
-    failedAttempts: Number(parsed.failedAttempts) || 0,
-    lockedUntil: Number(parsed.lockedUntil) || 0,
-    lastAttemptAt: Number(parsed.lastAttemptAt) || 0,
+    failedAttempts: toNonNegativeInteger(parsed.failedAttempts),
+    lockedUntil: toNonNegativeInteger(parsed.lockedUntil),
+    lastAttemptAt: toNonNegativeInteger(parsed.lastAttemptAt),
   };
 }

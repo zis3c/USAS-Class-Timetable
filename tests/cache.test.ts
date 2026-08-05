@@ -29,6 +29,11 @@ describe('cache restore helpers', () => {
     expect(state).toEqual({ failedAttempts: 2, lockedUntil: 123, lastAttemptAt: 456 });
   });
 
+  it('clamps poisoned throttle values to safe non-negative integers', () => {
+    const state = restoreThrottleState('{"failedAttempts":-3,"lockedUntil":"-99","lastAttemptAt":"NaN"}');
+    expect(state).toEqual({ failedAttempts: 0, lockedUntil: 0, lastAttemptAt: 0 });
+  });
+
   it('sanitizes valid cached timetable records', () => {
     const timetable = restoreTimetableFromCache(JSON.stringify({
       success: true,
