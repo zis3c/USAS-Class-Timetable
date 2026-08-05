@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getLocalDateStamp } from '../src/features/timetable/components/PrayerTimesWidget';
+import { getLocalDateStamp } from '../src/shared/lib/notificationKeys';
 
 describe('prayer notifier date stamps', () => {
   it('uses local calendar date not utc date', () => {

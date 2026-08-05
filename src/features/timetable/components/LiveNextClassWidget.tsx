@@ -1,7 +1,8 @@
-﻿import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '@/app/providers/LanguageProvider';
 import { useTheme } from '@/app/providers/ThemeProvider';
 import { playClassChime, sendPushNotification } from '@/shared/lib/audioNotifier';
+import { buildDayScopedNotificationKey, getLocalDateStamp, pruneDayScopedNotificationKeys } from '@/shared/lib/notificationKeys';
 import { Clock, CheckCircle2, Bell, BellOff } from 'lucide-react';
 import type { TimetableItem } from '@/shared/types/usas';
 
@@ -15,17 +16,6 @@ type NextClassItem = TimetableItem & {
   endMin?: number;
 };
 
-export function getLocalDateStamp(value: Date): string {
-  const year = value.getFullYear();
-  const month = String(value.getMonth() + 1).padStart(2, '0');
-  const day = String(value.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-export function buildNextClassNotificationKey(course: NextClassItem, now: Date): string {
-  return `${getLocalDateStamp(now)}-${course.course_id}-${course.day}-${course.start_time}`;
-}
-
 export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWidgetProps) {
   const { t } = useLanguage();
   const { theme } = useTheme();
@@ -34,6 +24,7 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
     try { return localStorage.getItem('usas_auto_notify') === 'true'; } catch (e) { return false; }
   });
   const notifiedRef = useRef<Record<string, boolean>>({});
+  const activeDayStampRef = useRef('');
 
   const isLight = theme === 'light';
 
@@ -41,6 +32,13 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    const dayStamp = getLocalDateStamp(now);
+    if (activeDayStampRef.current === dayStamp) return;
+    activeDayStampRef.current = dayStamp;
+    notifiedRef.current = pruneDayScopedNotificationKeys(notifiedRef.current, now);
+  }, [now]);
 
   const toggleAutoNotify = () => {
     const nextState = !autoNotifyEnabled;
@@ -120,7 +118,7 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
 
   useEffect(() => {
     if (autoNotifyEnabled && nextClass && nextClass.diffSeconds !== undefined && nextClass.diffSeconds <= 600 && nextClass.diffSeconds > 0) {
-      const key = buildNextClassNotificationKey(nextClass, now);
+      const key = buildDayScopedNotificationKey(now, nextClass.course_id, nextClass.day, nextClass.start_time);
       if (!notifiedRef.current[key]) {
         notifiedRef.current[key] = true;
         playClassChime();
@@ -130,16 +128,15 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
         );
       }
     }
-  }, [autoNotifyEnabled, nextClass]);
+  }, [autoNotifyEnabled, nextClass, now]);
 
   if (!timetable || timetable.length === 0) return null;
 
-  // Ultra-compact one-liner when all classes for today are completed
   if (!ongoingClass && !nextClass) {
     return (
       <div className={`py-2 px-3.5 rounded-xl border text-[10px] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 transition-all duration-350 shadow-sm ${
-        isLight 
-          ? 'bg-gradient-to-r from-emerald-50/70 to-teal-50/70 border-emerald-100/80 text-emerald-900 shadow-emerald-500/5' 
+        isLight
+          ? 'bg-gradient-to-r from-emerald-50/70 to-teal-50/70 border-emerald-100/80 text-emerald-900 shadow-emerald-500/5'
           : 'bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-emerald-500/20 text-emerald-300 shadow-black/10'
       }`}>
         <div className="flex items-center gap-2.5 min-w-0">
@@ -155,12 +152,12 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
         <button
           onClick={toggleAutoNotify}
           className={`p-1 rounded-lg transition-all duration-200 flex items-center gap-1 ${
-            autoNotifyEnabled 
-              ? (isLight 
-                  ? 'bg-emerald-100/80 text-emerald-700 hover:bg-emerald-200/80' 
-                  : 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30') 
-              : (isLight 
-                  ? 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50' 
+            autoNotifyEnabled
+              ? (isLight
+                  ? 'bg-emerald-100/80 text-emerald-700 hover:bg-emerald-200/80'
+                  : 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30')
+              : (isLight
+                  ? 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'
                   : 'text-white/20 hover:text-white/40 hover:bg-white/[0.04]')
           }`}
           title="Mod Peringatan Chime Auto"
@@ -179,12 +176,12 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
     }`}>
       <div className="flex items-center gap-2.5 min-w-0">
         <div className={`w-7 h-7 rounded-md border flex items-center justify-center flex-shrink-0 ${
-          ongoingClass 
-            ? (isLight 
-                ? 'bg-emerald-50 border-emerald-200 text-emerald-600' 
+          ongoingClass
+            ? (isLight
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
                 : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400')
-            : (isLight 
-                ? 'bg-amber-50 border-amber-200 text-amber-600' 
+            : (isLight
+                ? 'bg-amber-50 border-amber-200 text-amber-600'
                 : 'bg-amber-400/15 border-amber-400/30 text-amber-400')
         }`}>
           <Clock className="w-3.5 h-3.5" />
@@ -192,8 +189,8 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
         <div className="min-w-0 flex-1 space-y-0.5">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className={`text-[9px] font-bold uppercase tracking-wider ${
-              ongoingClass 
-                ? (isLight ? 'text-emerald-600' : 'text-emerald-400') 
+              ongoingClass
+                ? (isLight ? 'text-emerald-600' : 'text-emerald-400')
                 : (isLight ? 'text-amber-600' : 'text-amber-400')
             }`}>
               {ongoingClass ? t('ongoingNow') : t('nextClass')}
@@ -219,10 +216,10 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
         <button
           onClick={toggleAutoNotify}
           className={`p-1 rounded transition-colors text-[9px] font-semibold flex items-center gap-1 ${
-            autoNotifyEnabled 
-              ? (isLight 
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 px-2' 
-                  : 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/20 px-2') 
+            autoNotifyEnabled
+              ? (isLight
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 px-2'
+                  : 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/20 px-2')
               : (isLight ? 'text-slate-400 hover:text-slate-600' : 'text-white/30 hover:text-white/60')
           }`}
           title="Peringatan Auto 15 Minit"
@@ -234,8 +231,3 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
     </div>
   );
 }
-
-
-
-
-

@@ -1,8 +1,9 @@
-﻿import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { fetchPrayerTimesAPI, MOCK_PRAYER_TIMES } from '@/services/usas/usasApi';
 import type { PrayerTimeItem } from '@/shared/types/usas';
 import { playClassChime, sendPushNotification } from '@/shared/lib/audioNotifier';
+import { getLocalDateStamp, pruneDayScopedNotificationKeys } from '@/shared/lib/notificationKeys';
 import { Moon, AlertCircle, Bell, BellOff } from 'lucide-react';
 
 type PrayerData = {
@@ -25,13 +26,6 @@ const parsePrayerTimeToSeconds = (timeStr: string | undefined) => {
   if (ampm === 'PM' && hour < 12) hour += 12;
   if (ampm === 'AM' && hour === 12) hour = 0;
   return hour * 3600 + minute * 60;
-};
-
-export const getLocalDateStamp = (value: Date): string => {
-  const year = value.getFullYear();
-  const month = String(value.getMonth() + 1).padStart(2, '0');
-  const day = String(value.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
 };
 
 const usePrayerAutoNotifySetting = () => {
@@ -111,7 +105,6 @@ export default function PrayerTimesWidget() {
 
   return (
     <div className="glass-card rounded-2xl p-4 border border-amber-500/20 bg-[#0F2148]/70 space-y-3 shadow-lg">
-      
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs border-b border-amber-500/10 pb-2">
         <div className="flex items-center gap-2 min-w-0">
@@ -154,10 +147,10 @@ export default function PrayerTimesWidget() {
           </div>
         ))}
       </div>
-
     </div>
   );
 }
+
 export function PrayerTimesNotifier() {
   const { session } = useAuth();
   const [prayerData, setPrayerData] = useState<PrayerData>({
@@ -167,6 +160,7 @@ export function PrayerTimesNotifier() {
   const [now, setNow] = useState(new Date());
   const [autoNotifyEnabled] = usePrayerAutoNotifySetting();
   const notifiedRef = useRef<Record<string, boolean>>({});
+  const activeDayStampRef = useRef('');
 
   useEffect(() => {
     let active = true;
@@ -182,6 +176,13 @@ export function PrayerTimesNotifier() {
     const timer = setInterval(() => setNow(new Date()), 30_000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    const dayStamp = getLocalDateStamp(now);
+    if (activeDayStampRef.current === dayStamp) return;
+    activeDayStampRef.current = dayStamp;
+    notifiedRef.current = pruneDayScopedNotificationKeys(notifiedRef.current, now);
+  }, [now]);
 
   useEffect(() => {
     if (!autoNotifyEnabled || prayerData.times.length === 0) return;
@@ -211,8 +212,3 @@ export function PrayerTimesNotifier() {
 
   return null;
 }
-
-
-
-
-
