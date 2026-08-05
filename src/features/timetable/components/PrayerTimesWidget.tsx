@@ -90,13 +90,13 @@ export default function PrayerTimesWidget() {
   const [autoNotifyEnabled, setAutoNotifyEnabled] = usePrayerAutoNotifySetting();
 
   useEffect(() => {
-    let mounted = true;
+    let active = true;
     fetchPrayerTimesAPI(session).then(res => {
-      if (mounted && res?.success && res.times) {
+      if (active && res?.success && res.times) {
         setPrayerData({ times: res.times, location: res.location || 'Kuala Kangsar (PRK02)' });
       }
     });
-    return () => { mounted = false; };
+    return () => { active = false; };
   }, [session]);
 
   useEffect(() => {
@@ -169,13 +169,13 @@ export function PrayerTimesNotifier() {
   const notifiedRef = useRef<Record<string, boolean>>({});
 
   useEffect(() => {
-    let mounted = true;
+    let active = true;
     fetchPrayerTimesAPI(session).then(res => {
-      if (mounted && res?.success && res.times) {
+      if (active && res?.success && res.times) {
         setPrayerData({ times: res.times, location: res.location || 'Kuala Kangsar (PRK02)' });
       }
     });
-    return () => { mounted = false; };
+    return () => { active = false; };
   }, [session]);
 
   useEffect(() => {
