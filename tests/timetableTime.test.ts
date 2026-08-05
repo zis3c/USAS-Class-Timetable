@@ -63,4 +63,25 @@ describe('timetableTime', () => {
     expect(highlights.ongoingKey).toBe('MATH101|ISNIN|08:00 AM|09:00 AM');
     expect(highlights.upcomingKey).toBe('CSC2103|ISNIN|09:00 AM|10:00 AM');
   });
+
+  it('treats missing end time as a one hour fallback slot', () => {
+    const timetable = [
+      {
+        course_id: 'CSC3001',
+        day: 'ISNIN',
+        start_time: '08:00 AM',
+      },
+      {
+        course_id: 'CSC3002',
+        day: 'ISNIN',
+        start_time: '09:00 AM',
+      },
+    ] as TimetableItem[];
+
+    const now = new Date('2026-08-03T08:30:00');
+    const highlights = getActiveCourseHighlights(timetable, now);
+
+    expect(highlights.ongoingKey).toBe('CSC3001|ISNIN|08:00 AM|');
+    expect(highlights.upcomingKey).toBe('CSC3002|ISNIN|09:00 AM|');
+  });
 });

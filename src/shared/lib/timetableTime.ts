@@ -71,8 +71,10 @@ export const getActiveCourseHighlights = (courses: TimetableItem[], now: Date): 
     if (!courseDay || courseDay !== todayKey) return;
 
     const startMin = parseTimeToMinutes(course.start_time || course.jadual || '');
-    const endMin = parseTimeToMinutes(course.end_time || '');
-    if (startMin === null || endMin === null) return;
+    if (startMin === null) return;
+
+    const rawEndMin = parseTimeToMinutes(course.end_time || '');
+    const endMin = rawEndMin !== null && rawEndMin > startMin ? rawEndMin : startMin + 60;
 
     const courseKey = getCourseHighlightKey(course);
     if (currentMin >= startMin && currentMin < endMin) {

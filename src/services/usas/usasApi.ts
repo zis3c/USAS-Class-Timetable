@@ -538,9 +538,21 @@ export async function submitFacilityComplaintAPI(
   _session: StudentSession | null,
   _payload: unknown,
 ): Promise<{ success: true; ticketNo: string }> {
+  const makeTicketSuffix = () => {
+    const cryptoObj = globalThis.crypto;
+    if (cryptoObj?.getRandomValues) {
+      const bytes = new Uint8Array(2);
+      cryptoObj.getRandomValues(bytes);
+      const value = (bytes[0] << 8) | bytes[1];
+      return String(1000 + (value % 9000));
+    }
+
+    return String(Math.floor(Math.random() * 9000) + 1000);
+  };
+
   return {
     success: true,
-    ticketNo: `USAS-${Math.floor(Math.random() * 9000) + 1000}`,
+    ticketNo: `USAS-${makeTicketSuffix()}`,
   };
 }
 
