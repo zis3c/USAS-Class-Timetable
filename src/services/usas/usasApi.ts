@@ -27,6 +27,7 @@ const UMC_VERSION = '2.0.3';
 const PLATFORM = 'Android';
 const DUMMY_TOKEN = 'dummytoken';
 const REQUEST_TIMEOUT_MS = 12_000;
+const POISON_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
 // Mock data for Demo Mode
 export const MOCK_STUDENT_DATA: {
@@ -155,6 +156,32 @@ export const MOCK_STUDENT_DATA: {
 // Robust HTTP POST helper for USAS backend
 type UsasPayload = Record<string, string | number | boolean | undefined | null>;
 
+function isSafeJsonValue(value: unknown): boolean {
+  if (Array.isArray(value)) {
+    return value.every(isSafeJsonValue);
+  }
+
+  if (typeof value !== 'object' || value === null) {
+    return true;
+  }
+
+  for (const key of Object.keys(value as Record<string, unknown>)) {
+    if (POISON_KEYS.has(key)) return false;
+    if (!isSafeJsonValue((value as Record<string, unknown>)[key])) return false;
+  }
+
+  return true;
+}
+
+export function parseSafeJsonResponse(text: string): unknown | null {
+  try {
+    const parsed = JSON.parse(text) as unknown;
+    return isSafeJsonValue(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 async function postUSAS(endpoint: string, payload: UsasPayload): Promise<unknown> {
   const fetchWithTimeout = async (input: RequestInfo | URL, init: RequestInit) => {
     const controller = new AbortController();
@@ -169,14 +196,6 @@ async function postUSAS(endpoint: string, payload: UsasPayload): Promise<unknown
     }
   };
 
-  const parseJsonResponse = (text: string) => {
-    try {
-      return JSON.parse(text);
-    } catch {
-      return null;
-    }
-  };
-
   // 1. Try application/json
   try {
     const jsonRes = await fetchWithTimeout(`${BASE_URL}${endpoint}`, {
@@ -187,7 +206,7 @@ async function postUSAS(endpoint: string, payload: UsasPayload): Promise<unknown
     if (jsonRes.ok) {
       const text = await jsonRes.text();
       if (text && !text.startsWith('Access Denied') && text.includes('{')) {
-        const data = parseJsonResponse(text);
+        const data = parseSafeJsonResponse(text);
         if (data) return data;
       }
     }
@@ -211,7 +230,7 @@ async function postUSAS(endpoint: string, payload: UsasPayload): Promise<unknown
     if (formRes.ok) {
       const formText = await formRes.text();
       if (formText && !formText.startsWith('Access Denied') && formText.includes('{')) {
-        const data = parseJsonResponse(formText);
+        const data = parseSafeJsonResponse(formText);
         if (data) return data;
       }
     }
