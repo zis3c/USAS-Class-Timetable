@@ -6,5 +6,7 @@ describe('pdf generator helpers', () => {
     expect(sanitizeDownloadFileName('Jadual USAS: AI/210042.pdf', 'fallback.pdf')).toBe('Jadual_USAS_AI_210042.pdf');
     expect(sanitizeDownloadFileName('__proto__', 'fallback.pdf')).toBe('proto');
     expect(sanitizeDownloadFileName('   ', 'fallback.pdf')).toBe('fallback.pdf');
+    expect(sanitizeDownloadFileName('CON', 'fallback.pdf')).toBe('_CON');
+    expect(sanitizeDownloadFileName('report.', 'fallback.pdf')).toBe('report');
   });
 });
