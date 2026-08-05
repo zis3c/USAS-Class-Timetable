@@ -42,3 +42,10 @@ test('png export flow downloads an image file', async ({ page }) => {
 
   expect(download.suggestedFilename().toLowerCase()).toContain('.png');
 });
+
+test('unknown route shows branded 404 screen', async ({ page }) => {
+  await page.goto('/does-not-exist');
+
+  await expect(page.getByText(/page not found|halaman tidak dijumpai/i)).toBeVisible();
+  await expect(page.getByText(/usas class timetable/i)).toBeVisible();
+});

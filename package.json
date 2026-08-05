@@ -5,9 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:cf": "npm run build && npx wrangler pages dev dist",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint src/components/PdfExportModal.tsx src/utils/pdfGenerator.ts",
+    "preview:cf": "npm run build && npx wrangler pages dev dist",
+    "deploy:cf": "npm run build && npx wrangler pages deploy dist",
+    "lint": "eslint src/features/export/modals/PdfExportModal.tsx src/features/export/lib/pdfGenerator.ts",
     "lint:repo": "eslint .",
     "lint:security": "eslint -c eslint.security.config.js src tests",
     "typecheck": "tsc --noEmit",
@@ -21,6 +24,7 @@
     "jspdf": "^2.5.1",
     "lenis": "^1.3.25",
     "lucide-react": "^0.344.0",
+    "qrcode": "^1.5.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
