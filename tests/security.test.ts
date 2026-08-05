@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
+  copyTextToClipboard,
   evaluateLoginThrottle,
   getEmptyThrottleState,
   isValidLoginUserId,
@@ -61,5 +62,38 @@ describe('security helpers', () => {
     expect(item.location).toBe('Lab 3<script>');
     expect(item.lecturer).toBe('Dr. Example Name');
     expect(item.catatan).toBe('Line one Line two<script>');
+  });
+
+  it('removes the clipboard fallback textarea even when copy fails', async () => {
+    const writeText = vi.fn().mockRejectedValue(new Error('clipboard unavailable'));
+    const select = vi.fn(() => {
+      throw new Error('copy command blocked');
+    });
+    const appendChild = vi.fn();
+    const removeChild = vi.fn();
+    const execCommand = vi.fn(() => {
+      throw new Error('copy command blocked');
+    });
+
+    vi.stubGlobal('navigator', {
+      clipboard: { writeText },
+    });
+    vi.stubGlobal('document', {
+      createElement: vi.fn(() => ({
+        value: '',
+        style: {},
+        setAttribute: vi.fn(),
+        select,
+      })),
+      body: {
+        appendChild,
+        removeChild,
+      },
+      execCommand,
+    });
+
+    await expect(copyTextToClipboard('hello')).resolves.toBe(false);
+    expect(appendChild).toHaveBeenCalledTimes(1);
+    expect(removeChild).toHaveBeenCalledTimes(1);
   });
 });
