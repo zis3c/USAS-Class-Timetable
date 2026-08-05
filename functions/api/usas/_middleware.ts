@@ -1,9 +1,11 @@
+import { getUsasProxyPath, isAllowedUsasMethod } from '../../../src/shared/lib/usasProxy';
+
 const API_ORIGIN = 'https://mobile.usas.edu.my/umc_v2';
 
-function buildUpstreamUrl(request: Request): string {
+function buildUpstreamUrl(request: Request): string | null {
   const url = new URL(request.url);
-  const upstreamPath = url.pathname.replace(/^\/api\/usas/, '');
-  const cleanPath = upstreamPath.startsWith('/') ? upstreamPath : `/${upstreamPath}`;
+  const cleanPath = getUsasProxyPath(url.pathname);
+  if (!cleanPath) return null;
   return `${API_ORIGIN}${cleanPath}${url.search}`;
 }
 
@@ -28,7 +30,35 @@ function wantsHtml(request: Request): boolean {
 }
 
 export async function onRequest(context: any) {
+  if (!isAllowedUsasMethod(context.request.method)) {
+    return new Response(JSON.stringify({
+      success: false,
+      error: 'Method not allowed.',
+    }), {
+      status: 405,
+      headers: {
+        'content-type': 'application/json; charset=utf-8',
+        'cache-control': 'no-store',
+        'x-content-type-options': 'nosniff',
+      },
+    });
+  }
+
   const upstreamUrl = buildUpstreamUrl(context.request);
+  if (!upstreamUrl) {
+    return new Response(JSON.stringify({
+      success: false,
+      error: 'Not found.',
+    }), {
+      status: 404,
+      headers: {
+        'content-type': 'application/json; charset=utf-8',
+        'cache-control': 'no-store',
+        'x-content-type-options': 'nosniff',
+      },
+    });
+  }
+
   const upstreamRequest = new Request(upstreamUrl, context.request);
 
   try {

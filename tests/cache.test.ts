@@ -9,6 +9,16 @@ describe('cache restore helpers', () => {
     expect(restoreTimetableFromCache('[]')).toBeNull();
   });
 
+  it('rejects shaped but empty cached sessions', () => {
+    expect(restoreSessionFromCache(JSON.stringify({
+      user_id: 'AI210042',
+      sid_1: '',
+      sid_2: '',
+      sid_3: '',
+      isDemo: false,
+    }))).toBeNull();
+  });
+
   it('restores valid cached throttle state safely', () => {
     const state = restoreThrottleState('{"failedAttempts":2,"lockedUntil":123,"lastAttemptAt":456}');
     expect(state).toEqual({ failedAttempts: 2, lockedUntil: 123, lastAttemptAt: 456 });

@@ -1,5 +1,5 @@
 import type { StudentSession, TimetableData } from '../types/usas';
-import { sanitizeSession, sanitizeTimetableItem, sanitizeTextForShare } from './security';
+import { isValidLoginUserId, sanitizeSession, sanitizeTimetableItem, sanitizeTextForShare } from './security';
 
 export function parseJsonObject(value: string): Record<string, unknown> | null {
   try {
@@ -16,7 +16,12 @@ export function parseJsonObject(value: string): Record<string, unknown> | null {
 export function restoreSessionFromCache(value: string): StudentSession | null {
   const parsed = parseJsonObject(value);
   if (!parsed) return null;
-  return sanitizeSession(parsed as unknown as StudentSession);
+
+  const session = sanitizeSession(parsed as unknown as StudentSession);
+  if (!isValidLoginUserId(session.user_id)) return null;
+  if (!session.sid_1 || !session.sid_2 || !session.sid_3) return null;
+
+  return session;
 }
 
 export function restoreTimetableFromCache(value: string): TimetableData | null {
