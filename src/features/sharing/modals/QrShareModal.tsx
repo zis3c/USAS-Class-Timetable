@@ -25,6 +25,7 @@ export default function QrShareModal({
   const { theme } = useTheme();
   const copiedTimerRef = useRef<number | null>(null);
   const mountedRef = useRef(true);
+  const qrRequestRef = useRef(0);
 
   const isLight = theme === 'light';
   const safeStudentName = sanitizeTextForShare(studentName, 80);
@@ -33,6 +34,7 @@ export default function QrShareModal({
 
   useEffect(() => {
     mountedRef.current = true;
+    const requestId = ++qrRequestRef.current;
 
     if (isOpen) {
       setShouldRender(true);
@@ -53,10 +55,10 @@ export default function QrShareModal({
         },
       })
         .then((dataUrl) => {
-          if (mountedRef.current) setQrUrl(dataUrl);
+          if (mountedRef.current && qrRequestRef.current === requestId) setQrUrl(dataUrl);
         })
         .catch(() => {
-          if (mountedRef.current) setQrUrl('');
+          if (mountedRef.current && qrRequestRef.current === requestId) setQrUrl('');
         });
 
       return () => {
@@ -67,7 +69,10 @@ export default function QrShareModal({
 
     setAnimate(false);
     const timer = setTimeout(() => setShouldRender(false), 200);
-    return () => clearTimeout(timer);
+    return () => {
+      qrRequestRef.current += 1;
+      clearTimeout(timer);
+    };
   }, [isOpen, isLight, shareUrl]);
 
   useEffect(() => {
