@@ -27,6 +27,8 @@ function setLink(selector, href, label) {
   if (!el) return;
 
   if (!href || !label) {
+    el.removeAttribute('href');
+    el.textContent = '';
     el.hidden = true;
     return;
   }
@@ -46,8 +48,8 @@ function setList(selector, rawItems) {
   const list = document.querySelector(selector);
   if (!list) return;
 
-  list.innerHTML = '';
-  const items = rawItems
+  list.replaceChildren();
+  const items = String(rawItems || '')
     .split('|')
     .map((item) => item.trim())
     .filter(Boolean);
