@@ -462,6 +462,7 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
         clearInterval(exportStatusIntervalRef.current);
         exportStatusIntervalRef.current = null;
       }
+      if (!isMountedRef.current) return;
       setProgress(100);
       setProgressStatus(lang === 'en' ? 'Download completed!' : 'Muat turun berjaya!');
       
@@ -482,6 +483,7 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
         exportStatusIntervalRef.current = null;
       }
       console.error('Export Error:', err);
+      if (!isMountedRef.current) return;
       alert(lang === 'ms' ? 'Gagal menjana fail. Sila cuba lagi.' : 'Failed to generate file. Please try again.');
     } finally {
       if (isMountedRef.current) {
