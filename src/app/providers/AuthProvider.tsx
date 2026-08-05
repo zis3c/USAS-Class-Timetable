@@ -9,8 +9,12 @@ import {
   recordLoginSuccess,
   sanitizeSession,
   sanitizeLoginUserId,
-  sanitizeTimetableItem,
 } from '@/shared/lib/security';
+import {
+  restoreSessionFromCache,
+  restoreThrottleState,
+  restoreTimetableFromCache,
+} from '@/shared/lib/cache';
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
@@ -33,12 +37,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const cached = sessionStorage.getItem(CACHE_KEY_LOGIN_THROTTLE);
       if (!cached) return getEmptyThrottleState();
-      const parsed = JSON.parse(cached) as ReturnType<typeof getEmptyThrottleState>;
-      return {
-        failedAttempts: Number(parsed.failedAttempts) || 0,
-        lockedUntil: Number(parsed.lockedUntil) || 0,
-        lastAttemptAt: Number(parsed.lastAttemptAt) || 0,
-      };
+      return restoreThrottleState(cached) || getEmptyThrottleState();
     } catch {
       return getEmptyThrottleState();
     }
@@ -63,16 +62,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const cachedSess = sessionStorage.getItem(CACHE_KEY_SESSION);
       const cachedTime = localStorage.getItem(CACHE_KEY_TIMETABLE);
-      if (cachedSess) setSession(sanitizeSession(JSON.parse(cachedSess)));
-      if (cachedTime) {
-        const parsed = JSON.parse(cachedTime) as TimetableData;
-        setTimetableData({
-          ...parsed,
-          timetable: Array.isArray(parsed.timetable) ? parsed.timetable.map(sanitizeTimetableItem) : [],
-          days: Array.isArray(parsed.days) ? parsed.days.map((day) => String(day).toUpperCase()) : [],
-        });
+      if (cachedSess) {
+        const restoredSession = restoreSessionFromCache(cachedSess);
+        if (restoredSession) setSession(restoredSession);
       }
-    } catch (e) {}
+      if (cachedTime) {
+        const restoredTimetable = restoreTimetableFromCache(cachedTime);
+        if (restoredTimetable) setTimetableData(restoredTimetable);
+      }
+    } catch {
+      // ignore cache restore failures
+    }
 
     return () => {
       window.removeEventListener('online', handleOnline);
@@ -105,7 +105,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setSession(safeSession);
         try {
           sessionStorage.setItem(CACHE_KEY_SESSION, JSON.stringify(safeSession));
-        } catch (e) {}
+        } catch {
+          // ignore storage failures
+        }
         writeThrottleState(recordLoginSuccess(throttleState));
 
         // Fetch timetable data
@@ -113,7 +115,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setTimetableData(timetableRes);
         try {
           localStorage.setItem(CACHE_KEY_TIMETABLE, JSON.stringify(timetableRes));
-        } catch (e) {}
+        } catch {
+          // ignore storage failures
+        }
         setLoading(false);
         return true;
       } else {
@@ -145,7 +149,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       sessionStorage.removeItem(CACHE_KEY_SESSION);
       sessionStorage.removeItem(CACHE_KEY_LOGIN_THROTTLE);
       localStorage.removeItem(CACHE_KEY_TIMETABLE);
-    } catch (e) {}
+    } catch {
+      // ignore storage failures
+    }
   };
 
   const refreshTimetable = async () => {
@@ -155,7 +161,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setTimetableData(res);
     try {
       localStorage.setItem(CACHE_KEY_TIMETABLE, JSON.stringify(res));
-    } catch (e) {}
+    } catch {
+      // ignore storage failures
+    }
     if (!res) {
       setError('Gagal memuat jadual.');
     }
