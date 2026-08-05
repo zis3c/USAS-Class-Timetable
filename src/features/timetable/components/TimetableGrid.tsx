@@ -13,6 +13,7 @@ import {
   getCourseHighlightKey,
   getShortTimeRange,
 } from '@/shared/lib/timetableTime';
+import { restoreStringRecord } from '@/shared/lib/storage';
 import { 
   Clock, MapPin, User, BookOpen, Search, 
   GraduationCap, StickyNote, Edit3,
@@ -62,7 +63,11 @@ export default function TimetableGrid() {
 
   // Notes
   const [courseNotes, setCourseNotes] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('usas_course_notes') || '{}'); } catch (e) { return {}; }
+    try {
+      return restoreStringRecord(localStorage.getItem('usas_course_notes') || '{}');
+    } catch (e) {
+      return {};
+    }
   });
   const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
   const [noteInput, setNoteInput] = useState('');

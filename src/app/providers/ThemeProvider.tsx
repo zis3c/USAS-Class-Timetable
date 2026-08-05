@@ -1,13 +1,14 @@
-﻿import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import type { ThemeContextValue, ThemeName } from '@/shared/types/usas';
+import { normalizeThemeName } from '@/shared/lib/storage';
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export const THEMES: Record<string, ThemeName> = {
-  NAVY: 'navy',       // USAS Royal Navy & Gold (Default)
-  OLED: 'oled',       // OLED Pure Black
-  EMERALD: 'emerald', // USAS Emerald Green
-  LIGHT: 'light'      // Clean Light Mode
+  NAVY: 'navy',
+  OLED: 'oled',
+  EMERALD: 'emerald',
+  LIGHT: 'light',
 };
 
 type ThemeProviderProps = {
@@ -17,25 +18,27 @@ type ThemeProviderProps = {
 export function ThemeProvider({ children }: ThemeProviderProps) {
   const [theme, setTheme] = useState<ThemeName>(() => {
     try {
-      const savedTheme = localStorage.getItem('usas_theme') as ThemeName | null;
-      return savedTheme || THEMES.LIGHT;
-    } catch (e) {
+      return normalizeThemeName(localStorage.getItem('usas_theme'));
+    } catch {
       return THEMES.LIGHT;
     }
   });
 
   const changeTheme = (newTheme: ThemeName) => {
-    setTheme(newTheme);
+    const nextTheme = normalizeThemeName(newTheme);
+    setTheme(nextTheme);
     try {
-      localStorage.setItem('usas_theme', newTheme);
-    } catch (e) {}
+      localStorage.setItem('usas_theme', nextTheme);
+    } catch {
+      // ignore storage failures
+    }
   };
 
   useEffect(() => {
     const root = document.documentElement;
     root.classList.remove('theme-light', 'theme-navy', 'theme-oled', 'theme-emerald');
     root.classList.add(`theme-${theme}`);
-    
+
     if (theme === THEMES.LIGHT) {
       root.classList.remove('dark');
     } else {
@@ -57,6 +60,3 @@ export function useTheme() {
   }
   return context;
 }
-
-
-
