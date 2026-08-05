@@ -15,6 +15,7 @@ export default function LecturerModal({ lecturerName, isOpen, onClose }: Lecture
 
   const isLight = theme === 'light';
   const copiedTimerRef = useRef<number | null>(null);
+  const mountedRef = useRef(true);
 
   const [shouldRender, setShouldRender] = useState(isOpen);
   const [animate, setAnimate] = useState(false);
@@ -26,6 +27,7 @@ export default function LecturerModal({ lecturerName, isOpen, onClose }: Lecture
 
   useEffect(() => {
     return () => {
+      mountedRef.current = false;
       if (copiedTimerRef.current !== null) {
         clearTimeout(copiedTimerRef.current);
         copiedTimerRef.current = null;
@@ -64,11 +66,13 @@ export default function LecturerModal({ lecturerName, isOpen, onClose }: Lecture
 
   const handleCopyEmail = () => {
     void copyTextToClipboard(email);
+    if (!mountedRef.current) return;
     setCopied(true);
     if (copiedTimerRef.current !== null) {
       clearTimeout(copiedTimerRef.current);
     }
     copiedTimerRef.current = window.setTimeout(() => {
+      if (!mountedRef.current) return;
       setCopied(false);
       copiedTimerRef.current = null;
     }, 2000);
