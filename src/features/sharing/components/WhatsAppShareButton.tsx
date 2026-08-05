@@ -37,6 +37,7 @@ export default function WhatsAppShareButton({ timetable = [], studentName = '', 
 
   const handleCopy = async (text) => {
     await copyTextToClipboard(text);
+    if (!mountedRef.current) return;
     setCopied(true);
     if (copiedTimerRef.current !== null) {
       clearTimeout(copiedTimerRef.current);

@@ -62,6 +62,7 @@ export default function WhatsAppShareModal({ isOpen, onClose, timetable = [], st
 
   const handleCopy = async (text, mode) => {
     await copyTextToClipboard(text);
+    if (!mountedRef.current) return;
 
     if (copiedTimerRef.current !== null) {
       clearTimeout(copiedTimerRef.current);

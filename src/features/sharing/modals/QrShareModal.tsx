@@ -82,6 +82,7 @@ export default function QrShareModal({
 
   const handleCopyLink = async () => {
     await copyTextToClipboard(shareUrl);
+    if (!mountedRef.current) return;
     setCopied(true);
     if (copiedTimerRef.current !== null) {
       clearTimeout(copiedTimerRef.current);
