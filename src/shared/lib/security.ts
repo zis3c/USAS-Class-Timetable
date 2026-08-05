@@ -4,6 +4,7 @@ const CONTROL_CHARS = /[\u0000-\u001f\u007f]/g;
 const WHITESPACE = /\s+/g;
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOGIN_LOCKOUT_MS = 5 * 60 * 1000;
+const POISON_IDENTIFIERS = new Set(['__proto__', 'constructor', 'prototype']);
 
 export type LoginThrottleState = {
   failedAttempts: number;
@@ -39,11 +40,14 @@ export function normalizeMatricNo(value: unknown): string {
 }
 
 export function sanitizeLoginUserId(value: unknown): string {
-  return normalizeMatricNo(value).toUpperCase();
+  const normalized = normalizeMatricNo(value).toUpperCase();
+  return POISON_IDENTIFIERS.has(normalized.toLowerCase()) ? '' : normalized;
 }
 
 export function isValidLoginUserId(value: unknown): boolean {
-  return /^[A-Za-z0-9_-]{4,32}$/.test(String(value ?? '').trim());
+  const normalized = String(value ?? '').trim();
+  if (!/^[A-Za-z0-9_-]{4,32}$/.test(normalized)) return false;
+  return !POISON_IDENTIFIERS.has(normalized.toLowerCase());
 }
 
 export function sanitizeSession(session: StudentSession): StudentSession {

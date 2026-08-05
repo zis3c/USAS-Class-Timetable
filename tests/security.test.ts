@@ -5,6 +5,7 @@ import {
   isValidLoginUserId,
   recordLoginFailure,
   recordLoginSuccess,
+  sanitizeLoginUserId,
   sanitizeSingleLine,
   sanitizeTimetableItem,
 } from '../src/shared/lib/security';
@@ -18,6 +19,9 @@ describe('security helpers', () => {
     expect(isValidLoginUserId('AI210042')).toBe(true);
     expect(isValidLoginUserId('ai210042')).toBe(true);
     expect(isValidLoginUserId('AI 210042')).toBe(false);
+    expect(isValidLoginUserId('__proto__')).toBe(false);
+    expect(isValidLoginUserId('constructor')).toBe(false);
+    expect(sanitizeLoginUserId('__proto__')).toBe('');
   });
 
   it('throttles repeated login failures', () => {
