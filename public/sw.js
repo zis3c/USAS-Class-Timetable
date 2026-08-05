@@ -64,6 +64,10 @@ function shouldCacheRequest(pathname, destination) {
   return destination === 'script' || destination === 'style' || destination === 'image' || destination === 'font';
 }
 
+function shouldUseNetworkFirst(mode, pathname) {
+  return mode === 'navigate' && !pathname.startsWith('/api/');
+}
+
 self.addEventListener('fetch', (event) => {
   const { request } = event;
 
@@ -72,12 +76,14 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  if (request.mode === 'navigate') {
+  if (shouldUseNetworkFirst(request.mode, url.pathname)) {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          const responseCopy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, responseCopy)).catch(() => {});
+          if (response && response.ok) {
+            const responseCopy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, responseCopy)).catch(() => {});
+          }
           return response;
         })
         .catch(() => serveOfflineFallback(request))

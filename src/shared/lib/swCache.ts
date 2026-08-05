@@ -19,3 +19,7 @@ export function shouldCacheServiceWorkerRequest(pathname: string, destination: s
 
   return destination === 'script' || destination === 'style' || destination === 'image' || destination === 'font';
 }
+
+export function shouldUseNetworkFirst(mode: string, pathname: string): boolean {
+  return mode === 'navigate' && !pathname.startsWith('/api/');
+}
