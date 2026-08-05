@@ -323,27 +323,27 @@ export async function fetchStudentProfileAPI(session: StudentSession): Promise<S
     if (profileResult.server_response_profil && Array.isArray(profileResult.server_response_profil)) {
       for (const item of profileResult.server_response_profil) {
         const label = sanitizeSingleLine(item.label || item.header_label || '', 64).toLowerCase();
-        const content = sanitizeTextForShare(item.content || item.name || item.value || '', 160);
+        const content = selectProfileText(item.content || item.name || item.value || '', 160);
         
-        if (!name && (label.includes('name') || label.includes('nama') || label.includes('pelajar'))) {
+        if (!name && content && (label.includes('name') || label.includes('nama') || label.includes('pelajar'))) {
           name = content;
         }
       }
       if (!name && profileResult.server_response_profil[0]?.content) {
-        name = profileResult.server_response_profil[0].content;
+        name = selectProfileText(profileResult.server_response_profil[0].content, 160);
       }
     }
 
     if (profileResult.server_response_akademik && Array.isArray(profileResult.server_response_akademik)) {
       for (const item of profileResult.server_response_akademik) {
         const label = sanitizeSingleLine(item.label || '', 64).toLowerCase();
-        const content = sanitizeTextForShare(item.content || item.value || '', 160);
-        if (!program && (label.includes('program') || label.includes('kursus') || label.includes('fakulti'))) {
+        const content = selectProfileText(item.content || item.value || '', 160);
+        if (!program && content && (label.includes('program') || label.includes('kursus') || label.includes('fakulti'))) {
           program = content;
         }
       }
       if (!program && profileResult.server_response_akademik[0]?.content) {
-        program = profileResult.server_response_akademik[0].content;
+        program = selectProfileText(profileResult.server_response_akademik[0].content, 160);
       }
     }
   }
@@ -509,6 +509,15 @@ export async function fetchPrayerTimesAPI(_session: StudentSession | null): Prom
     times: MOCK_PRAYER_TIMES,
     location: 'Kuala Kangsar (PRK02)',
   };
+}
+
+export function selectProfileText(value: unknown, maxLength: number): string | null {
+  if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') {
+    return null;
+  }
+
+  const normalized = sanitizeTextForShare(value, maxLength);
+  return normalized.trim() ? normalized : null;
 }
 
 export function parseFallbackJadual(jadual: unknown): { day: string; time: string } {
