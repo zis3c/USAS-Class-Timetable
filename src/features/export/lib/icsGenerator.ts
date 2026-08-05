@@ -127,11 +127,16 @@ export function exportTimetableICS(timetable: TimetableItem[] = [], studentName 
 
   const blob = new Blob([icsContent.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
   const link = document.createElement('a');
-  link.href = window.URL.createObjectURL(blob);
+  const objectUrl = window.URL.createObjectURL(blob);
+  link.href = objectUrl;
   link.setAttribute('download', `Jadual_USAS_${sanitizeFileNameSegment(studentName)}.ics`);
   document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  try {
+    link.click();
+  } finally {
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(objectUrl);
+  }
 }
 
 

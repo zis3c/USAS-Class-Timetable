@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { escapeIcsText, formatICSDatetime, sanitizeFileNameSegment } from '../src/features/export/lib/icsGenerator';
+import { escapeIcsText, exportTimetableICS, formatICSDatetime, sanitizeFileNameSegment } from '../src/features/export/lib/icsGenerator';
 
 describe('ics generator helpers', () => {
   afterEach(() => {
@@ -27,5 +27,50 @@ describe('ics generator helpers', () => {
     const futureSlot = formatICSDatetime(currentDayName, '06:00 AM');
 
     expect(pastSlot > futureSlot).toBe(true);
+  });
+
+  it('revokes the object url after ics export', () => {
+    const createObjectURL = vi.fn(() => 'blob:test-url');
+    const revokeObjectURL = vi.fn();
+    const click = vi.fn();
+    const appendChild = vi.fn();
+    const removeChild = vi.fn();
+
+    vi.stubGlobal('window', {
+      URL: {
+        createObjectURL,
+        revokeObjectURL,
+      },
+    });
+
+    vi.stubGlobal('document', {
+      createElement: vi.fn(() => ({
+        click,
+        setAttribute: vi.fn(),
+      })),
+      body: {
+        appendChild,
+        removeChild,
+      },
+    });
+    vi.stubGlobal('alert', vi.fn());
+
+    exportTimetableICS([
+      {
+        id: '1',
+        day: 'MONDAY',
+        course_id: 'USAS101',
+        course_name: 'Test Course',
+        start_time: '08:30 AM',
+        end_time: '10:30 AM',
+        location: 'Room 1',
+      },
+    ], 'Aiman');
+
+    expect(createObjectURL).toHaveBeenCalledTimes(1);
+    expect(appendChild).toHaveBeenCalledTimes(1);
+    expect(click).toHaveBeenCalledTimes(1);
+    expect(removeChild).toHaveBeenCalledTimes(1);
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:test-url');
   });
 });

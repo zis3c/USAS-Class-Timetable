@@ -173,7 +173,12 @@ export async function generateElementPng(
   const link = document.createElement('a');
   link.download = sanitizeDownloadFileName(fileName, 'Jadual_Kuliah_USAS.png');
   link.href = canvas.toDataURL('image/png');
-  link.click();
+  document.body.appendChild(link);
+  try {
+    link.click();
+  } finally {
+    document.body.removeChild(link);
+  }
 }
 
 /**
