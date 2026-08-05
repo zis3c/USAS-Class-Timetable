@@ -7,7 +7,7 @@ import {
   recordLoginSuccess,
   sanitizeSingleLine,
   sanitizeTimetableItem,
-} from '../src/utils/security';
+} from '../src/shared/lib/security';
 
 describe('security helpers', () => {
   it('sanitizes single line text', () => {

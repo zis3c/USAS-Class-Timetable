@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { TimetableItem } from '../src/types/usas';
+import type { TimetableItem } from '../src/shared/types/usas';
 import {
   getActiveCourseHighlights,
   getCourseHighlightKey,
@@ -7,7 +7,7 @@ import {
   getShortTimeRange,
   parseTimeToMinutes,
   parseTo24hHour,
-} from '../src/utils/timetableTime';
+} from '../src/shared/lib/timetableTime';
 
 describe('timetableTime', () => {
   it('parses 12 hour and 24 hour times', () => {
