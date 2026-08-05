@@ -20,6 +20,21 @@ function isSafeParsedValue(value: unknown): boolean {
   return true;
 }
 
+function hasTimetableContent(item: ReturnType<typeof sanitizeTimetableItem>): boolean {
+  return Boolean(
+    item.id ||
+    item.day ||
+    item.course_id ||
+    item.kod_kursus ||
+    item.course_name ||
+    item.kursus ||
+    item.start_time ||
+    item.end_time ||
+    item.location ||
+    item.lecturer
+  );
+}
+
 export function parseJsonObject(value: string): Record<string, unknown> | null {
   try {
     const parsed = JSON.parse(value) as unknown;
@@ -50,7 +65,12 @@ export function restoreTimetableFromCache(value: string): TimetableData | null {
   const parsed = parseJsonObject(value);
   if (!parsed) return null;
 
-  const timetable = Array.isArray(parsed.timetable) ? parsed.timetable.map((item) => sanitizeTimetableItem(item as never)) : [];
+  const timetable = Array.isArray(parsed.timetable)
+    ? parsed.timetable
+        .filter((item) => typeof item === 'object' && item !== null && !Array.isArray(item))
+        .map((item) => sanitizeTimetableItem(item as never))
+        .filter(hasTimetableContent)
+    : [];
   const days = Array.isArray(parsed.days) ? parsed.days.map((day) => String(day).toUpperCase()) : [];
 
   return {
