@@ -42,14 +42,21 @@ export default function AttendanceHistoryModal({ isOpen, onClose, course }: Atte
   }, [isOpen]);
 
   useEffect(() => {
+    let active = true;
     if (isOpen && course) {
       setLoading(true);
       // Pass the raw group to the backend API as it expects the database name (e.g. GRP01)
       fetchAttendanceHistoryAPI(session, course.group || 'GRP01').then(res => {
+        if (!active) return;
         setHistory(res);
         setLoading(false);
       });
+    } else {
+      setLoading(false);
     }
+    return () => {
+      active = false;
+    };
   }, [isOpen, course, session]);
 
   if (!shouldRender || !course) return null;
