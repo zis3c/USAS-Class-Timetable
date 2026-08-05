@@ -27,6 +27,13 @@ const parsePrayerTimeToSeconds = (timeStr: string | undefined) => {
   return hour * 3600 + minute * 60;
 };
 
+export const getLocalDateStamp = (value: Date): string => {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const usePrayerAutoNotifySetting = () => {
   const [enabled, setEnabled] = useState(() => {
     try {
@@ -179,7 +186,7 @@ export function PrayerTimesNotifier() {
   useEffect(() => {
     if (!autoNotifyEnabled || prayerData.times.length === 0) return;
 
-    const dayStamp = now.toISOString().slice(0, 10);
+    const dayStamp = getLocalDateStamp(now);
     const currentSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
 
     prayerData.times.forEach((prayer) => {
