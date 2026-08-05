@@ -1,6 +1,7 @@
-﻿import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useContext, useState, type ReactNode } from 'react';
 import { translations } from '@/shared/i18n/translations';
 import type { LanguageContextValue, LanguageCode } from '@/shared/types/usas';
+import { lookupTranslationValue } from '@/shared/lib/translation';
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
@@ -16,20 +17,11 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
   };
 
   const t = (key: string) => {
-    if (typeof key !== 'string') return key;
-    const keys = key.split('.');
-    
-    let value: unknown = translations[lang];
-    for (const k of keys) {
-      value = typeof value === 'object' && value !== null ? (value as Record<string, unknown>)[k] : undefined;
-    }
-    if (typeof value === 'string') return value;
+    const activeValue = lookupTranslationValue(translations[lang], key);
+    if (activeValue) return activeValue;
 
-    let fallbackValue: unknown = translations['ms'];
-    for (const k of keys) {
-      fallbackValue = typeof fallbackValue === 'object' && fallbackValue !== null ? (fallbackValue as Record<string, unknown>)[k] : undefined;
-    }
-    return typeof fallbackValue === 'string' ? fallbackValue : key;
+    const fallbackValue = lookupTranslationValue(translations.ms, key);
+    return fallbackValue || key;
   };
 
   return (
@@ -46,6 +38,3 @@ export function useLanguage() {
   }
   return context;
 }
-
-
-

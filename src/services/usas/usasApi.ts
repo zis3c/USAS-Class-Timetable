@@ -547,7 +547,7 @@ export async function submitFacilityComplaintAPI(
       return String(1000 + (value % 9000));
     }
 
-    return String(Math.floor(Math.random() * 9000) + 1000);
+    return String(1000 + (Date.now() % 9000));
   };
 
   return {

@@ -1,5 +1,21 @@
 const body = document.body;
 
+function normalizeSafeHref(href, baseOrigin) {
+  const trimmed = String(href || '').trim();
+  if (!trimmed) return null;
+
+  try {
+    const url = new URL(trimmed, baseOrigin);
+    const allowedProtocol = url.protocol === 'http:' || url.protocol === 'https:';
+    if (!allowedProtocol) return null;
+    if (url.origin !== baseOrigin) return null;
+
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return null;
+  }
+}
+
 function setText(selector, value) {
   const el = document.querySelector(selector);
   if (!el) return;
@@ -15,9 +31,15 @@ function setLink(selector, href, label) {
     return;
   }
 
+  const safeHref = normalizeSafeHref(href, window.location.origin);
+  if (!safeHref) {
+    el.hidden = true;
+    return;
+  }
+
   el.hidden = false;
   el.textContent = label;
-  el.setAttribute('href', href);
+  el.setAttribute('href', safeHref);
 }
 
 function setList(selector, rawItems) {
