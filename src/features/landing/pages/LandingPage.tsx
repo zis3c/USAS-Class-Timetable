@@ -384,13 +384,20 @@ export default function LandingPage({ onNavigateLogin, onGoToLogin }: LandingPag
   const [scrollPercent, setScrollPercent] = useState(0);
 
   useEffect(() => {
+    let ticking = false;
     const handleScroll = () => {
-      const currentScrollY = window.scrollY || document.documentElement.scrollTop;
-      setScrollY(currentScrollY);
-      
-      const windowHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-      if (windowHeight > 0) {
-        setScrollPercent(currentScrollY / windowHeight);
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentScrollY = window.scrollY || document.documentElement.scrollTop;
+          setScrollY(currentScrollY);
+          
+          const windowHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+          if (windowHeight > 0) {
+            setScrollPercent(currentScrollY / windowHeight);
+          }
+          ticking = false;
+        });
+        ticking = true;
       }
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
