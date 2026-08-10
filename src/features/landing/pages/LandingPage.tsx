@@ -408,7 +408,7 @@ export default function LandingPage({ onNavigateLogin, onGoToLogin }: LandingPag
   const steps = copy.steps;
 
   return (
-    <div className={`relative isolate overflow-hidden min-h-[120dvh] transition-colors duration-150 ${
+    <div className={`relative isolate overflow-hidden min-h-[120dvh] ${
       theme === THEMES.LIGHT ? 'bg-[#f8fafc] text-slate-800' :
       theme === THEMES.OLED ? 'bg-black text-slate-100' :
       theme === THEMES.EMERALD ? 'bg-[#012117] text-slate-100' :
@@ -429,11 +429,11 @@ export default function LandingPage({ onNavigateLogin, onGoToLogin }: LandingPag
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
 
         {/* Colorful glowing ambient blobs */}
-        <div className={`absolute -top-40 left-1/2 -translate-x-1/2 h-[380px] w-[min(600px,90vw)] rounded-full blur-[120px] opacity-40 transition-colors duration-500 ${isLight ? 'bg-gradient-to-tr from-amber-200 to-sky-200' : 'bg-gradient-to-tr from-amber-500/10 to-indigo-500/10'
+        <div className={`absolute -top-40 left-1/2 -translate-x-1/2 h-[380px] w-[min(600px,90vw)] rounded-full blur-[120px] opacity-40 ${isLight ? 'bg-gradient-to-tr from-amber-200 to-sky-200' : 'bg-gradient-to-tr from-amber-500/10 to-indigo-500/10'
           }`} />
-        <div className={`absolute top-20 right-10 h-80 w-80 rounded-full blur-[100px] opacity-35 transition-colors duration-500 ${isLight ? 'bg-amber-200' : 'bg-amber-500/5'
+        <div className={`absolute top-20 right-10 h-80 w-80 rounded-full blur-[100px] opacity-35 ${isLight ? 'bg-amber-200' : 'bg-amber-500/5'
           }`} />
-        <div className={`absolute top-60 left-10 h-96 w-96 rounded-full blur-[100px] opacity-35 transition-colors duration-500 ${isLight ? 'bg-sky-200' : 'bg-sky-500/5'
+        <div className={`absolute top-60 left-10 h-96 w-96 rounded-full blur-[100px] opacity-35 ${isLight ? 'bg-sky-200' : 'bg-sky-500/5'
           }`} />
       </div>
 
@@ -443,7 +443,7 @@ export default function LandingPage({ onNavigateLogin, onGoToLogin }: LandingPag
         <div className="max-w-3xl w-full text-center space-y-6 z-10 relative">
           
           {/* Eyebrow badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-[11px] font-bold tracking-wide transition-all shadow-sm mx-auto animate-fade-in border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+          <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-[11px] font-bold tracking-wide transition-all shadow-sm mx-auto animate-fade-in ${isLight ? 'border-amber-300 bg-amber-100 text-amber-800' : 'border-amber-500/20 bg-amber-500/10 text-amber-400'}`}>
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span>{copy.eyebrow}</span>
           </div>
