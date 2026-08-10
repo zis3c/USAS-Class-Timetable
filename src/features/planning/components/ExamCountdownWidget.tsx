@@ -49,13 +49,13 @@ export default function ExamCountdownWidget({ courses, onOpenExam }: ExamCountdo
   return (
     <div 
       onClick={onOpenExam}
-      className={`mx-2.5 sm:mx-6 mt-3 sm:mt-4 mb-3 sm:mb-4 p-3 sm:p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99] ${
+      className={`mx-2.5 sm:mx-6 mt-3 sm:mt-4 mb-3 sm:mb-4 p-3 sm:p-4 rounded-xl border flex items-center justify-between gap-3 cursor-pointer shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99] ${
         isLight 
           ? 'bg-amber-500/[0.04] border-amber-500/20 hover:bg-amber-500/[0.08]' 
           : 'bg-amber-400/[0.02] border-amber-500/15 hover:bg-amber-400/[0.05]'
       }`}
     >
-      <div className="flex items-start sm:items-center gap-3 min-w-0">
+      <div className="flex items-center gap-3 min-w-0">
 
         <div className="text-left min-w-0">
           <h4 className={`text-xs font-bold uppercase tracking-wider ${
@@ -70,7 +70,7 @@ export default function ExamCountdownWidget({ courses, onOpenExam }: ExamCountdo
         </div>
       </div>
 
-      <div className="flex items-center gap-2 self-start sm:self-auto flex-shrink-0">
+      <div className="flex items-center gap-2 flex-shrink-0">
         <div className={`px-3 py-1.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 shadow-sm ${
           isLight 
             ? 'bg-white border-amber-200 text-amber-600' 
