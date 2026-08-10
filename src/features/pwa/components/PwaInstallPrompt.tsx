@@ -62,7 +62,7 @@ export default function PwaInstallPrompt() {
   if (!isVisible) return null;
 
   return (
-    <div className={`fixed bottom-20 left-4 right-4 sm:right-auto sm:left-6 sm:bottom-6 sm:max-w-sm z-50 p-3 sm:p-4 rounded-xl shadow-2xl border flex items-center justify-between gap-2 sm:gap-4 transition-all duration-300 transform translate-y-0 backdrop-blur-[2px] ${isLight
+    <div className={`fixed bottom-20 left-4 right-4 sm:right-auto sm:left-6 sm:bottom-6 sm:max-w-sm z-50 p-3 sm:p-4 rounded-xl shadow-2xl border hidden sm:flex items-center justify-between gap-2 sm:gap-4 transition-all duration-300 transform translate-y-0 backdrop-blur-[2px] ${isLight
         ? 'bg-white/20 border-white/40 text-slate-800 shadow-slate-200/50'
         : 'bg-[#0B1426]/20 border-amber-500/20 text-white shadow-black/50'
       }`}>
