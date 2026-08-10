@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from 'react';
 import type { ThemeContextValue, ThemeName } from '@/shared/types/usas';
 import { normalizeThemeName } from '@/shared/lib/storage';
 
@@ -24,7 +24,11 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     }
   });
 
+  const isTransitioning = useRef(false);
+
   const changeTheme = (newTheme: ThemeName, e?: React.MouseEvent) => {
+    if (isTransitioning.current) return;
+    
     const nextTheme = normalizeThemeName(newTheme);
     
     if (!(document as any).startViewTransition || !e) {
@@ -68,6 +72,10 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
           pseudoElement: '::view-transition-new(root)',
         }
       );
+    });
+
+    transition.finished.finally(() => {
+      isTransitioning.current = false;
     });
   };
 
