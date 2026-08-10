@@ -1,0 +1,29 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">USAS Class Timetable</title>
+  <desc id="desc">Preview card for the USAS Class Timetable portal.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#060E1F" />
+      <stop offset="1" stop-color="#0B1E43" />
+    </linearGradient>
+    <radialGradient id="glowA" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(240 140) rotate(45) scale(240 200)">
+      <stop stop-color="#F59E0B" stop-opacity="0.45" />
+      <stop offset="1" stop-color="#F59E0B" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="glowB" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(980 500) rotate(-35) scale(300 220)">
+      <stop stop-color="#38BDF8" stop-opacity="0.30" />
+      <stop offset="1" stop-color="#38BDF8" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" rx="48" fill="url(#bg)" />
+  <rect x="40" y="40" width="1120" height="550" rx="40" fill="white" fill-opacity="0.03" stroke="white" stroke-opacity="0.08" />
+  <circle cx="240" cy="140" r="220" fill="url(#glowA)" />
+  <circle cx="980" cy="500" r="260" fill="url(#glowB)" />
+  <rect x="96" y="98" width="88" height="88" rx="24" fill="#F59E0B" fill-opacity="0.16" stroke="#F59E0B" stroke-opacity="0.45" />
+  <path d="M116 126H164M116 150H164M116 174H164" stroke="#FBBF24" stroke-width="10" stroke-linecap="round" />
+  <text x="96" y="292" fill="#F8FAFC" font-size="72" font-weight="800" font-family="Inter, Plus Jakarta Sans, Arial, sans-serif">USAS Class Timetable</text>
+  <text x="96" y="350" fill="#CBD5E1" font-size="30" font-weight="500" font-family="Inter, Plus Jakarta Sans, Arial, sans-serif">Student timetable portal for USAS</text>
+  <text x="96" y="410" fill="#94A3B8" font-size="24" font-weight="500" font-family="Inter, Plus Jakarta Sans, Arial, sans-serif">Preview classes, export PDF or PNG, and manage campus planning</text>
+  <rect x="96" y="468" width="220" height="58" rx="29" fill="#F59E0B" />
+  <text x="150" y="506" fill="#08111F" font-size="22" font-weight="800" font-family="Inter, Plus Jakarta Sans, Arial, sans-serif">USAS Portal</text>
+</svg>
