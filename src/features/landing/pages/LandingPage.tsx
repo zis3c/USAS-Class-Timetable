@@ -364,6 +364,14 @@ export default function LandingPage({ onNavigateLogin, onGoToLogin }: LandingPag
   // 3D Card Hover Perspective State
   const [mouseRotate, setMouseRotate] = useState({ x: 0, y: 0 });
   const [isHoveringCard, setIsHoveringCard] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile, { passive: true });
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -523,7 +531,7 @@ export default function LandingPage({ onNavigateLogin, onGoToLogin }: LandingPag
                 ? 'border-slate-200 bg-white/95'
                 : 'border-white/[0.08] bg-[#0A1428]/95'
                 }`}
-              style={{
+              style={isMobile ? undefined : {
                 transform: `rotateX(${(12 - progress * 12) + mouseRotate.x}deg) rotateY(${mouseRotate.y}deg) scale(${0.94 + progress * 0.06}) translateY(${(1 - progress) * 15}px)`,
                 transformStyle: 'preserve-3d',
                 willChange: 'transform',

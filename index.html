@@ -48,14 +48,5 @@
   <body class="bg-[#070F22] text-slate-100 font-sans antialiased selection:bg-amber-400 selection:text-slate-950 overflow-x-hidden">
     <div id="root" class="min-h-screen w-full overflow-x-hidden"></div>
     <script type="module" src="/src/app/main.tsx"></script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch(err => {
-            console.log('ServiceWorker registration failed: ', err);
-          });
-        });
-      }
-    </script>
   </body>
 </html>
