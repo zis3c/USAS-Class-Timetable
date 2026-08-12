@@ -309,7 +309,7 @@ export default function PrayerTimesModal({ isOpen, onClose }: PrayerTimesModalPr
 
         <div data-lenis-prevent className="p-4 sm:p-6 space-y-5 flex-1 overflow-y-auto usas-scrollbar touch-pan-y overscroll-contain">
           {/* Header Info - ALWAYS SHOW */}
-          <div className="flex items-center justify-between gap-2 pb-2">
+          <div className="flex items-center justify-between gap-2">
             <PrayerZoneDropdown value={zone} onChange={setZone} isLight={isLight} />
             <div className={`flex items-center gap-1.5 text-[10px] font-medium ${isLight ? 'text-slate-500' : 'text-white/50'}`}>
               <CalendarIcon className="w-3.5 h-3.5 opacity-70" />
