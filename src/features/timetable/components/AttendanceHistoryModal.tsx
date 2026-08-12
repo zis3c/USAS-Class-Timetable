@@ -91,7 +91,7 @@ export default function AttendanceHistoryModal({ isOpen, onClose, course, refres
             </div>
             <div className="text-left min-w-0">
               <h3 className={`text-sm sm:text-base font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>Laporan Kehadiran Mingguan (Week 1 - 14)</h3>
-              <p className={`text-[11px] sm:text-xs font-semibold truncate ${isLight ? 'text-amber-750' : 'text-amber-400/90'}`}>
+              <p className={`text-[11px] sm:text-xs font-semibold truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>
                 {course.course_id || course.kod_kursus} ({groupDisplay}): {course.course_name || course.kursus}
               </p>
             </div>

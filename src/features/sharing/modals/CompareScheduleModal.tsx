@@ -291,7 +291,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
               <h3 className={`text-sm sm:text-base font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>
                 {lang === 'ms' ? 'Banding / Kongsi Jadual' : 'Compare / Share Schedule'}
               </h3>
-              <p className={`text-[11px] sm:text-xs font-semibold truncate ${isLight ? 'text-amber-600' : 'text-amber-400/80'}`}>
+              <p className={`text-[11px] sm:text-xs font-semibold truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>
                 {lang === 'ms' ? 'Imbas QR kawan atau kongsi jadual anda' : 'Scan friend\'s QR or share your schedule'}
               </p>
             </div>

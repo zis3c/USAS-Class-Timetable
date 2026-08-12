@@ -76,7 +76,7 @@ export default function ExamScheduleModal({ isOpen, onClose, courses = [] }) {
             </div>
             <div className="text-left min-w-0">
               <h3 className={`text-sm sm:text-base font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>Jadual Peperiksaan Akhir USAS</h3>
-              <p className={`text-[11px] sm:text-xs font-semibold truncate ${isLight ? 'text-amber-650' : 'text-amber-400/90'}`}>Semakan Tarikh, Dewan Peperiksaan & Nombor Meja</p>
+              <p className={`text-[11px] sm:text-xs font-semibold truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>Semakan Tarikh, Dewan Peperiksaan & Nombor Meja</p>
             </div>
           </div>
           <button
