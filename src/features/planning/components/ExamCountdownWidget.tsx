@@ -58,12 +58,12 @@ export default function ExamCountdownWidget({ courses, onOpenExam }: ExamCountdo
       <div className="flex items-center gap-3 min-w-0">
 
         <div className="text-left min-w-0">
-          <h4 className={`text-xs font-bold uppercase tracking-wider ${
+          <h4 className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider ${
             isLight ? 'text-amber-700' : 'text-amber-500'
           }`}>
             {lang === 'ms' ? 'Peperiksaan Menghampiri' : 'Upcoming Exam'}
           </h4>
-          <p className={`text-sm font-semibold truncate ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
+          <p className={`text-xs sm:text-sm font-semibold truncate ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
             <span className="font-extrabold mr-1.5">{closestExam.id}</span>
             {closestExam.name}
           </p>
@@ -71,7 +71,7 @@ export default function ExamCountdownWidget({ courses, onOpenExam }: ExamCountdo
       </div>
 
       <div className="flex items-center gap-2 flex-shrink-0">
-        <div className={`px-3 py-1.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 shadow-sm ${
+        <div className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border text-[10px] sm:text-xs font-bold flex items-center gap-1.5 shadow-sm ${
           isLight 
             ? 'bg-white border-amber-200 text-amber-600' 
             : 'bg-amber-400/10 border-amber-400/20 text-amber-400'

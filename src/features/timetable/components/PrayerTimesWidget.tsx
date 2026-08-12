@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { fetchPrayerTimesAPI, MOCK_PRAYER_TIMES } from '@/services/usas/usasApi';
 import type { PrayerTimeItem } from '@/shared/types/usas';
-import { playClassChime, sendPushNotification } from '@/shared/lib/audioNotifier';
+import { playPrayerChime, sendPushNotification } from '@/shared/lib/audioNotifier';
 import { getLocalDateStamp, pruneDayScopedNotificationKeys } from '@/shared/lib/notificationKeys';
 
 type PrayerData = {
@@ -178,7 +178,7 @@ export function PrayerTimesNotifier() {
       const notifyKey = `${dayStamp}-${label}`;
       if (diff > 0 && diff <= NOTIFY_WINDOW_SECONDS && !notifiedRef.current[notifyKey]) {
         notifiedRef.current[notifyKey] = true;
-        playClassChime();
+        playPrayerChime();
         sendPushNotification(
           `Waktu Solat USAS: ${prayer.label}`,
           `${prayer.label} masuk dalam ${Math.ceil(diff / 60)} minit di ${prayerData.location}`

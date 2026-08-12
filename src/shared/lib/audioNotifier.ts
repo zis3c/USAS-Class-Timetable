@@ -34,6 +34,36 @@ export function playClassChime(): void {
   } catch (e) {}
 }
 
+export function playPrayerChime(): void {
+  try {
+    const AudioCtx = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+
+    // Deep, softer echoing tone for prayer: A3 -> D4 -> A4
+    const tones = [220.00, 293.66, 440.00];
+
+    tones.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.4);
+
+      // Slower attack and longer decay for a more spiritual, calming sound
+      gain.gain.setValueAtTime(0, ctx.currentTime + idx * 0.4);
+      gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + idx * 0.4 + 0.1);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.4 + 1.2);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(ctx.currentTime + idx * 0.4);
+      osc.stop(ctx.currentTime + idx * 0.4 + 1.5);
+    });
+  } catch (e) {}
+}
+
 export function updateAppBadge(count = 1): void {
   try {
     const badgeNavigator = navigator as Navigator & {
