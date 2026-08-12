@@ -632,7 +632,7 @@ export default function LandingPage({ onNavigateLogin, onGoToLogin }: LandingPag
                 className="mt-4 pt-2 border-t border-slate-200/50 dark:border-white/10 flex items-center justify-between text-[8px] font-semibold opacity-40 uppercase tracking-widest"
                 style={{ transform: 'translateZ(20px)' }}
               >
-                <span>USAS PORTAL UMC</span>
+                <span />
                 <span>STEM USAS</span>
               </div>
             </div>
