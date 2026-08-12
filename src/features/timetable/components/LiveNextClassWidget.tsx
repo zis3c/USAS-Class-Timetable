@@ -177,7 +177,9 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
       </div>
 
       {nextPrayer && (
-        <div className={`mt-2 py-1.5 px-2.5 rounded-md border flex items-center gap-1.5 text-xs transition-colors duration-150 ${
+        <div 
+          title={`Next Prayer: ${nextPrayer.label} at ${nextPrayer.content}`}
+          className={`mt-2 py-1.5 px-2.5 rounded-md border flex items-center gap-1.5 text-xs transition-colors duration-150 ${
           isLight ? 'bg-amber-50/50 border-amber-200 text-amber-700' : 'bg-amber-400/10 border-amber-400/20 text-amber-300'
         }`}>
           <Moon className="w-3 h-3 flex-shrink-0" />
@@ -236,7 +238,9 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
           
           {/* Minimal Prayer Badge */}
           {nextPrayer && (
-            <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded border text-[8.5px] ${
+            <div 
+              title={`Next Prayer: ${nextPrayer.label} at ${nextPrayer.content}`}
+              className={`flex items-center gap-1 px-1.5 py-0.5 rounded border text-[8.5px] ${
               isLight ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-[#070F22] border-amber-500/20 text-amber-300'
             }`}>
               <Moon className="w-2.5 h-2.5" />

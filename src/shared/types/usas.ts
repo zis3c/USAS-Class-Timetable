@@ -89,6 +89,28 @@ export interface PrayerTimeItem {
   content: string;
 }
 
+export interface WaktuSolatPrayer {
+  day: number;
+  hijri: string;
+  imsak: number;
+  fajr: number;
+  syuruk: number;
+  dhuha: number;
+  dhuhr: number;
+  asr: number;
+  maghrib: number;
+  isha: number;
+}
+
+export interface WaktuSolatApiResponse {
+  zone: string;
+  year: number;
+  month: string;
+  month_number: number;
+  last_updated: string | null;
+  prayers: WaktuSolatPrayer[];
+}
+
 export interface AuthContextValue {
   session: StudentSession | null;
   timetableData: TimetableData | null;

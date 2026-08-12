@@ -593,12 +593,22 @@ export const MOCK_PRAYER_TIMES: PrayerTimeItem[] = [
   { label: 'Isyak', content: '08:36' },
 ];
 
-export async function fetchPrayerTimesAPI(_session: StudentSession | null): Promise<{ success: true; times: PrayerTimeItem[]; location: string }> {
-  return {
-    success: true,
-    times: MOCK_PRAYER_TIMES,
-    location: 'Kuala Kangsar (PRK02)',
-  };
+export async function fetchPrayerTimesAPI(_session: StudentSession | null): Promise<{ success: boolean; data?: import('@/shared/types/usas').WaktuSolatApiResponse; location: string }> {
+  try {
+    const res = await fetch('https://api.waktusolat.app/v2/solat/PRK02');
+    if (!res.ok) throw new Error('API returned ' + res.status);
+    const data = await res.json();
+    return {
+      success: true,
+      data,
+      location: 'Kuala Kangsar (PRK02)',
+    };
+  } catch (err) {
+    return {
+      success: false,
+      location: 'Kuala Kangsar (PRK02)',
+    };
+  }
 }
 
 export function selectProfileText(value: unknown, maxLength: number): string | null {

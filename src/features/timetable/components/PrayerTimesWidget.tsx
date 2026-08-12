@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { fetchPrayerTimesAPI, MOCK_PRAYER_TIMES } from '@/services/usas/usasApi';
-import type { PrayerTimeItem } from '@/shared/types/usas';
+import type { PrayerTimeItem, WaktuSolatPrayer } from '@/shared/types/usas';
 import { playPrayerChime, sendPushNotification } from '@/shared/lib/audioNotifier';
 import { getLocalDateStamp, pruneDayScopedNotificationKeys } from '@/shared/lib/notificationKeys';
 
 type PrayerData = {
-  times: PrayerTimeItem[];
+  times: { label: string; timestamp: number }[];
   location: string;
 };
 
@@ -14,18 +14,7 @@ const NOTIFY_WINDOW_SECONDS = 600;
 const PRAYER_NOTIFY_KEY = 'usas_prayer_auto_notify';
 const PRAYER_NOTIFY_EVENT = 'usas-prayer-auto-notify-changed';
 
-const parsePrayerTimeToSeconds = (timeStr: string | undefined) => {
-  if (!timeStr) return null;
-  const raw = String(timeStr).trim();
-  const match = raw.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
-  if (!match) return null;
-  let hour = parseInt(match[1], 10);
-  const minute = parseInt(match[2], 10);
-  const ampm = match[3]?.toUpperCase();
-  if (ampm === 'PM' && hour < 12) hour += 12;
-  if (ampm === 'AM' && hour === 12) hour = 0;
-  return hour * 3600 + minute * 60;
-};
+// Legacy parser removed since API now uses exact unix timestamps
 
 export const formatCountdown = (diffSeconds: number) => {
   const h = Math.floor(diffSeconds / 3600);
@@ -84,7 +73,7 @@ export const usePrayerAutoNotifySetting = () => {
 export function useNextPrayer() {
   const { session } = useAuth();
   const [prayerData, setPrayerData] = useState<PrayerData>({
-    times: MOCK_PRAYER_TIMES,
+    times: [],
     location: 'Kuala Kangsar (PRK02)',
   });
   const [now, setNow] = useState(new Date());
@@ -97,32 +86,41 @@ export function useNextPrayer() {
   useEffect(() => {
     let active = true;
     fetchPrayerTimesAPI(session).then(res => {
-      if (active && res?.success && res.times) {
-        setPrayerData({ times: res.times, location: res.location || 'Kuala Kangsar (PRK02)' });
+      if (active && res?.success && res.data?.prayers) {
+        const flatTimes: { label: string; timestamp: number }[] = [];
+        res.data.prayers.forEach((p: WaktuSolatPrayer) => {
+          flatTimes.push({ label: 'Imsak', timestamp: p.imsak });
+          flatTimes.push({ label: 'Subuh', timestamp: p.fajr });
+          flatTimes.push({ label: 'Syuruk', timestamp: p.syuruk });
+          flatTimes.push({ label: 'Dhuha', timestamp: p.dhuha });
+          flatTimes.push({ label: 'Zohor', timestamp: p.dhuhr });
+          flatTimes.push({ label: 'Asar', timestamp: p.asr });
+          flatTimes.push({ label: 'Maghrib', timestamp: p.maghrib });
+          flatTimes.push({ label: 'Isyak', timestamp: p.isha });
+        });
+        flatTimes.sort((a, b) => a.timestamp - b.timestamp);
+        setPrayerData({ times: flatTimes, location: res.location });
       }
     });
     return () => { active = false; };
   }, [session]);
 
-  const currentSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+  const currentUnix = Math.floor(now.getTime() / 1000);
   
   let nextPrayer = null;
   let diffSeconds = 0;
   
   for (const p of prayerData.times) {
-    const pSecs = parsePrayerTimeToSeconds(p.content);
-    if (pSecs && pSecs > currentSeconds) {
-      nextPrayer = p;
-      diffSeconds = pSecs - currentSeconds;
+    if (p.timestamp > currentUnix) {
+      const date = new Date(p.timestamp * 1000);
+      const hours = date.getHours();
+      const mins = date.getMinutes();
+      const content = `${hours % 12 || 12}:${mins.toString().padStart(2, '0')} ${hours >= 12 ? 'PM' : 'AM'}`;
+      
+      nextPrayer = { label: p.label, content };
+      diffSeconds = p.timestamp - currentUnix;
       break;
     }
-  }
-  
-  // If no next prayer today, show Subuh for tomorrow
-  if (!nextPrayer && prayerData.times.length > 0) {
-    nextPrayer = prayerData.times[0];
-    const pSecs = parsePrayerTimeToSeconds(nextPrayer.content) || 0;
-    diffSeconds = (24 * 3600 - currentSeconds) + pSecs;
   }
 
   return { nextPrayer, diffSeconds, location: prayerData.location };
@@ -131,7 +129,7 @@ export function useNextPrayer() {
 export function PrayerTimesNotifier() {
   const { session } = useAuth();
   const [prayerData, setPrayerData] = useState<PrayerData>({
-    times: MOCK_PRAYER_TIMES,
+    times: [],
     location: 'Kuala Kangsar (PRK02)',
   });
   const [now, setNow] = useState(new Date());
@@ -142,8 +140,17 @@ export function PrayerTimesNotifier() {
   useEffect(() => {
     let active = true;
     fetchPrayerTimesAPI(session).then(res => {
-      if (active && res?.success && res.times) {
-        setPrayerData({ times: res.times, location: res.location || 'Kuala Kangsar (PRK02)' });
+      if (active && res?.success && res.data?.prayers) {
+        const flatTimes: { label: string; timestamp: number }[] = [];
+        res.data.prayers.forEach((p: WaktuSolatPrayer) => {
+          flatTimes.push({ label: 'Subuh', timestamp: p.fajr });
+          flatTimes.push({ label: 'Zohor', timestamp: p.dhuhr });
+          flatTimes.push({ label: 'Asar', timestamp: p.asr });
+          flatTimes.push({ label: 'Maghrib', timestamp: p.maghrib });
+          flatTimes.push({ label: 'Isyak', timestamp: p.isha });
+        });
+        flatTimes.sort((a, b) => a.timestamp - b.timestamp);
+        setPrayerData({ times: flatTimes, location: res.location });
       }
     });
     return () => { active = false; };
@@ -165,17 +172,13 @@ export function PrayerTimesNotifier() {
     if (!autoNotifyEnabled || prayerData.times.length === 0) return;
 
     const dayStamp = getLocalDateStamp(now);
-    const currentSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+    const currentUnix = Math.floor(now.getTime() / 1000);
 
     prayerData.times.forEach((prayer) => {
-      const label = prayer.label?.toLowerCase() || '';
-      if (!['subuh', 'zohor', 'asar', 'maghrib', 'isyak'].includes(label)) return;
-
-      const prayerSeconds = parsePrayerTimeToSeconds(prayer.content);
-      if (prayerSeconds === null) return;
-
-      const diff = prayerSeconds - currentSeconds;
-      const notifyKey = `${dayStamp}-${label}`;
+      const label = prayer.label.toLowerCase();
+      
+      const diff = prayer.timestamp - currentUnix;
+      const notifyKey = `${dayStamp}-${label}-${prayer.timestamp}`;
       if (diff > 0 && diff <= NOTIFY_WINDOW_SECONDS && !notifiedRef.current[notifyKey]) {
         notifiedRef.current[notifyKey] = true;
         playPrayerChime();
