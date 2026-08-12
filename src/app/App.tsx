@@ -21,6 +21,8 @@ const GpaCalculatorModal = lazy(() => import('@/features/planning/modals/GpaCalc
 const AttendanceScanModal = lazy(() => import('@/features/timetable/components/AttendanceScanModal'));
 const CompareScheduleModal = lazy(() => import('@/features/sharing/modals/CompareScheduleModal'));
 const PrayerTimesModal = lazy(() => import('@/features/timetable/modals/PrayerTimesModal'));
+const PrayerToast = lazy(() => import('@/features/timetable/components/PrayerToast'));
+
 const SITE_NAME = 'USAS Class Timetable';
 const SITE_DESCRIPTION = 'Official and independent student schedule portal for Universiti Sultan Azlan Shah (USAS) to preview, format, and export class timetables into calendar feeds (.ICS), printable A4 PDFs, and lockscreen wallpapers.';
 const SITE_IMAGE = '/seo-preview.svg';
@@ -279,6 +281,8 @@ function MainContent() {
       </main>
 
       <Suspense fallback={null}>
+        {session && <PrayerToast />}
+        
         {/* Tools Drawer — houses ALL secondary actions */}
         <ToolsDrawer
           isOpen={isToolsOpen}

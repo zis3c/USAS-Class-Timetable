@@ -199,7 +199,7 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
 
       {/* Course info — all inline, truncated */}
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-x-1.5 flex-wrap">
+        <div className="flex items-center gap-x-1.5 flex-wrap leading-none">
           <span className={`text-[9px] font-bold uppercase tracking-wider flex-shrink-0 ${
             ongoingClass
               ? (isLight ? 'text-emerald-600' : 'text-emerald-400')
@@ -212,14 +212,14 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
               {formatCountdown(nextClass.diffSeconds || 0)}
             </span>
           )}
-          <span className={`text-[9.5px] font-semibold truncate ${isLight ? 'text-slate-800' : 'text-white/90'}`}>
-            {activeCourse!.course_id}: {activeCourse!.course_name}
-          </span>
         </div>
-        <div className="flex items-center gap-2 mt-0.5">
-          <div className={`text-[9px] truncate ${isLight ? 'text-slate-400' : 'text-white/30'}`}>
+        <div className="flex items-center gap-1.5 mt-0.5 leading-none">
+          <div className={`text-[9px] truncate flex-shrink-0 ${isLight ? 'text-slate-400' : 'text-white/30'}`}>
             {activeCourse!.location}
           </div>
+          <span className={`text-[9.5px] font-semibold truncate ${isLight ? 'text-slate-700' : 'text-white/80'}`}>
+            • {activeCourse!.course_id}: {activeCourse!.course_name}
+          </span>
         </div>
       </div>
 

@@ -222,6 +222,67 @@ export default function PrayerTimesModal({ isOpen, onClose }: PrayerTimesModalPr
   const nextPrayer = dynamicPrayers.find(p => p.isNext);
   const diffSeconds = nextPrayer ? nextPrayer.unix - Math.floor(now.getTime() / 1000) : 0;
 
+  const dayNames = ['AHAD', 'ISNIN', 'SELASA', 'RABU', 'KHAMIS', 'JUMAAT', 'SABTU'];
+  const currentDayName = dayNames[now.getDay()];
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const currentSeconds = currentMinutes * 60 + now.getSeconds();
+
+  const parseTimeToMinutes = (timeStr: string | undefined) => {
+    if (!timeStr) return 0;
+    const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+    if (!match) return 0;
+    let h = parseInt(match[1], 10);
+    const m = parseInt(match[2], 10);
+    const ampm = match[3]?.toUpperCase();
+    if (ampm === 'PM' && h < 12) h += 12;
+    if (ampm === 'AM' && h === 12) h = 0;
+    return h * 60 + m;
+  };
+
+  const parseTimeToSeconds = (timeStr: string | undefined) => {
+    if (!timeStr) return 0;
+    const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+    if (!match) return 0;
+    let h = parseInt(match[1], 10);
+    const m = parseInt(match[2], 10);
+    const ampm = match[3]?.toUpperCase();
+    if (ampm === 'PM' && h < 12) h += 12;
+    if (ampm === 'AM' && h === 12) h = 0;
+    return h * 3600 + m * 60;
+  };
+
+  let activeClassInfo: string | null = null;
+  if (session?.timetableData?.timetable) {
+    let ongoingClass = null;
+    let nextClass = null;
+    let minDiff = Infinity;
+
+    session.timetableData.timetable.forEach((item) => {
+      const isToday = item.day?.toUpperCase() === currentDayName;
+      if (!isToday) return;
+
+      const startMin = parseTimeToMinutes(item.start_time);
+      const endMin = item.end_time ? parseTimeToMinutes(item.end_time) : startMin + 120;
+      const startSec = parseTimeToSeconds(item.start_time);
+      if (currentMinutes >= startMin && currentMinutes <= endMin) {
+        ongoingClass = item;
+      }
+      if (startSec > currentSeconds) {
+        const diff = startSec - currentSeconds;
+        if (diff < minDiff) {
+          minDiff = diff;
+          nextClass = item;
+        }
+      }
+    });
+
+    if (ongoingClass) {
+      activeClassInfo = `${ongoingClass.course_id}: ${ongoingClass.course_name}`;
+    } else if (nextClass) {
+      activeClassInfo = `${nextClass.course_id}: ${nextClass.course_name}`;
+    }
+  }
+
   if (!shouldRender) return null;
 
   return (
@@ -254,20 +315,39 @@ export default function PrayerTimesModal({ isOpen, onClose }: PrayerTimesModalPr
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className={`flex-shrink-0 p-1.5 rounded-md transition-colors ${
-              isLight ? 'text-slate-400 hover:bg-slate-100 hover:text-slate-600' : 'text-white/30 hover:bg-white/[0.06] hover:text-white'
-            }`}
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => window.dispatchEvent(new Event('test-prayer-toast'))}
+              className={`flex-shrink-0 px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-colors border ${
+                isLight 
+                  ? 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100' 
+                  : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
+              }`}
+            >
+              Test Toast
+            </button>
+            <button
+              onClick={onClose}
+              className={`flex-shrink-0 p-1.5 rounded-md transition-colors ${
+                isLight ? 'text-slate-400 hover:bg-slate-100 hover:text-slate-600' : 'text-white/30 hover:bg-white/[0.06] hover:text-white'
+              }`}
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         <div data-lenis-prevent className="p-4 sm:p-6 space-y-5 flex-1 overflow-y-auto usas-scrollbar touch-pan-y overscroll-contain">
           {/* Header Info - ALWAYS SHOW */}
-          <div className="flex items-center justify-between gap-2">
-            <PrayerZoneDropdown value={zone} onChange={setZone} isLight={isLight} />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <PrayerZoneDropdown value={zone} onChange={setZone} isLight={isLight} />
+              {activeClassInfo && (
+                <span className={`text-[9.5px] font-semibold truncate ${isLight ? 'text-slate-600' : 'text-white/90'}`}>
+                  {activeClassInfo}
+                </span>
+              )}
+            </div>
             <div className={`flex items-center gap-1.5 text-[10px] font-medium ${isLight ? 'text-slate-500' : 'text-white/50'}`}>
               <CalendarIcon className="w-3.5 h-3.5 opacity-70" />
               <span>{now.toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
