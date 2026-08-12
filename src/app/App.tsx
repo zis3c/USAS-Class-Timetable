@@ -188,8 +188,10 @@ function MainContent() {
   }, [session]);
 
   useEffect(() => {
-    if (view !== 'landing') {
-      // Ensure any lingering Lenis instance is removed when not on landing page
+    const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
+    
+    if (view !== 'landing' || isTouchDevice) {
+      // Ensure any lingering Lenis instance is removed when not on landing page or on mobile
       const lenisWindow = window as unknown as Window & { usasLenis?: Lenis };
       if (lenisWindow.usasLenis) {
         lenisWindow.usasLenis.destroy();
