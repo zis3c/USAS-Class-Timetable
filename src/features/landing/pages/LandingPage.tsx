@@ -423,7 +423,7 @@ export default function LandingPage({ onNavigateLogin, onGoToLogin }: LandingPag
   const steps = copy.steps;
 
   return (
-    <div className={`relative isolate overflow-hidden min-h-[120dvh] ${
+    <div className={`relative isolate overflow-hidden min-h-[120svh] ${
       theme === THEMES.LIGHT ? 'bg-[#f8fafc] text-slate-800' :
       theme === THEMES.OLED ? 'bg-black text-slate-100' :
       theme === THEMES.EMERALD ? 'bg-[#012117] text-slate-100' :
@@ -453,7 +453,7 @@ export default function LandingPage({ onNavigateLogin, onGoToLogin }: LandingPag
       </div>
 
       {/* SECTION 1: Above-the-fold Viewport (Hero Area) */}
-      <section className="relative w-full min-h-[calc(100dvh-3.5rem)] lg:h-[calc(100dvh-3.5rem)] flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 pb-12 lg:pb-28 border-b border-slate-200/10 dark:border-white/5 overflow-hidden">
+      <section className="relative w-full min-h-[calc(100svh-3.5rem)] lg:min-h-[calc(100vh-3.5rem)] flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 pb-12 lg:pb-28 border-b border-slate-200/10 dark:border-white/5 overflow-hidden">
         
         <div className="max-w-3xl w-full text-center space-y-6 z-10 relative">
           
