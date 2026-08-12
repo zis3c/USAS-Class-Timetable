@@ -199,9 +199,9 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: Gp
             }`}>
               <Calculator className="w-5 h-5" />
             </div>
-            <div className="text-left min-w-0">
-              <h3 className={`text-base font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>{t('gpaBtn')}</h3>
-              <p className={`text-xs font-semibold truncate ${isLight ? 'text-amber-750' : 'text-amber-400/90'}`}>
+            <div className="text-left min-w-0 flex-1">
+              <h3 className={`text-sm sm:text-base font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>{t('gpaBtn')}</h3>
+              <p className={`text-[11px] sm:text-xs font-semibold truncate ${isLight ? 'text-amber-750' : 'text-amber-400/90'}`}>
                 {lang === 'ms' ? 'Kira anggaran GPA semester berdasarkan sasaran gred subjek anda' : 'Estimate your semester GPA based on target subject grades'}
               </p>
             </div>
