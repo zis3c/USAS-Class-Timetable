@@ -72,9 +72,9 @@ export default function LogoutModal({ isOpen, onClose, onConfirm }: LogoutModalP
         <div className={`flex items-center justify-between px-5 py-4 border-b ${
           isLight ? 'border-slate-200 bg-slate-50/50' : 'border-white/[0.06] bg-[#0A1428]/95'
         }`}>
-          <div className="flex items-center gap-2.5">
-            <LogOut className={`w-4 h-4 ${isLight ? 'text-red-600' : 'text-red-400'}`} />
-            <h2 className={`text-sm font-bold tracking-wide ${
+          <div className="flex items-center gap-2.5 min-w-0">
+            <LogOut className={`w-4 h-4 flex-shrink-0 ${isLight ? 'text-red-600' : 'text-red-400'}`} />
+            <h2 className={`text-sm sm:text-base font-bold tracking-wide truncate ${
               isLight ? 'text-slate-900' : 'text-white'
             }`}>
               {copy.title}

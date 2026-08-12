@@ -344,9 +344,9 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <h3 className={`text-sm font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>{copy.title}</h3>
-                <p className={`text-[11px] leading-relaxed mt-0.5 truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>{copy.desc}</p>
+              <div className="min-w-0 flex-1">
+                <h3 className={`text-sm sm:text-base font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>{copy.title}</h3>
+                <p className={`text-[11px] sm:text-xs leading-relaxed mt-0.5 truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>{copy.desc}</p>
               </div>
               <button
                 onClick={() => {
