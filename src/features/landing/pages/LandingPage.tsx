@@ -532,12 +532,12 @@ export default function LandingPage({ onNavigateLogin, onGoToLogin }: LandingPag
                 : 'border-white/[0.08] bg-[#0A1428]/95'
                 }`}
               style={isMobile ? undefined : {
-                transform: `rotateX(${(12 - progress * 12) + mouseRotate.x}deg) rotateY(${mouseRotate.y}deg) scale(${0.94 + progress * 0.06}) translateY(${(1 - progress) * 15}px)`,
+                transform: `rotateX(${mouseRotate.x}deg) rotateY(${mouseRotate.y}deg) scale(1) translateY(0px)`,
                 transformStyle: 'preserve-3d',
                 willChange: 'transform',
                 backfaceVisibility: 'hidden',
                 WebkitFontSmoothing: 'antialiased',
-                opacity: 0.85 + progress * 0.15
+                opacity: 1
               }}
             >
               {/* Mockup Header */}

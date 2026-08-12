@@ -3,8 +3,8 @@ import { useAuth } from '@/app/providers/AuthProvider';
 import { useLanguage } from '@/app/providers/LanguageProvider';
 import { useTheme } from '@/app/providers/ThemeProvider';
 import { 
-  X, Download, Award, QrCode, Users,
-  GraduationCap, LogOut, MessageCircle, Calculator, Calendar, ScanLine, Bell
+  X, Download, QrCode, Users,
+  GraduationCap, LogOut, MessageCircle, Calculator, Calendar, ScanLine, Bell, FileText
 } from 'lucide-react';
 import { useNotification } from '@/app/providers/NotificationProvider';
 import { exportTimetableICS } from '@/features/export/lib/icsGenerator';
@@ -194,7 +194,7 @@ export default function ToolsDrawer({
               isLight ? 'hover:bg-slate-50 text-slate-700 hover:text-slate-900' : 'hover:bg-white/[0.04] text-white/70 hover:text-white'
             }`}
           >
-            <Award className={`w-4 h-4 ${isLight ? 'text-amber-600' : 'text-amber-400/60'}`} />
+            <FileText className={`w-4 h-4 ${isLight ? 'text-amber-600' : 'text-amber-400/60'}`} />
             <div>
               <div className="text-xs font-semibold">{t('examTitle')}</div>
               <div className={`text-[10px] ${isLight ? 'text-slate-400' : 'text-white/25'}`}>{t('examDesc')}</div>

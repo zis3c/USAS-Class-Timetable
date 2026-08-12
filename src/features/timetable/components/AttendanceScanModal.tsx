@@ -324,16 +324,20 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
   const showCamera = scanState !== 'unsupported';
 
   return (
-    <div data-testid="attendance-scan-modal" className={`fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md transition-all duration-200 ${
+    <div data-testid="attendance-scan-modal" className={`fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 backdrop-blur-md transition-all duration-200 touch-pan-y overscroll-contain ${
       animate ? 'bg-slate-900/35 opacity-100' : 'bg-slate-900/0 opacity-0 pointer-events-none'
     }`}>
-      <div className={`flex flex-col w-full max-w-[94vw] sm:max-w-md max-h-[95svh] rounded-3xl border p-4 sm:p-5 gap-4 transition-all duration-300 transform shadow-2xl backdrop-blur-xl overflow-y-auto ${
+      <div className={`flex flex-col w-full max-w-[96vw] sm:max-w-md max-h-[92dvh] rounded-2xl border transition-all duration-300 transform shadow-2xl backdrop-blur-xl overflow-hidden min-h-0 ${
         animate ? 'scale-100 opacity-100' : 'scale-[0.98] opacity-0'
       } ${
-        isLight ? 'bg-white/95 border-slate-200 text-slate-800' : 'bg-[#0A1428]/85 border-white/[0.08] shadow-black/40 text-white'
+        isLight ? 'bg-white/95 border-slate-200 text-slate-800' : 'bg-[#0A1428]/95 border-white/[0.08] shadow-black/40 text-white'
       }`}>
-        <div className="flex items-start gap-3">
-          <div className={`w-11 h-11 rounded-xl border flex items-center justify-center flex-shrink-0 ${
+        
+        {/* Header */}
+        <div className={`p-4 border-b flex-shrink-0 flex items-start gap-3 ${
+          isLight ? 'border-slate-200 bg-slate-50/50' : 'border-white/[0.06] bg-[#0A1428]/95'
+        }`}>
+          <div className={`w-10 h-10 rounded-xl border flex items-center justify-center flex-shrink-0 ${
             isLight ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-amber-400/10 border-amber-400/20 text-amber-300'
           }`}>
             <ScanLine className="w-5 h-5" />
@@ -342,14 +346,14 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <h3 className={`text-sm font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>{copy.title}</h3>
-                <p className={`text-xs leading-relaxed mt-0.5 ${isLight ? 'text-slate-500' : 'text-white/35'}`}>{copy.desc}</p>
+                <p className={`text-[11px] leading-relaxed mt-0.5 truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>{copy.desc}</p>
               </div>
               <button
                 onClick={() => {
                   stopCamera();
                   onClose();
                 }}
-                className={`p-2 rounded-md transition-colors flex-shrink-0 ${
+                className={`p-1.5 rounded-md transition-colors flex-shrink-0 ${
                   isLight ? 'text-slate-400 hover:text-slate-700 hover:bg-slate-100' : 'text-white/30 hover:text-white hover:bg-white/[0.06]'
                 }`}
                 aria-label={copy.close}
@@ -360,15 +364,18 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
           </div>
         </div>
 
+        {/* Scrollable Body */}
+        <div data-lenis-prevent className="p-4 flex-1 overflow-y-auto min-h-0 flex flex-col gap-4 touch-pan-y overscroll-contain">
+
         {showCamera && (
           <div className={`flex-shrink-0 rounded-2xl border overflow-hidden ${
             isLight ? 'bg-slate-50 border-slate-200' : 'bg-black/40 border-white/10'
           }`}>
-            <div className="relative aspect-video sm:aspect-[21/9] bg-black">
+            <div className="relative h-48 sm:h-56 bg-black flex items-center justify-center">
               <video ref={videoRef} className="absolute inset-0 h-full w-full object-cover" playsInline muted />
               <div className="absolute inset-0 pointer-events-none bg-black/10" />
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-4">
-                <div className="w-32 h-32 sm:w-48 sm:h-48 rounded-xl border-2 border-white/30 border-dashed" />
+                <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-xl border-2 border-white/30 border-dashed" />
               </div>
             </div>
           </div>
@@ -509,6 +516,8 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
 
         <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
         <canvas ref={canvasRef} className="hidden" aria-hidden="true" />
+        
+        </div> {/* End Scrollable Body */}
       </div>
     </div>
   );

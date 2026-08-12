@@ -4,8 +4,8 @@ import { useLanguage } from '@/app/providers/LanguageProvider';
 import { useTheme } from '@/app/providers/ThemeProvider';
 import { generateTimetablePdf, generateElementPng, generateLockscreenImage } from '@/features/export/lib/pdfGenerator';
 import type { TimetableItem } from '@/shared/types/usas';
-import { 
-  X, Download, Smartphone, RotateCw, Award, ChevronDown, Plus, Minus
+import {
+  X, Download, Smartphone, RotateCw, ChevronDown, Plus, Minus, FileBadge
 } from 'lucide-react';
 
 type PdfExportModalProps = {
@@ -22,49 +22,49 @@ type ExportTheme = 'light' | 'dark' | 'emerald' | 'oled' | 'warm';
 const getModalDayColors = (day: string | undefined, theme: ExportTheme) => {
   const isLight = theme === 'light';
   const darkColors = {
-    'ISNIN':  { bg: 'bg-emerald-500/25', border: 'border-emerald-500/40', text: 'text-emerald-300 font-bold' },
-    'SELASA': { bg: 'bg-blue-500/25',    border: 'border-blue-500/40',    text: 'text-blue-300 font-bold' },
-    'RABU':   { bg: 'bg-amber-500/25',   border: 'border-amber-500/40',   text: 'text-amber-300 font-bold' },
-    'KHAMIS': { bg: 'bg-purple-500/25',  border: 'border-purple-500/40',  text: 'text-purple-300 font-bold' },
-    'JUMAAT': { bg: 'bg-rose-500/25',    border: 'border-rose-500/40',    text: 'text-rose-300 font-bold' },
-    'SABTU':  { bg: 'bg-orange-500/25',  border: 'border-orange-500/40',  text: 'text-orange-300 font-bold' },
-    'AHAD':   { bg: 'bg-slate-500/25',   border: 'border-slate-500/40',   text: 'text-slate-300 font-bold' },
+    'ISNIN': { bg: 'bg-emerald-500/25', border: 'border-emerald-500/40', text: 'text-emerald-300 font-bold' },
+    'SELASA': { bg: 'bg-blue-500/25', border: 'border-blue-500/40', text: 'text-blue-300 font-bold' },
+    'RABU': { bg: 'bg-amber-500/25', border: 'border-amber-500/40', text: 'text-amber-300 font-bold' },
+    'KHAMIS': { bg: 'bg-purple-500/25', border: 'border-purple-500/40', text: 'text-purple-300 font-bold' },
+    'JUMAAT': { bg: 'bg-rose-500/25', border: 'border-rose-500/40', text: 'text-rose-300 font-bold' },
+    'SABTU': { bg: 'bg-orange-500/25', border: 'border-orange-500/40', text: 'text-orange-300 font-bold' },
+    'AHAD': { bg: 'bg-slate-500/25', border: 'border-slate-500/40', text: 'text-slate-300 font-bold' },
   };
   const emeraldColors = {
-    'ISNIN':  { bg: 'bg-emerald-500/30', border: 'border-emerald-400/50', text: 'text-emerald-200 font-bold' },
-    'SELASA': { bg: 'bg-teal-500/30',    border: 'border-teal-400/50',    text: 'text-teal-200 font-bold' },
-    'RABU':   { bg: 'bg-amber-500/30',   border: 'border-amber-400/50',   text: 'text-amber-200 font-bold' },
-    'KHAMIS': { bg: 'bg-lime-500/30',    border: 'border-lime-400/50',    text: 'text-lime-200 font-bold' },
+    'ISNIN': { bg: 'bg-emerald-500/30', border: 'border-emerald-400/50', text: 'text-emerald-200 font-bold' },
+    'SELASA': { bg: 'bg-teal-500/30', border: 'border-teal-400/50', text: 'text-teal-200 font-bold' },
+    'RABU': { bg: 'bg-amber-500/30', border: 'border-amber-400/50', text: 'text-amber-200 font-bold' },
+    'KHAMIS': { bg: 'bg-lime-500/30', border: 'border-lime-400/50', text: 'text-lime-200 font-bold' },
     'JUMAAT': { bg: 'bg-emerald-600/35', border: 'border-emerald-300/60', text: 'text-emerald-100 font-bold' },
-    'SABTU':  { bg: 'bg-amber-600/30',   border: 'border-amber-400/50',   text: 'text-amber-200 font-bold' },
-    'AHAD':   { bg: 'bg-slate-500/30',   border: 'border-slate-400/50',   text: 'text-slate-200 font-bold' },
+    'SABTU': { bg: 'bg-amber-600/30', border: 'border-amber-400/50', text: 'text-amber-200 font-bold' },
+    'AHAD': { bg: 'bg-slate-500/30', border: 'border-slate-400/50', text: 'text-slate-200 font-bold' },
   };
   const warmColors = {
-    'ISNIN':  { bg: 'bg-amber-500/30',   border: 'border-amber-400/50',   text: 'text-amber-200 font-bold' },
-    'SELASA': { bg: 'bg-orange-500/30',  border: 'border-orange-400/50',  text: 'text-orange-200 font-bold' },
-    'RABU':   { bg: 'bg-yellow-500/30',  border: 'border-yellow-400/50',  text: 'text-yellow-200 font-bold' },
-    'KHAMIS': { bg: 'bg-red-500/30',     border: 'border-red-400/50',     text: 'text-red-200 font-bold' },
-    'JUMAAT': { bg: 'bg-amber-600/35',   border: 'border-amber-300/60',   text: 'text-amber-100 font-bold' },
-    'SABTU':  { bg: 'bg-orange-600/30',  border: 'border-orange-400/50',  text: 'text-orange-200 font-bold' },
-    'AHAD':   { bg: 'bg-stone-500/30',   border: 'border-stone-400/50',   text: 'text-stone-200 font-bold' },
+    'ISNIN': { bg: 'bg-amber-500/30', border: 'border-amber-400/50', text: 'text-amber-200 font-bold' },
+    'SELASA': { bg: 'bg-orange-500/30', border: 'border-orange-400/50', text: 'text-orange-200 font-bold' },
+    'RABU': { bg: 'bg-yellow-500/30', border: 'border-yellow-400/50', text: 'text-yellow-200 font-bold' },
+    'KHAMIS': { bg: 'bg-red-500/30', border: 'border-red-400/50', text: 'text-red-200 font-bold' },
+    'JUMAAT': { bg: 'bg-amber-600/35', border: 'border-amber-300/60', text: 'text-amber-100 font-bold' },
+    'SABTU': { bg: 'bg-orange-600/30', border: 'border-orange-400/50', text: 'text-orange-200 font-bold' },
+    'AHAD': { bg: 'bg-stone-500/30', border: 'border-stone-400/50', text: 'text-stone-200 font-bold' },
   };
   const oledColors = {
-    'ISNIN':  { bg: 'bg-emerald-950/60', border: 'border-emerald-500/60', text: 'text-emerald-300 font-bold' },
-    'SELASA': { bg: 'bg-blue-950/60',    border: 'border-blue-500/60',    text: 'text-blue-300 font-bold' },
-    'RABU':   { bg: 'bg-amber-950/60',   border: 'border-amber-500/60',   text: 'text-amber-300 font-bold' },
-    'KHAMIS': { bg: 'bg-purple-950/60',  border: 'border-purple-500/60',  text: 'text-purple-300 font-bold' },
-    'JUMAAT': { bg: 'bg-rose-950/60',    border: 'border-rose-500/60',    text: 'text-rose-300 font-bold' },
-    'SABTU':  { bg: 'bg-orange-950/60',  border: 'border-orange-500/60',  text: 'text-orange-300 font-bold' },
-    'AHAD':   { bg: 'bg-zinc-900/80',    border: 'border-zinc-500/60',    text: 'text-zinc-300 font-bold' },
+    'ISNIN': { bg: 'bg-emerald-950/60', border: 'border-emerald-500/60', text: 'text-emerald-300 font-bold' },
+    'SELASA': { bg: 'bg-blue-950/60', border: 'border-blue-500/60', text: 'text-blue-300 font-bold' },
+    'RABU': { bg: 'bg-amber-950/60', border: 'border-amber-500/60', text: 'text-amber-300 font-bold' },
+    'KHAMIS': { bg: 'bg-purple-950/60', border: 'border-purple-500/60', text: 'text-purple-300 font-bold' },
+    'JUMAAT': { bg: 'bg-rose-950/60', border: 'border-rose-500/60', text: 'text-rose-300 font-bold' },
+    'SABTU': { bg: 'bg-orange-950/60', border: 'border-orange-500/60', text: 'text-orange-300 font-bold' },
+    'AHAD': { bg: 'bg-zinc-900/80', border: 'border-zinc-500/60', text: 'text-zinc-300 font-bold' },
   };
   const lightColors = {
-    'ISNIN':  { bg: 'bg-emerald-100/80', border: 'border-emerald-300', text: 'text-emerald-800 font-bold' },
-    'SELASA': { bg: 'bg-blue-100/80',    border: 'border-blue-300',    text: 'text-blue-800 font-bold' },
-    'RABU':   { bg: 'bg-amber-100/90',   border: 'border-amber-350',   text: 'text-amber-800 font-bold' },
-    'KHAMIS': { bg: 'bg-purple-100/80',  border: 'border-purple-300',  text: 'text-purple-800 font-bold' },
-    'JUMAAT': { bg: 'bg-rose-100/80',    border: 'border-rose-300',    text: 'text-rose-800 font-bold' },
-    'SABTU':  { bg: 'bg-orange-100/80',  border: 'border-orange-300',  text: 'text-orange-800 font-bold' },
-    'AHAD':   { bg: 'bg-slate-200/80',   border: 'border-slate-300',   text: 'text-slate-800 font-bold' },
+    'ISNIN': { bg: 'bg-emerald-100/80', border: 'border-emerald-300', text: 'text-emerald-800 font-bold' },
+    'SELASA': { bg: 'bg-blue-100/80', border: 'border-blue-300', text: 'text-blue-800 font-bold' },
+    'RABU': { bg: 'bg-amber-100/90', border: 'border-amber-350', text: 'text-amber-800 font-bold' },
+    'KHAMIS': { bg: 'bg-purple-100/80', border: 'border-purple-300', text: 'text-purple-800 font-bold' },
+    'JUMAAT': { bg: 'bg-rose-100/80', border: 'border-rose-300', text: 'text-rose-800 font-bold' },
+    'SABTU': { bg: 'bg-orange-100/80', border: 'border-orange-300', text: 'text-orange-800 font-bold' },
+    'AHAD': { bg: 'bg-slate-200/80', border: 'border-slate-300', text: 'text-slate-800 font-bold' },
   };
 
   const map = theme === 'emerald'
@@ -237,11 +237,11 @@ const formatAmPmTime = (timeStr?: string) => {
   const raw = String(timeStr).trim();
   const match = raw.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
   if (!match) return timeStr;
-  
+
   const hour = parseInt(match[1], 10);
   const min = parseInt(match[2], 10);
   const ampm = match[3].toLowerCase();
-  
+
   const minStr = `:${String(min).padStart(2, '0')}`;
   return `${hour}${minStr}${ampm}`;
 };
@@ -273,13 +273,13 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
   const { timetableData, session } = useAuth();
   const { lang, t } = useLanguage();
   const { theme } = useTheme();
-  
+
   const isLight = theme === 'light';
-  
+
   // Modes: 'FORMAL_A4' | 'WALLPAPER'
-  const [exportMode, setExportMode] = useState<ExportMode>('FORMAL_A4'); 
+  const [exportMode, setExportMode] = useState<ExportMode>('FORMAL_A4');
   const [exportFileType, setExportFileType] = useState<ExportFileType>('PDF');
-  
+
   // Device Wallpaper Presets: 'phone' (9:16) | 'tablet' (4:3) | 'desktop' (16:9) | 'square' (1:1)
   const [wallpaperPreset, setWallpaperPreset] = useState<WallpaperPreset>('phone');
 
@@ -306,7 +306,7 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
       setExportTheme(theme === 'light' ? 'light' : 'dark');
     }
   }, [theme, isOpen]);
-  
+
   useEffect(() => {
     setUserZoom(1);
   }, [exportMode]);
@@ -314,26 +314,23 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
   const finalScale = previewScale * userZoom;
 
   const renderFloatingZoomWidget = (isLightBg: boolean) => (
-    <div className={`absolute top-6 left-4 z-30 w-fit flex items-center gap-1.5 p-1 rounded-xl shadow-lg border backdrop-blur-xl transition-all pointer-events-auto ${
-      isLightBg 
-        ? 'bg-white/50 border-slate-200 text-slate-700 shadow-slate-900/5' 
-        : 'bg-[#0A1428]/50 border-white/10 text-white/95 shadow-black/20'
-    }`}>
+    <div className={`absolute top-6 left-4 z-30 w-fit flex items-center gap-1.5 p-1 rounded-xl shadow-lg border backdrop-blur-md transition-all pointer-events-auto ${isLightBg
+        ? 'bg-white/40 border-slate-200/50 text-slate-700 shadow-slate-900/5'
+        : 'bg-[#0A1428]/40 border-white/10 text-white/95 shadow-black/20'
+      }`}>
       <button
         onClick={(e) => { e.stopPropagation(); setUserZoom(prev => Math.max(0.5, prev - 0.1)); }}
-        className={`p-1.5 rounded-lg transition-all ${
-          isLightBg ? 'hover:bg-slate-100/80 text-slate-600' : 'hover:bg-white/[0.08] text-white/80'
-        }`}
+        className={`p-1.5 rounded-lg transition-all ${isLightBg ? 'hover:bg-slate-100/80 text-slate-600' : 'hover:bg-white/[0.08] text-white/80'
+          }`}
         title="Zoom Out"
       >
         <Minus className="w-3.5 h-3.5" />
       </button>
-      
+
       <button
         onClick={(e) => { e.stopPropagation(); setUserZoom(1); }}
-        className={`px-2 py-1 rounded-lg text-[10.5px] font-extrabold transition-all min-w-[42px] text-center ${
-          isLightBg ? 'hover:bg-slate-100/80 text-slate-700' : 'hover:bg-white/[0.08] text-white/90'
-        }`}
+        className={`px-2 py-1 rounded-lg text-[10.5px] font-extrabold transition-all min-w-[42px] text-center ${isLightBg ? 'hover:bg-slate-100/80 text-slate-700' : 'hover:bg-white/[0.08] text-white/90'
+          }`}
         title="Reset Zoom"
       >
         {Math.round(userZoom * 100)}%
@@ -341,16 +338,15 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
 
       <button
         onClick={(e) => { e.stopPropagation(); setUserZoom(prev => Math.min(2.5, prev + 0.1)); }}
-        className={`p-1.5 rounded-lg transition-all ${
-          isLightBg ? 'hover:bg-slate-100/80 text-slate-600' : 'hover:bg-white/[0.08] text-white/80'
-        }`}
+        className={`p-1.5 rounded-lg transition-all ${isLightBg ? 'hover:bg-slate-100/80 text-slate-600' : 'hover:bg-white/[0.08] text-white/80'
+          }`}
         title="Zoom In"
       >
         <Plus className="w-3.5 h-3.5" />
       </button>
     </div>
   );
-  
+
   const pdfRef = useRef<HTMLDivElement | null>(null);
   const previewShellRef = useRef<HTMLDivElement | null>(null);
   const wallpaperRef = useRef<HTMLDivElement | null>(null);
@@ -498,7 +494,7 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
     setExporting(true);
     setProgress(15);
     setProgressStatus(lang === 'en' ? 'Initializing render engine...' : 'Memulakan enjin jana...');
-    
+
     if (exportIntervalRef.current !== null) {
       clearInterval(exportIntervalRef.current);
       exportIntervalRef.current = null;
@@ -663,9 +659,8 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
             </div>
             <div className="w-full text-center">
               <span
-                className={`block w-full break-words font-black leading-normal tracking-tight text-center ${
-                  isLightMode ? 'text-slate-800' : 'text-white'
-                }`}
+                className={`block w-full break-words font-black leading-normal tracking-tight text-center ${isLightMode ? 'text-slate-800' : 'text-white'
+                  }`}
                 style={{ fontSize: `${codeOnlyFontSize}px` }}
                 title={code}
               >
@@ -706,23 +701,19 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
   const lockscreenConfig = getLockscreenThemeConfig(exportTheme);
 
   return (
-    <div data-lenis-prevent className={`fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 backdrop-blur-md transition-all duration-200 touch-pan-y overscroll-contain ${
-      animate ? 'bg-slate-900/30 opacity-100' : 'bg-slate-900/0 opacity-0 pointer-events-none'
-    }`}>
-      
-      {/* Spacious Modal Frame */}
-      <div className={`rounded-xl w-[96vw] max-w-6xl h-[92dvh] max-h-[92dvh] border flex flex-col min-h-0 overflow-hidden my-auto transition-all duration-200 transform ${
-        animate ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
-      } ${
-        isLight 
-          ? 'bg-white border-slate-200 shadow-2xl text-slate-800' 
-          : 'bg-[#0A1428]/95 border-white/10 text-white shadow-2xl'
+    <div data-lenis-prevent className={`fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 backdrop-blur-md transition-all duration-200 touch-pan-y overscroll-contain ${animate ? 'bg-slate-900/30 opacity-100' : 'bg-slate-900/0 opacity-0 pointer-events-none'
       }`}>
-        
-        {/* Header */}
-        <div className={`p-3 sm:p-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 flex-shrink-0 ${
-          isLight ? 'border-slate-200 bg-slate-50/50' : 'border-white/[0.06] bg-[#0A1428]/95'
+
+      {/* Spacious Modal Frame */}
+      <div className={`rounded-xl w-[96vw] max-w-6xl h-[92dvh] max-h-[92dvh] border flex flex-col min-h-0 overflow-hidden my-auto transition-all duration-200 transform ${animate ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
+        } ${isLight
+          ? 'bg-white border-slate-200 shadow-2xl text-slate-800'
+          : 'bg-[#0A1428]/95 border-white/10 text-white shadow-2xl'
         }`}>
+
+        {/* Header */}
+        <div className={`p-3 sm:p-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 flex-shrink-0 ${isLight ? 'border-slate-200 bg-slate-50/50' : 'border-white/[0.06] bg-[#0A1428]/95'
+          }`}>
           <div className="flex items-start sm:items-center gap-3 min-w-0">
             <img src="/usas-logo.png" alt="USAS Logo" className="w-6 h-6 sm:w-7 sm:h-7 object-contain flex-shrink-0 mt-0.5 sm:mt-0" />
             <div className="min-w-0">
@@ -734,9 +725,8 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
           </div>
           <button
             onClick={onClose}
-            className={`self-end sm:self-auto p-2 sm:p-1.5 rounded-md transition-colors ${
-              isLight ? 'text-slate-400 hover:text-slate-600 hover:bg-slate-100' : 'text-white/30 hover:text-white hover:bg-white/[0.06]'
-            }`}
+            className={`self-end sm:self-auto p-2 sm:p-1.5 rounded-md transition-colors ${isLight ? 'text-slate-400 hover:text-slate-600 hover:bg-slate-100' : 'text-white/30 hover:text-white hover:bg-white/[0.06]'
+              }`}
           >
             <X className="w-4 h-4" />
           </button>
@@ -744,53 +734,47 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
 
         {/* Scrollable Body */}
         <div data-lenis-prevent className="p-3 sm:p-4 flex-1 min-h-0 overflow-y-auto space-y-3.5 sm:space-y-4 touch-pan-y overscroll-contain">
-          
+
           {/* Main Mode Tabs */}
-          <div className={`grid grid-cols-1 sm:grid-cols-2 gap-2 p-1 rounded-xl border ${
-            isLight ? 'bg-slate-100 border-slate-200' : 'bg-white/[0.03] border-white/[0.04]'
-          }`}>
+          <div className={`grid grid-cols-1 sm:grid-cols-2 gap-2 p-1 rounded-xl border ${isLight ? 'bg-slate-100 border-slate-200' : 'bg-white/[0.03] border-white/[0.04]'
+            }`}>
             <button
               onClick={() => setExportMode('FORMAL_A4')}
-              className={`py-2 px-3 rounded-lg text-[10px] sm:text-[11px] font-bold flex items-center justify-center gap-2 transition-all min-w-0 ${
-                exportMode === 'FORMAL_A4'
+              className={`py-2 px-3 rounded-lg text-[10px] sm:text-[11px] font-bold flex items-center justify-center gap-2 transition-all min-w-0 ${exportMode === 'FORMAL_A4'
                   ? (isLight ? 'bg-[#0B1E43] text-white shadow-md' : 'bg-amber-400 text-slate-950 shadow-md')
                   : (isLight ? 'text-slate-500 hover:text-slate-800' : 'text-white/40 hover:text-white')
-              }`}
+                }`}
             >
-              <Award className="w-3.5 h-3.5" />
-              <span className="truncate">Dokumen Rasmi (Formal A4)</span>
+              <FileBadge className="w-3.5 h-3.5" />
+              <span className="truncate">Formal</span>
             </button>
 
             <button
               onClick={() => setExportMode('WALLPAPER')}
-              className={`py-2 px-3 rounded-lg text-[10px] sm:text-[11px] font-bold flex items-center justify-center gap-2 transition-all min-w-0 ${
-                exportMode === 'WALLPAPER'
+              className={`py-2 px-3 rounded-lg text-[10px] sm:text-[11px] font-bold flex items-center justify-center gap-2 transition-all min-w-0 ${exportMode === 'WALLPAPER'
                   ? (isLight ? 'bg-[#0B1E43] text-white shadow-md' : 'bg-amber-400 text-slate-950 shadow-md')
                   : (isLight ? 'text-slate-500 hover:text-slate-800' : 'text-white/40 hover:text-white')
-              }`}
+                }`}
             >
               <Smartphone className="w-3.5 h-3.5" />
-              <span className="truncate">Wallpaper Lockscreen (Custom)</span>
+              <span className="truncate">Wallpaper Lockscreen</span>
             </button>
           </div>
 
           {exportMode !== 'WALLPAPER' && (
-            <div className={`p-2.5 rounded-xl border flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-[11px] font-medium transition-colors ${
-              isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-white/[0.02] border-white/[0.04] text-white/70'
-            }`}>
-              <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${
-                isLight ? 'text-amber-800' : 'text-amber-400/90'
-              }`}>Format Muat Turun:</span>
+            <div className={`p-2.5 rounded-xl border flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-[11px] font-medium transition-colors ${isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-white/[0.02] border-white/[0.04] text-white/70'
+              }`}>
+              <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${isLight ? 'text-amber-800' : 'text-amber-400/90'
+                }`}>Format Muat Turun:</span>
               <div className="flex flex-wrap items-center gap-1">
                 {fileTypeOptions.map((item) => (
                   <button
                     key={item.id}
                     onClick={() => setExportFileType(item.id)}
-                    className={`px-2.5 py-1 rounded text-[10px] font-semibold border transition-all min-w-0 ${
-                      exportFileType === item.id
+                    className={`px-2.5 py-1 rounded text-[10px] font-semibold border transition-all min-w-0 ${exportFileType === item.id
                         ? (isLight ? 'bg-[#0B1E43] text-white border-slate-800 shadow-sm' : 'bg-amber-400 text-slate-950 border-amber-400')
                         : (isLight ? 'bg-white border-slate-200 text-slate-500 hover:bg-slate-100/50' : 'bg-white/[0.02] border-white/10 text-white/50')
-                    }`}
+                      }`}
                   >
                     {item.label}
                   </button>
@@ -801,14 +785,13 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
 
           {/* MINIMALIST CUSTOMIZERS (Horizontal Segmented Controls for Height Reduction) */}
           {exportMode !== 'FORMAL_A4' && (
-            <div className={`p-2.5 rounded-xl border flex flex-col sm:flex-row gap-2.5 sm:gap-3 items-stretch sm:items-center justify-between text-[11px] font-medium transition-colors relative ${
-              isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-white/[0.02] border-white/[0.04] text-white/70'
-            }`}>
-              
+            <div className={`p-2.5 rounded-xl border flex flex-col sm:flex-row gap-2.5 sm:gap-3 items-stretch sm:items-center justify-between text-[11px] font-medium transition-colors relative ${isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-white/[0.02] border-white/[0.04] text-white/70'
+              }`}>
+
               {/* Invisible overlay to close dropdowns on clicking outside */}
               {(ratioDropdownOpen || detailDropdownOpen || themeDropdownOpen) && (
-                <div 
-                  className="fixed inset-0 z-10 cursor-default" 
+                <div
+                  className="fixed inset-0 z-10 cursor-default"
                   onClick={(e) => {
                     e.stopPropagation();
                     setRatioDropdownOpen(false);
@@ -822,9 +805,8 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                 {/* 1. Device Ratio Selector (WALLPAPER only) */}
                 {exportMode === 'WALLPAPER' && (
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-start relative z-40 min-w-0">
-                    <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${
-                      isLight ? 'text-amber-800' : 'text-amber-400/90'
-                    }`}>{t('deviceRatio')}:</span>
+                    <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${isLight ? 'text-amber-800' : 'text-amber-400/90'
+                      }`}>{t('deviceRatio')}:</span>
                     <div className="relative w-full sm:w-auto">
                       <button
                         onClick={(e) => {
@@ -833,11 +815,10 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                           setDetailDropdownOpen(false);
                           setThemeDropdownOpen(false);
                         }}
-                        className={`flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-semibold transition-all shadow-sm w-full sm:w-auto ${
-                          isLight 
-                            ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50' 
+                        className={`flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-semibold transition-all shadow-sm w-full sm:w-auto ${isLight
+                            ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
                             : 'bg-white/[0.04] border-white/10 text-white/90 hover:bg-white/[0.08]'
-                        }`}
+                          }`}
                       >
                         <span>
                           {wallpaperPreset === 'phone' && `${t('phonePreset')} (9:16)`}
@@ -849,9 +830,8 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                       </button>
 
                       {ratioDropdownOpen && (
-                      <div className={`static sm:absolute mt-2 sm:mt-1 left-0 right-0 sm:right-auto w-full sm:w-44 rounded-xl border shadow-xl py-1 z-[60] transition-all ${
-                          isLight ? 'bg-white border-slate-200 text-slate-700' : 'bg-[#0A1428] border-white/10 text-white'
-                        }`}>
+                        <div className={`static sm:absolute mt-2 sm:mt-1 left-0 right-0 sm:right-auto w-full sm:w-44 rounded-xl border shadow-xl py-1 z-[60] transition-all ${isLight ? 'bg-white border-slate-200 text-slate-700' : 'bg-[#0A1428] border-white/10 text-white'
+                          }`}>
                           {ratioOptions.map((item) => (
                             <button
                               key={item.id}
@@ -860,11 +840,10 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                                 setWallpaperPreset(item.id);
                                 setRatioDropdownOpen(false);
                               }}
-                              className={`w-full text-left px-3 py-1.5 text-[11px] font-semibold hover:bg-slate-100/50 dark:hover:bg-white/[0.04] transition-colors flex items-center justify-between ${
-                                wallpaperPreset === item.id 
-                                  ? (isLight ? 'text-amber-800 bg-amber-50/50' : 'text-amber-400 bg-amber-400/5') 
+                              className={`w-full text-left px-3 py-1.5 text-[11px] font-semibold hover:bg-slate-100/50 dark:hover:bg-white/[0.04] transition-colors flex items-center justify-between ${wallpaperPreset === item.id
+                                  ? (isLight ? 'text-amber-800 bg-amber-50/50' : 'text-amber-400 bg-amber-400/5')
                                   : ''
-                              }`}
+                                }`}
                             >
                               <span>{item.label}</span>
                               {wallpaperPreset === item.id && <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />}
@@ -878,9 +857,8 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
 
                 {/* 2. Content Detail Selector */}
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-start relative z-20 min-w-0">
-                  <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${
-                    isLight ? 'text-amber-800' : 'text-amber-400/90'
-                  }`}>{t('cardContent')}:</span>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${isLight ? 'text-amber-800' : 'text-amber-400/90'
+                    }`}>{t('cardContent')}:</span>
                   <div className="relative w-full sm:w-auto">
                     <button
                       onClick={(e) => {
@@ -889,11 +867,10 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                         setRatioDropdownOpen(false);
                         setThemeDropdownOpen(false);
                       }}
-                      className={`flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-semibold transition-all shadow-sm w-full sm:w-auto ${
-                        isLight 
-                          ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50' 
+                      className={`flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-semibold transition-all shadow-sm w-full sm:w-auto ${isLight
+                          ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
                           : 'bg-white/[0.04] border-white/10 text-white/90 hover:bg-white/[0.08]'
-                      }`}
+                        }`}
                     >
                       <span>
                         {contentDetail === 'CODE' && t('codeOnly')}
@@ -903,9 +880,8 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                     </button>
 
                     {detailDropdownOpen && (
-                      <div className={`static sm:absolute mt-2 sm:mt-1 right-0 left-0 sm:left-auto w-full sm:w-36 rounded-xl border shadow-xl py-1 z-[60] transition-all ${
-                        isLight ? 'bg-white border-slate-200 text-slate-700' : 'bg-[#0A1428] border-white/10 text-white'
-                      }`}>
+                      <div className={`static sm:absolute mt-2 sm:mt-1 right-0 left-0 sm:left-auto w-full sm:w-36 rounded-xl border shadow-xl py-1 z-[60] transition-all ${isLight ? 'bg-white border-slate-200 text-slate-700' : 'bg-[#0A1428] border-white/10 text-white'
+                        }`}>
                         {detailOptions.map((item) => (
                           <button
                             key={item.id}
@@ -914,11 +890,10 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                               setContentDetail(item.id);
                               setDetailDropdownOpen(false);
                             }}
-                            className={`w-full text-left px-3 py-1.5 text-[11px] font-semibold hover:bg-slate-100/50 dark:hover:bg-white/[0.04] transition-colors flex items-center justify-between ${
-                              contentDetail === item.id 
-                                ? (isLight ? 'text-amber-800 bg-amber-50/50' : 'text-amber-400 bg-amber-400/5') 
+                            className={`w-full text-left px-3 py-1.5 text-[11px] font-semibold hover:bg-slate-100/50 dark:hover:bg-white/[0.04] transition-colors flex items-center justify-between ${contentDetail === item.id
+                                ? (isLight ? 'text-amber-800 bg-amber-50/50' : 'text-amber-400 bg-amber-400/5')
                                 : ''
-                            }`}
+                              }`}
                           >
                             <span>{item.label}</span>
                             {contentDetail === item.id && <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />}
@@ -931,9 +906,8 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
 
                 {/* 3. Tema Jadual Selector */}
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-start relative z-20 min-w-0">
-                  <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${
-                    isLight ? 'text-amber-800' : 'text-amber-400/90'
-                  }`}>{t('tableTheme')}:</span>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${isLight ? 'text-amber-800' : 'text-amber-400/90'
+                    }`}>{t('tableTheme')}:</span>
                   <div className="relative w-full sm:w-auto">
                     <button
                       onClick={(e) => {
@@ -942,26 +916,24 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                         setRatioDropdownOpen(false);
                         setDetailDropdownOpen(false);
                       }}
-                      className={`flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-semibold transition-all shadow-sm w-full sm:w-auto ${
-                        isLight 
-                          ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50' 
+                      className={`flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-semibold transition-all shadow-sm w-full sm:w-auto ${isLight
+                          ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
                           : 'bg-white/[0.04] border-white/10 text-white/90 hover:bg-white/[0.08]'
-                      }`}
+                        }`}
                     >
                       <span>
                         {exportTheme === 'light' ? t('themeLight') :
-                         exportTheme === 'emerald' ? t('themeEmerald') :
-                         exportTheme === 'oled' ? t('themeOled') :
-                         exportTheme === 'warm' ? t('themeWarm') :
-                         t('themeDark')}
+                          exportTheme === 'emerald' ? t('themeEmerald') :
+                            exportTheme === 'oled' ? t('themeOled') :
+                              exportTheme === 'warm' ? t('themeWarm') :
+                                t('themeDark')}
                       </span>
                       <ChevronDown className={`w-3 h-3 opacity-60 transition-transform duration-200 ${themeDropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
 
                     {themeDropdownOpen && (
-                      <div className={`static sm:absolute mt-2 sm:mt-1 right-0 left-0 sm:left-auto w-full sm:w-36 rounded-xl border shadow-xl py-1 z-[60] transition-all ${
-                        isLight ? 'bg-white border-slate-200 text-slate-700' : 'bg-[#0A1428] border-white/10 text-white'
-                      }`}>
+                      <div className={`static sm:absolute mt-2 sm:mt-1 right-0 left-0 sm:left-auto w-full sm:w-36 rounded-xl border shadow-xl py-1 z-[60] transition-all ${isLight ? 'bg-white border-slate-200 text-slate-700' : 'bg-[#0A1428] border-white/10 text-white'
+                        }`}>
                         {themeOptions.map((item) => (
                           <button
                             key={item.id}
@@ -970,11 +942,10 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                               setExportTheme(item.id);
                               setThemeDropdownOpen(false);
                             }}
-                            className={`w-full text-left px-3 py-1.5 text-[11px] font-semibold hover:bg-slate-100/50 dark:hover:bg-white/[0.04] transition-colors flex items-center justify-between ${
-                              exportTheme === item.id 
-                                ? (isLight ? 'text-amber-800 bg-amber-50/50' : 'text-amber-400 bg-amber-400/5') 
+                            className={`w-full text-left px-3 py-1.5 text-[11px] font-semibold hover:bg-slate-100/50 dark:hover:bg-white/[0.04] transition-colors flex items-center justify-between ${exportTheme === item.id
+                                ? (isLight ? 'text-amber-800 bg-amber-50/50' : 'text-amber-400 bg-amber-400/5')
                                 : ''
-                            }`}
+                              }`}
                           >
                             <span>{item.label}</span>
                             {exportTheme === item.id && <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />}
@@ -987,14 +958,12 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
 
                 {exportMode === 'WALLPAPER' && (
                   <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start relative z-20">
-                    <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${
-                      isLight ? 'text-amber-800' : 'text-amber-400/90'
-                    }`}>Posisi:</span>
-                    <div className={`flex items-center gap-2 rounded-lg border px-2 py-1 ${
-                      isLight
+                    <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${isLight ? 'text-amber-800' : 'text-amber-400/90'
+                      }`}>Posisi:</span>
+                    <div className={`flex items-center gap-2 rounded-lg border px-2 py-1 ${isLight
                         ? 'bg-white border-slate-200'
                         : 'bg-white/[0.04] border-white/10'
-                    }`}>
+                      }`}>
                       <input
                         type="range"
                         min={-48}
@@ -1005,20 +974,18 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                         className={`usas-range w-24 cursor-pointer ${isLight ? '' : 'usas-range-dark'}`}
                         aria-label="Laraskan posisi jadual pada lockscreen"
                       />
-                      <span className={`w-9 text-right text-[10px] font-semibold tabular-nums ${
-                        isLight ? 'text-slate-500' : 'text-white/55'
-                      }`}>
+                      <span className={`w-9 text-right text-[10px] font-semibold tabular-nums ${isLight ? 'text-slate-500' : 'text-white/55'
+                        }`}>
                         {currentSpacers.offset > 0 ? '+' : ''}{currentSpacers.offset}
                       </span>
                       {wallpaperYOffset !== 0 && (
                         <button
                           type="button"
                           onClick={() => setWallpaperYOffset(0)}
-                          className={`rounded p-0.5 transition-colors ${
-                            isLight
+                          className={`rounded p-0.5 transition-colors ${isLight
                               ? 'text-slate-400 hover:bg-slate-100 hover:text-slate-700'
                               : 'text-white/40 hover:bg-white/[0.08] hover:text-white/80'
-                          }`}
+                            }`}
                           aria-label="Reset posisi lockscreen"
                           title="Reset posisi"
                         >
@@ -1039,7 +1006,7 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
               ref={previewShellRef}
               data-lenis-prevent
               className={`border rounded-xl p-2 sm:p-3 bg-white overflow-x-auto overflow-y-hidden relative ${isLight ? 'border-slate-200 shadow-sm' : 'border-white/10 shadow-inner'}`}
-              style={{ 
+              style={{
                 height: previewHeight ? `${Math.ceil(previewHeight * finalScale) + 48}px` : 'auto',
                 maxHeight: 'none'
               }}
@@ -1047,9 +1014,9 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
               <div className="absolute inset-0 pointer-events-none z-30">
                 {renderFloatingZoomWidget(true)}
               </div>
-              <div 
-                style={{ 
-                  width: `${840 * finalScale}px`, 
+              <div
+                style={{
+                  width: `${840 * finalScale}px`,
                   height: `${previewHeight * finalScale}px`,
                   position: 'relative',
                   overflow: 'hidden',
@@ -1165,9 +1132,8 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
             <div className="space-y-3">
               <div
                 data-lenis-prevent
-                className={`flex py-3 rounded-xl border overflow-x-auto overflow-y-hidden relative ${
-                  isLight ? 'border-slate-200' : 'border-white/[0.04]'
-                }`}
+                className={`flex py-3 rounded-xl border overflow-x-auto overflow-y-hidden relative ${isLight ? 'border-slate-200' : 'border-white/[0.04]'
+                  }`}
                 style={{ backgroundColor: lockscreenConfig.bg }}
               >
                 <div className="absolute inset-0 pointer-events-none z-30">
@@ -1179,9 +1145,9 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                   const w = widthMap[wallpaperPreset];
                   const h = heightMap[wallpaperPreset];
                   return (
-                    <div 
-                      style={{ 
-                        width: `${w * userZoom}px`, 
+                    <div
+                      style={{
+                        width: `${w * userZoom}px`,
                         height: `${h * userZoom}px`,
                         position: 'relative',
                         overflow: 'hidden',
@@ -1208,7 +1174,7 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                         <div style={{ height: `${currentSpacers.top}px` }} className="flex-shrink-0" />
 
                         {/* Lock Screen Matrix Grid */}
-                        <div className={`border p-0 flex-1 min-h-0 flex flex-col justify-start overflow-hidden ${lockscreenConfig.gridBg}`}>
+                        <div className={`border rounded-xl p-0 flex-1 min-h-0 flex flex-col justify-start overflow-hidden ${lockscreenConfig.gridBg}`}>
                           {/* DYNAMIC SCALING WALLPAPER GRID VIEW TABLE */}
                           {(() => {
                             const style = getPresetStyle(wallpaperPreset, contentDetail);
@@ -1222,12 +1188,12 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
 
                             const wallpaperPadding = wallpaperPreset === 'phone' ? 12 : wallpaperPreset === 'square' ? 14 : 16;
                             const gridInnerWidth = w - (wallpaperPadding * 2) - 2;
-                            const colWidth = (gridInnerWidth - 48) / 9;
+                            const colWidth = (gridInnerWidth - 38) / 9;
 
                             return (
                               <table className={`w-full h-full table-fixed border-collapse ${style.tableFontSize}`}>
                                 <colgroup>
-                                  <col style={{ width: '48px' }} />
+                                  <col style={{ width: '38px' }} />
                                   {WALLPAPER_HOUR_STARTS.map((hourStart) => (
                                     <col key={hourStart} style={{ width: `${colWidth}px` }} />
                                   ))}
@@ -1237,7 +1203,7 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                                     const headerHeightPx = wallpaperPreset === 'phone' ? 14 : wallpaperPreset === 'square' ? 16 : wallpaperPreset === 'tablet' ? 20 : 18;
                                     return (
                                       <tr style={{ height: `${headerHeightPx}px` }}>
-                                        <th 
+                                        <th
                                           className={`p-0 font-black uppercase tracking-wider border-r ${lockscreenConfig.headerBorder} ${lockscreenConfig.headerText}`}
                                           style={{ height: `${headerHeightPx}px` }}
                                         >
@@ -1246,8 +1212,8 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                                           </div>
                                         </th>
                                         {WALLPAPER_HOUR_STARTS.map((hourStart) => (
-                                          <th 
-                                            key={hourStart} 
+                                          <th
+                                            key={hourStart}
                                             className={`p-0 font-black uppercase tracking-wider border-r ${lockscreenConfig.headerBorder} ${lockscreenConfig.headerText}`}
                                             style={{ height: `${headerHeightPx}px` }}
                                           >
@@ -1265,12 +1231,12 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                                     const dayColor = getModalDayColors(d, exportTheme);
                                     return (
                                       <tr key={d} style={{ height: `${rowHeightPx}px` }} className={`border-t ${lockscreenConfig.cellBorder}`}>
-                                        <td 
+                                        <td
                                           className={`p-0 font-bold border-r ${lockscreenConfig.cellBorder} ${lockscreenConfig.dayText} ${dayColor.text}`}
                                           style={{ height: `${rowHeightPx}px` }}
                                         >
-                                          <div className="w-full flex items-center justify-center text-center" style={{ height: `${rowHeightPx}px` }}>
-                                            <span>{t(`shortDays.${d?.toUpperCase()}`) || d}</span>
+                                          <div className="w-full px-1 flex items-center justify-center text-center" style={{ height: `${rowHeightPx}px` }}>
+                                            <span className="text-[10px] break-words whitespace-pre-wrap">{t(`shortDays.${d?.toUpperCase()}`) || d}</span>
                                           </div>
                                         </td>
                                         {WALLPAPER_HOUR_STARTS.map((hourStart) => {
@@ -1280,9 +1246,9 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                                           if (course) {
                                             const courseSpan = getWallpaperCourseSpan(course);
                                             return (
-                                              <td 
-                                                key={hourStart} 
-                                                colSpan={courseSpan} 
+                                              <td
+                                                key={hourStart}
+                                                colSpan={courseSpan}
                                                 className={`border-r align-middle p-0.5 overflow-visible ${lockscreenConfig.cellBorder} ${dayColor.bg} ${dayColor.border}`}
                                                 style={{ height: `${rowHeightPx}px` }}
                                               >
@@ -1315,9 +1281,8 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
         </div>
 
         {/* Footer */}
-        <div className={`p-3 sm:p-4 border-t flex flex-col sm:flex-row items-center justify-between gap-3 flex-shrink-0 ${
-          isLight ? 'border-slate-200 bg-slate-50/50' : 'border-white/[0.06] bg-[#0A1428]/95'
-        }`}>
+        <div className={`p-3 sm:p-4 border-t flex flex-col sm:flex-row items-center justify-between gap-3 flex-shrink-0 ${isLight ? 'border-slate-200 bg-slate-50/50' : 'border-white/[0.06] bg-[#0A1428]/95'
+          }`}>
           <div className="text-[10px] italic text-center sm:text-left order-2 sm:order-1 flex-1">
             <span className={isLight ? 'text-slate-500' : 'text-slate-400'}>
               {lang === 'en' ? '* For best quality, download via Chrome on a laptop/desktop.' : '* Untuk kualiti terbaik, muat turun melalui Chrome di komputer.'}
@@ -1327,11 +1292,10 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
           <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 w-full sm:w-auto order-1 sm:order-2">
             <button
               onClick={onClose}
-              className={`px-3.5 py-2 rounded-xl border text-xs font-semibold transition-all w-full sm:w-auto ${
-                isLight 
-                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200' 
+              className={`px-3.5 py-2 rounded-xl border text-xs font-semibold transition-all w-full sm:w-auto ${isLight
+                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
                   : 'bg-white/[0.04] hover:bg-white/[0.08] text-white/80 hover:text-white border-white/10'
-              }`}
+                }`}
             >
               {t('cancel')}
             </button>
@@ -1339,11 +1303,10 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
             <button
               onClick={handleDownload}
               disabled={exporting}
-              className={`px-4 py-2 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 transition-all w-full sm:w-auto ${
-                isLight 
-                  ? 'bg-[#0B1E43] hover:bg-[#152e63] text-white shadow-slate-900/10' 
+              className={`px-4 py-2 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 transition-all w-full sm:w-auto ${isLight
+                  ? 'bg-[#0B1E43] hover:bg-[#152e63] text-white shadow-slate-900/10'
                   : 'bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-amber-400/10'
-              }`}
+                }`}
             >
               {exporting ? (
                 <>
@@ -1364,11 +1327,10 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
 
       {exporting && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-md rounded-xl overflow-hidden">
-          <div className={`p-6 rounded-2xl border flex flex-col items-center justify-center gap-4 text-center max-w-xs w-full shadow-2xl transition-all duration-300 ${
-            isLight 
-              ? 'bg-white/95 border-slate-200 text-slate-900 shadow-slate-900/10' 
+          <div className={`p-6 rounded-2xl border flex flex-col items-center justify-center gap-4 text-center max-w-xs w-full shadow-2xl transition-all duration-300 ${isLight
+              ? 'bg-white/95 border-slate-200 text-slate-900 shadow-slate-900/10'
               : 'bg-[#0A1428]/95 border-white/10 text-white shadow-black/40'
-          }`}>
+            }`}>
             {/* Circular Gauge Meter */}
             <div className="relative w-24 h-24 flex items-center justify-center">
               {/* Circular SVG Gauge */}
@@ -1408,10 +1370,10 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                 {progressStatus}
               </p>
             </div>
-            
+
             {/* Simulated bar loader for secondary visual hint */}
             <div className={`w-full h-1 rounded-full overflow-hidden ${isLight ? 'bg-slate-100' : 'bg-white/[0.04]'}`}>
-              <div 
+              <div
                 className="h-full bg-gradient-to-r from-amber-500 to-amber-400 transition-all duration-300 ease-out rounded-full"
                 style={{ width: `${progress}%` }}
               />
