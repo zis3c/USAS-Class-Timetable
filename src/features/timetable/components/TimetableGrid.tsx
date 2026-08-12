@@ -164,7 +164,7 @@ export default function TimetableGrid({ attendanceRefreshToken = 0, onOpenExam }
       <ExamCountdownWidget courses={allCourses} onOpenExam={onOpenExam || (() => {})} />
 
       {/* TOP FILTER BAR */}
-      <div className={`flex-shrink-0 px-2.5 sm:px-6 py-2 sm:py-2.5 border-b transition-colors duration-150 ${
+      <div className={`flex-shrink-0 px-2.5 sm:px-6 pb-2 sm:pb-2.5 border-b transition-colors duration-150 ${
         isLight ? 'bg-white border-slate-200' : 'border-white/[0.06]'
       }`}>
         <div className="w-full flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
