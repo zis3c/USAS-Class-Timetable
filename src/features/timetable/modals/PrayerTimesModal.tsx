@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { X, Moon, Clock, Calendar as CalendarIcon, MapPin } from 'lucide-react';
+import { X, Moon, Clock, Calendar as CalendarIcon, MapPin, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useLanguage } from '@/app/providers/LanguageProvider';
 import { useTheme } from '@/app/providers/ThemeProvider';
-import { fetchPrayerTimesAPI } from '@/services/usas/usasApi';
+import { fetchPrayerTimesAPI } from '@/services/usas/Api';
 import type { WaktuSolatPrayer } from '@/shared/types/usas';
 import { formatCountdown } from '../components/PrayerTimesWidget';
+import { usePrayerZone } from '../components/PrayerTimesWidget';
 
 interface PrayerTimesModalProps {
   isOpen: boolean;
@@ -21,6 +22,92 @@ type FormattedPrayer = {
   isNext: boolean;
 };
 
+const PRAYER_ZONES = [
+  { value: 'PRK02', label: 'Kuala Kangsar (PRK02)' },
+  { value: 'WLY01', label: 'Kuala Lumpur (WLY01)' },
+  { value: 'SGR01', label: 'Shah Alam (SGR01)' },
+  { value: 'JHR04', label: 'Johor Bahru (JHR04)' },
+  { value: 'KDH01', label: 'Alor Setar (KDH01)' },
+  { value: 'KTN01', label: 'Kota Bharu (KTN01)' },
+  { value: 'MLK01', label: 'Melaka City (MLK01)' },
+  { value: 'NGS02', label: 'Seremban (NGS02)' },
+  { value: 'PHG02', label: 'Kuantan (PHG02)' },
+  { value: 'PLS01', label: 'Kangar (PLS01)' },
+  { value: 'PNG01', label: 'Pulau Pinang (PNG01)' },
+  { value: 'TRG01', label: 'K. Terengganu (TRG01)' },
+  { value: 'SBH05', label: 'Kota Kinabalu (SBH05)' },
+  { value: 'SWK08', label: 'Kuching (SWK08)' },
+];
+
+function PrayerZoneDropdown({
+  value,
+  onChange,
+  isLight,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  isLight: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleGlobalClick = () => setOpen(false);
+    window.addEventListener('click', handleGlobalClick);
+    return () => window.removeEventListener('click', handleGlobalClick);
+  }, [open]);
+
+  const selectedOption = PRAYER_ZONES.find(opt => opt.value === value);
+  const labelText = selectedOption ? selectedOption.label : value;
+
+  return (
+    <div className="relative inline-block text-left" onClick={(e) => e.stopPropagation()}>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className={`flex items-center gap-1.5 px-2 py-1 rounded-md border text-[10px] font-semibold transition-all shadow-sm justify-between max-w-[150px] sm:max-w-[180px] ${
+          isLight
+            ? 'bg-white border-amber-200 text-amber-800 hover:bg-amber-50 shadow-amber-100/50'
+            : 'bg-amber-400/10 border-amber-400/20 text-amber-200 hover:bg-amber-400/20'
+        }`}
+      >
+        <MapPin className="w-3 h-3 opacity-70" />
+        <span className="truncate">{labelText}</span>
+        <ChevronDown className={`w-3 h-3 opacity-60 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div
+          data-lenis-prevent
+          className={`absolute top-full right-0 mt-1 z-50 rounded-lg border shadow-xl max-h-48 overflow-y-auto usas-scrollbar focus:outline-none transition-all py-1 min-w-[160px] ${
+            isLight
+              ? 'bg-white border-slate-200 text-slate-800'
+              : 'bg-[#0E1B35] border-white/10 text-white'
+          }`}
+        >
+          {PRAYER_ZONES.map((opt) => (
+            <button
+              key={String(opt.value)}
+              type="button"
+              onClick={() => {
+                onChange(opt.value);
+                setOpen(false);
+              }}
+              className={`w-full text-left px-3 py-1.5 text-[11px] transition-colors ${
+                opt.value === value
+                  ? (isLight ? 'bg-amber-100 font-bold text-amber-900' : 'bg-amber-400/20 font-bold text-amber-300')
+                  : (isLight ? 'hover:bg-slate-100' : 'hover:bg-white/[0.05]')
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function PrayerTimesModal({ isOpen, onClose }: PrayerTimesModalProps) {
   const { session } = useAuth();
   const { theme } = useTheme();
@@ -28,7 +115,7 @@ export default function PrayerTimesModal({ isOpen, onClose }: PrayerTimesModalPr
   const isLight = theme === 'light';
 
   const [prayers, setPrayers] = useState<FormattedPrayer[]>([]);
-  const [location, setLocation] = useState('Kuala Kangsar (PRK02)');
+  const [zone, setZone] = usePrayerZone();
   const [now, setNow] = useState(new Date());
   const [loading, setLoading] = useState(true);
 
@@ -67,9 +154,8 @@ export default function PrayerTimesModal({ isOpen, onClose }: PrayerTimesModalPr
     let active = true;
     setLoading(true);
     
-    fetchPrayerTimesAPI(session).then((res) => {
+    fetchPrayerTimesAPI(session, zone).then((res) => {
       if (active && res?.success && res.data?.prayers) {
-        setLocation(res.location || 'Kuala Kangsar (PRK02)');
         const todayDate = new Date().getDate();
         
         // Find today's prayer object from the month's array
@@ -116,7 +202,7 @@ export default function PrayerTimesModal({ isOpen, onClose }: PrayerTimesModalPr
       setLoading(false);
     });
     return () => { active = false; };
-  }, [isOpen, session]);
+  }, [isOpen, session, zone]);
 
   // Recalculate passed/next dynamically based on current `now`
   const dynamicPrayers = React.useMemo(() => {
@@ -179,6 +265,15 @@ export default function PrayerTimesModal({ isOpen, onClose }: PrayerTimesModalPr
         </div>
 
         <div data-lenis-prevent className="p-4 sm:p-6 space-y-5 flex-1 overflow-y-auto usas-scrollbar touch-pan-y overscroll-contain">
+          {/* Header Info - ALWAYS SHOW */}
+          <div className="flex items-center justify-between gap-2">
+            <PrayerZoneDropdown value={zone} onChange={setZone} isLight={isLight} />
+            <div className={`flex items-center gap-1.5 text-[10px] font-medium ${isLight ? 'text-slate-500' : 'text-white/50'}`}>
+              <CalendarIcon className="w-3.5 h-3.5 opacity-70" />
+              <span>{now.toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+            </div>
+          </div>
+
           {loading ? (
             <div className="flex flex-col items-center justify-center py-12 gap-3 opacity-50">
               <Clock className={`w-8 h-8 animate-spin ${isLight ? 'text-amber-500' : 'text-amber-400'}`} />
@@ -188,29 +283,16 @@ export default function PrayerTimesModal({ isOpen, onClose }: PrayerTimesModalPr
             <div className="space-y-4">
               
               {/* Hero Countdown */}
-              <div className={`p-5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm ${
+              <div className={`p-5 rounded-xl border flex flex-col justify-center gap-1 shadow-sm text-center ${
                 isLight 
                   ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200/50 shadow-amber-900/5' 
                   : 'bg-gradient-to-br from-amber-500/[0.04] to-orange-500/[0.02] border-amber-500/15'
               }`}>
-                <div className="text-left flex-1">
-                  <div className={`text-[10px] font-bold uppercase tracking-wider mb-0.5 ${isLight ? 'text-amber-600/80' : 'text-amber-400/70'}`}>
-                    {nextPrayer ? `Next Prayer: ${nextPrayer.label}` : 'All Prayers Completed'}
-                  </div>
-                  <div className={`text-3xl font-black tabular-nums tracking-tight ${isLight ? 'text-amber-600' : 'text-amber-400'}`}>
-                    {nextPrayer ? formatCountdown(diffSeconds) : '--:--:--'}
-                  </div>
+                <div className={`text-[10px] font-bold uppercase tracking-wider mb-0.5 ${isLight ? 'text-amber-600/80' : 'text-amber-400/70'}`}>
+                  {nextPrayer ? `Next Prayer: ${nextPrayer.label}` : 'All Prayers Completed'}
                 </div>
-
-                <div className={`text-left sm:text-right flex flex-col gap-1.5 text-[10px] font-medium ${isLight ? 'text-amber-800' : 'text-amber-200/60'}`}>
-                  <div className="flex items-center sm:justify-end gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 opacity-70" />
-                    <span className="truncate max-w-[150px]">{location}</span>
-                  </div>
-                  <div className="flex items-center sm:justify-end gap-1.5">
-                    <CalendarIcon className="w-3.5 h-3.5 opacity-70" />
-                    <span>{now.toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                  </div>
+                <div className={`text-4xl font-black tabular-nums tracking-tight ${isLight ? 'text-amber-600' : 'text-amber-400'}`}>
+                  {nextPrayer ? formatCountdown(diffSeconds) : '--:--:--'}
                 </div>
               </div>
 

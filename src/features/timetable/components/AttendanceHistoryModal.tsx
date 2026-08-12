@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useTheme } from '@/app/providers/ThemeProvider';
-import { fetchAttendanceHistoryAPI } from '@/services/usas/usasApi';
+import { fetchAttendanceHistoryAPI } from '@/services/usas/Api';
 import type { AttendanceHistoryItem, TimetableItem } from '@/shared/types/usas';
 import { X, CalendarCheck, CheckCircle2, XCircle, RotateCw } from 'lucide-react';
 
@@ -70,23 +70,19 @@ export default function AttendanceHistoryModal({ isOpen, onClose, course, refres
   const groupDisplay = normalizeGroup(course.group || course.kumpulan || 'A');
 
   return (
-    <div data-lenis-prevent className={`fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md transition-all duration-200 touch-pan-y overscroll-contain ${
-      animate ? 'bg-slate-900/30 opacity-100' : 'bg-slate-900/0 opacity-0 pointer-events-none'
-    }`}>
-      
-      <div className={`rounded-xl w-full max-w-[92vw] sm:max-w-2xl border pt-4 px-4 sm:px-6 pb-6 relative transition-all duration-200 transform flex flex-col gap-5 min-h-0 max-h-[85dvh] sm:max-h-[90dvh] ${
-        animate ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
-      } ${
-        isLight 
-          ? 'bg-white border-slate-200 shadow-xl text-slate-800' 
-          : 'bg-[#0A1428]/95 border-white/10 text-white shadow-2xl'
+    <div data-lenis-prevent className={`fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md transition-all duration-200 touch-pan-y overscroll-contain ${animate ? 'bg-slate-900/30 opacity-100' : 'bg-slate-900/0 opacity-0 pointer-events-none'
       }`}>
+
+      <div className={`rounded-xl w-full max-w-[92vw] sm:max-w-2xl border pt-4 px-4 sm:px-6 pb-6 relative transition-all duration-200 transform flex flex-col gap-5 min-h-0 max-h-[85dvh] sm:max-h-[90dvh] ${animate ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
+        } ${isLight
+          ? 'bg-white border-slate-200 shadow-xl text-slate-800'
+          : 'bg-[#0A1428]/95 border-white/10 text-white shadow-2xl'
+        }`}>
         {/* Left-Aligned Icon Modal Header */}
         <div className="flex items-start sm:items-center justify-between gap-3 pt-0 flex-shrink-0">
           <div className="flex items-start sm:items-center gap-3 min-w-0">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md border ${
-              isLight ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-amber-400/10 border-amber-400/20 text-amber-400'
-            }`}>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md border ${isLight ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-amber-400/10 border-amber-400/20 text-amber-400'
+              }`}>
               <CalendarCheck className="w-5 h-5" />
             </div>
             <div className="text-left min-w-0">
@@ -98,9 +94,8 @@ export default function AttendanceHistoryModal({ isOpen, onClose, course, refres
           </div>
           <button
             onClick={onClose}
-            className={`flex-shrink-0 p-1.5 rounded-md transition-colors ${
-              isLight ? 'text-slate-400 hover:text-slate-600 hover:bg-slate-100' : 'text-white/30 hover:text-white hover:bg-white/[0.06]'
-            }`}
+            className={`flex-shrink-0 p-1.5 rounded-md transition-colors ${isLight ? 'text-slate-400 hover:text-slate-600 hover:bg-slate-100' : 'text-white/30 hover:text-white hover:bg-white/[0.06]'
+              }`}
           >
             <X className="w-4 h-4" />
           </button>
@@ -120,32 +115,29 @@ export default function AttendanceHistoryModal({ isOpen, onClose, course, refres
               history.map((h, i) => {
                 const isPresent = (h.status_hadir || '').toLowerCase().includes('present') || (h.status_hadir || '').toLowerCase().includes('hadir');
                 return (
-                  <div key={i} className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs transition-colors ${
-                    isLight 
-                      ? 'bg-slate-50/50 border-slate-200 hover:bg-slate-50' 
+                  <div key={i} className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs transition-colors ${isLight
+                      ? 'bg-slate-50/50 border-slate-200 hover:bg-slate-50'
                       : 'bg-white/[0.02] border-white/[0.05] hover:bg-white/[0.04]'
-                  }`}>
+                    }`}>
                     <div className="flex items-center gap-3 text-left min-w-0">
-                      <span className={`font-bold w-20 shrink-0 ${isLight ? 'text-amber-700' : 'text-amber-400'}`}>{h.minggu || `Minggu ${i+1}`}</span>
+                      <span className={`font-bold w-20 shrink-0 ${isLight ? 'text-amber-700' : 'text-amber-400'}`}>{h.minggu || `Minggu ${i + 1}`}</span>
                       <span className={`font-medium truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>{h.tarikh || '-'}</span>
                     </div>
 
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 text-left sm:text-right min-w-0">
                       <span className={`truncate max-w-[150px] sm:max-w-[180px] ${isLight ? 'text-slate-500' : 'text-white/30'}`}>{h.catatan || 'Scan QR App'}</span>
                       {isPresent ? (
-                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold border flex items-center gap-1 self-start sm:self-auto ${
-                          isLight 
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold border flex items-center gap-1 self-start sm:self-auto ${isLight
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                             : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'
-                        }`}>
+                          }`}>
                           <CheckCircle2 className="w-3 h-3" /> Hadir
                         </span>
                       ) : (
-                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold border flex items-center gap-1 self-start sm:self-auto ${
-                          isLight 
-                            ? 'bg-red-50 text-red-700 border-red-200' 
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold border flex items-center gap-1 self-start sm:self-auto ${isLight
+                            ? 'bg-red-50 text-red-700 border-red-200'
                             : 'bg-red-500/15 text-red-400 border border-red-500/20'
-                        }`}>
+                          }`}>
                           <XCircle className="w-3 h-3" /> Tidak Hadir
                         </span>
                       )}
@@ -159,11 +151,10 @@ export default function AttendanceHistoryModal({ isOpen, onClose, course, refres
 
         <button
           onClick={onClose}
-          className={`w-full py-2.5 rounded-xl font-bold text-xs transition-colors border ${
-            isLight 
-              ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200' 
+          className={`w-full py-2.5 rounded-xl font-bold text-xs transition-colors border ${isLight
+              ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
               : 'bg-white/[0.04] hover:bg-white/[0.08] text-white/80 hover:text-white border-white/10'
-          }`}
+            }`}
         >
           Tutup
         </button>

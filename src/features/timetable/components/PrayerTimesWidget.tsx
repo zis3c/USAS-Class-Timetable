@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/app/providers/AuthProvider';
-import { fetchPrayerTimesAPI, MOCK_PRAYER_TIMES } from '@/services/usas/usasApi';
+import { fetchPrayerTimesAPI, MOCK_PRAYER_TIMES } from '@/services/usas/Api';
 import type { PrayerTimeItem, WaktuSolatPrayer } from '@/shared/types/usas';
 import { playPrayerChime, sendPushNotification } from '@/shared/lib/audioNotifier';
 import { getLocalDateStamp, pruneDayScopedNotificationKeys } from '@/shared/lib/notificationKeys';
@@ -59,7 +59,7 @@ export const usePrayerAutoNotifySetting = () => {
     setEnabled(nextState);
     try {
       localStorage.setItem(PRAYER_NOTIFY_KEY, String(nextState));
-    } catch (e) {}
+    } catch (e) { }
     window.dispatchEvent(new Event(PRAYER_NOTIFY_EVENT));
 
     if (nextState && 'Notification' in window && Notification.permission !== 'granted') {
@@ -70,8 +70,55 @@ export const usePrayerAutoNotifySetting = () => {
   return [enabled, setAutoNotifyEnabled] as const;
 };
 
+export const PRAYER_ZONE_KEY = 'usas_prayer_zone';
+export const PRAYER_ZONE_EVENT = 'usas_prayer_zone_change';
+
+export const usePrayerZone = () => {
+  const [zone, setZone] = useState(() => {
+    try {
+      return localStorage.getItem(PRAYER_ZONE_KEY) || 'PRK02';
+    } catch (e) {
+      return 'PRK02';
+    }
+  });
+
+  useEffect(() => {
+    const syncSetting = () => {
+      try {
+        setZone(localStorage.getItem(PRAYER_ZONE_KEY) || 'PRK02');
+      } catch (e) {
+        setZone('PRK02');
+      }
+    };
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === PRAYER_ZONE_KEY) {
+        syncSetting();
+      }
+    };
+
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener(PRAYER_ZONE_EVENT, syncSetting);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener(PRAYER_ZONE_EVENT, syncSetting);
+    };
+  }, []);
+
+  const setPrayerZone = (newZone: string) => {
+    setZone(newZone);
+    try {
+      localStorage.setItem(PRAYER_ZONE_KEY, newZone);
+    } catch (e) { }
+    window.dispatchEvent(new Event(PRAYER_ZONE_EVENT));
+  };
+
+  return [zone, setPrayerZone] as const;
+};
+
 export function useNextPrayer() {
   const { session } = useAuth();
+  const [zone] = usePrayerZone();
   const [prayerData, setPrayerData] = useState<PrayerData>({
     times: [],
     location: 'Kuala Kangsar (PRK02)',
@@ -85,7 +132,7 @@ export function useNextPrayer() {
 
   useEffect(() => {
     let active = true;
-    fetchPrayerTimesAPI(session).then(res => {
+    fetchPrayerTimesAPI(session, zone).then(res => {
       if (active && res?.success && res.data?.prayers) {
         const flatTimes: { label: string; timestamp: number }[] = [];
         res.data.prayers.forEach((p: WaktuSolatPrayer) => {
@@ -100,20 +147,20 @@ export function useNextPrayer() {
       }
     });
     return () => { active = false; };
-  }, [session]);
+  }, [session, zone]);
 
   const currentUnix = Math.floor(now.getTime() / 1000);
-  
+
   let nextPrayer = null;
   let diffSeconds = 0;
-  
+
   for (const p of prayerData.times) {
     if (p.timestamp > currentUnix) {
       const date = new Date(p.timestamp * 1000);
       const hours = date.getHours();
       const mins = date.getMinutes();
       const content = `${hours % 12 || 12}:${mins.toString().padStart(2, '0')} ${hours >= 12 ? 'PM' : 'AM'}`;
-      
+
       nextPrayer = { label: p.label, content };
       diffSeconds = p.timestamp - currentUnix;
       break;
@@ -125,6 +172,7 @@ export function useNextPrayer() {
 
 export function PrayerTimesNotifier() {
   const { session } = useAuth();
+  const [zone] = usePrayerZone();
   const [prayerData, setPrayerData] = useState<PrayerData>({
     times: [],
     location: 'Kuala Kangsar (PRK02)',
@@ -136,7 +184,7 @@ export function PrayerTimesNotifier() {
 
   useEffect(() => {
     let active = true;
-    fetchPrayerTimesAPI(session).then(res => {
+    fetchPrayerTimesAPI(session, zone).then(res => {
       if (active && res?.success && res.data?.prayers) {
         const flatTimes: { label: string; timestamp: number }[] = [];
         res.data.prayers.forEach((p: WaktuSolatPrayer) => {
@@ -151,7 +199,7 @@ export function PrayerTimesNotifier() {
       }
     });
     return () => { active = false; };
-  }, [session]);
+  }, [session, zone]);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 30_000);
@@ -173,7 +221,7 @@ export function PrayerTimesNotifier() {
 
     prayerData.times.forEach((prayer) => {
       const label = prayer.label.toLowerCase();
-      
+
       const diff = prayer.timestamp - currentUnix;
       const notifyKey = `${dayStamp}-${label}-${prayer.timestamp}`;
       if (diff > 0 && diff <= NOTIFY_WINDOW_SECONDS && !notifiedRef.current[notifyKey]) {

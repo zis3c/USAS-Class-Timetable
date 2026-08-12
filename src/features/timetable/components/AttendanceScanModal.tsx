@@ -4,7 +4,7 @@ import { Camera, AlertTriangle, QrCode, ScanLine, X, Upload, Square, Info } from
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useLanguage } from '@/app/providers/LanguageProvider';
 import { useTheme } from '@/app/providers/ThemeProvider';
-import { scanAttendanceQrAPI } from '@/services/usas/usasApi';
+import { scanAttendanceQrAPI } from '@/services/usas/Api';
 import { sanitizeSingleLine } from '@/shared/lib/security';
 
 type AttendanceScanModalProps = {
@@ -58,9 +58,9 @@ const getCopy = (lang: string) => {
     submit: 'Send QR',
     close: 'Close',
     stop: 'Stop camera',
-      empty: 'Paste a QR value first.',
-      qrBotHintTitle: 'No QR value?',
-    };
+    empty: 'Paste a QR value first.',
+    qrBotHintTitle: 'No QR value?',
+  };
 };
 
 export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan }: AttendanceScanModalProps) {
@@ -95,7 +95,7 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
     try {
       setScanState('processing');
       setStatusMessage(lang === 'en' ? 'Analyzing image...' : 'Menganalisis imej...');
-      
+
       const img = new Image();
       const objUrl = URL.createObjectURL(file);
       await new Promise((resolve, reject) => {
@@ -324,22 +324,17 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
   const showCamera = scanState !== 'unsupported';
 
   return (
-    <div data-testid="attendance-scan-modal" className={`fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 backdrop-blur-md transition-all duration-200 touch-pan-y overscroll-contain ${
-      animate ? 'bg-slate-900/35 opacity-100' : 'bg-slate-900/0 opacity-0 pointer-events-none'
-    }`}>
-      <div className={`flex flex-col w-full max-w-[96vw] sm:max-w-md max-h-[92dvh] rounded-2xl border transition-all duration-300 transform shadow-2xl backdrop-blur-xl overflow-hidden min-h-0 ${
-        animate ? 'scale-100 opacity-100' : 'scale-[0.98] opacity-0'
-      } ${
-        isLight ? 'bg-white/95 border-slate-200 text-slate-800' : 'bg-[#0A1428]/95 border-white/[0.08] shadow-black/40 text-white'
+    <div data-testid="attendance-scan-modal" className={`fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 backdrop-blur-md transition-all duration-200 touch-pan-y overscroll-contain ${animate ? 'bg-slate-900/35 opacity-100' : 'bg-slate-900/0 opacity-0 pointer-events-none'
       }`}>
-        
-        {/* Header */}
-        <div className={`p-4 border-b flex-shrink-0 flex items-start gap-3 ${
-          isLight ? 'border-slate-200 bg-slate-50/50' : 'border-white/[0.06] bg-[#0A1428]/95'
+      <div className={`flex flex-col w-full max-w-[96vw] sm:max-w-md max-h-[92dvh] rounded-2xl border transition-all duration-300 transform shadow-2xl backdrop-blur-xl overflow-hidden min-h-0 ${animate ? 'scale-100 opacity-100' : 'scale-[0.98] opacity-0'
+        } ${isLight ? 'bg-white/95 border-slate-200 text-slate-800' : 'bg-[#0A1428]/95 border-white/[0.08] shadow-black/40 text-white'
         }`}>
-          <div className={`w-10 h-10 rounded-xl border flex items-center justify-center flex-shrink-0 ${
-            isLight ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-amber-400/10 border-amber-400/20 text-amber-300'
+
+        {/* Header */}
+        <div className={`p-4 border-b flex-shrink-0 flex items-start gap-3 ${isLight ? 'border-slate-200 bg-slate-50/50' : 'border-white/[0.06] bg-[#0A1428]/95'
           }`}>
+          <div className={`w-10 h-10 rounded-xl border flex items-center justify-center flex-shrink-0 ${isLight ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-amber-400/10 border-amber-400/20 text-amber-300'
+            }`}>
             <ScanLine className="w-5 h-5" />
           </div>
           <div className="min-w-0 flex-1">
@@ -353,9 +348,8 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
                   stopCamera();
                   onClose();
                 }}
-                className={`p-1.5 rounded-md transition-colors flex-shrink-0 ${
-                  isLight ? 'text-slate-400 hover:text-slate-700 hover:bg-slate-100' : 'text-white/30 hover:text-white hover:bg-white/[0.06]'
-                }`}
+                className={`p-1.5 rounded-md transition-colors flex-shrink-0 ${isLight ? 'text-slate-400 hover:text-slate-700 hover:bg-slate-100' : 'text-white/30 hover:text-white hover:bg-white/[0.06]'
+                  }`}
                 aria-label={copy.close}
               >
                 <X className="w-4 h-4" />
@@ -367,156 +361,147 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
         {/* Scrollable Body */}
         <div data-lenis-prevent className="p-4 flex-1 overflow-y-auto min-h-0 flex flex-col gap-4 touch-pan-y overscroll-contain">
 
-        {showCamera && (
-          <div className={`flex-shrink-0 rounded-2xl border overflow-hidden ${
-            isLight ? 'bg-slate-50 border-slate-200' : 'bg-black/40 border-white/10'
-          }`}>
-            <div className="relative h-48 sm:h-56 bg-black flex items-center justify-center">
-              <video ref={videoRef} className="absolute inset-0 h-full w-full object-cover" playsInline muted />
-              <div className="absolute inset-0 pointer-events-none bg-black/10" />
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-4">
-                <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-xl border-2 border-white/30 border-dashed" />
+          {showCamera && (
+            <div className={`flex-shrink-0 rounded-2xl border overflow-hidden ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-black/40 border-white/10'
+              }`}>
+              <div className="relative h-48 sm:h-56 bg-black flex items-center justify-center">
+                <video ref={videoRef} className="absolute inset-0 h-full w-full object-cover" playsInline muted />
+                <div className="absolute inset-0 pointer-events-none bg-black/10" />
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-4">
+                  <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-xl border-2 border-white/30 border-dashed" />
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <div className="space-y-2">
-          <div className="flex items-center gap-1.5 group relative w-max">
-            <label className={`text-[10px] font-semibold uppercase tracking-[0.2em] ${isLight ? 'text-slate-400' : 'text-white/30'}`}>
-              {copy.manualLabel}
-            </label>
-            <Info className={`w-3.5 h-3.5 ${isLight ? 'text-slate-400' : 'text-white/30'}`} />
-            
-            <div className={`absolute bottom-full left-0 mb-2 w-[280px] p-3 rounded-xl border shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 ${
-              isLight ? 'bg-white border-slate-200 text-slate-600' : 'bg-[#0f172a] border-white/10 text-white/70'
-            }`}>
-              <p className="text-xs leading-relaxed">
-                <strong className={`block mb-1 ${isLight ? 'text-slate-900' : 'text-white'}`}>{copy.qrBotHintTitle}</strong>
-                {lang === 'ms' ? (
-                  <>Hantar imej QR kepada <a href="https://t.me/PautQRBot" target="_blank" rel="noreferrer" className="text-amber-500 hover:underline font-semibold">@PautQRBot</a> di Telegram dan guna arahan <code className="bg-black/5 dark:bg-white/10 px-1 py-0.5 rounded text-[10px] font-mono">/readerqr</code> untuk mengekstrak nilai QR!</>
-                ) : (
-                  <>Send the QR image to <a href="https://t.me/PautQRBot" target="_blank" rel="noreferrer" className="text-amber-500 hover:underline font-semibold">@PautQRBot</a> on Telegram and use the <code className="bg-black/5 dark:bg-white/10 px-1 py-0.5 rounded text-[10px] font-mono">/readerqr</code> command to extract the QR value!</>
-                )}
-              </p>
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5 group relative w-max">
+              <label className={`text-[10px] font-semibold uppercase tracking-[0.2em] ${isLight ? 'text-slate-400' : 'text-white/30'}`}>
+                {copy.manualLabel}
+              </label>
+              <Info className={`w-3.5 h-3.5 ${isLight ? 'text-slate-400' : 'text-white/30'}`} />
+
+              <div className={`absolute bottom-full left-0 mb-2 w-[280px] p-3 rounded-xl border shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 ${isLight ? 'bg-white border-slate-200 text-slate-600' : 'bg-[#0f172a] border-white/10 text-white/70'
+                }`}>
+                <p className="text-xs leading-relaxed">
+                  <strong className={`block mb-1 ${isLight ? 'text-slate-900' : 'text-white'}`}>{copy.qrBotHintTitle}</strong>
+                  {lang === 'ms' ? (
+                    <>Hantar imej QR kepada <a href="https://t.me/PautQRBot" target="_blank" rel="noreferrer" className="text-amber-500 hover:underline font-semibold">@PautQRBot</a> di Telegram dan guna arahan <code className="bg-black/5 dark:bg-white/10 px-1 py-0.5 rounded text-[10px] font-mono">/readerqr</code> untuk mengekstrak nilai QR!</>
+                  ) : (
+                    <>Send the QR image to <a href="https://t.me/PautQRBot" target="_blank" rel="noreferrer" className="text-amber-500 hover:underline font-semibold">@PautQRBot</a> on Telegram and use the <code className="bg-black/5 dark:bg-white/10 px-1 py-0.5 rounded text-[10px] font-mono">/readerqr</code> command to extract the QR value!</>
+                  )}
+                </p>
+              </div>
             </div>
-          </div>
-          <div className="flex gap-2">
-          <input
-            data-testid="attendance-scan-input"
-            type="text"
-              value={manualQr}
-              onChange={(e) => setManualQr(e.target.value)}
-              placeholder={copy.manualHint}
-              className={`flex-1 min-w-0 rounded-lg border px-3 py-2 text-xs font-mono focus:outline-none ${
-                isLight
-                  ? 'bg-white border-slate-200 text-slate-700 placeholder-slate-400 focus:border-amber-400'
-                  : 'bg-white/[0.04] border-white/10 text-white placeholder-white/25 focus:border-amber-300/50'
-              }`}
-            />
-            <button
-              data-testid="attendance-scan-submit"
-              onClick={() => void submitQrValue(manualQr)}
-              className={`inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-lg px-3 sm:px-4 py-2 text-xs font-bold transition-colors flex-shrink-0 whitespace-nowrap ${
-                isLight ? 'bg-[#0B1E43] hover:bg-[#122a5b] text-white' : 'bg-amber-400 hover:bg-amber-300 text-slate-950'
-              }`}
-            >
-              <QrCode className="w-3.5 h-3.5 flex-shrink-0" />
-              <span>{copy.submit}</span>
-            </button>
-          </div>
+            <div className="flex gap-2">
+              <input
+                data-testid="attendance-scan-input"
+                type="text"
+                value={manualQr}
+                onChange={(e) => setManualQr(e.target.value)}
+                placeholder={copy.manualHint}
+                className={`flex-1 min-w-0 rounded-lg border px-3 py-2 text-xs font-mono focus:outline-none ${isLight
+                    ? 'bg-white border-slate-200 text-slate-700 placeholder-slate-400 focus:border-amber-400'
+                    : 'bg-white/[0.04] border-white/10 text-white placeholder-white/25 focus:border-amber-300/50'
+                  }`}
+              />
+              <button
+                data-testid="attendance-scan-submit"
+                onClick={() => void submitQrValue(manualQr)}
+                className={`inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-lg px-3 sm:px-4 py-2 text-xs font-bold transition-colors flex-shrink-0 whitespace-nowrap ${isLight ? 'bg-[#0B1E43] hover:bg-[#122a5b] text-white' : 'bg-amber-400 hover:bg-amber-300 text-slate-950'
+                  }`}
+              >
+                <QrCode className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>{copy.submit}</span>
+              </button>
+            </div>
 
-          <div className="flex gap-2 pt-1">
-            <button
-              data-testid="attendance-scan-upload"
-              onClick={() => fileInputRef.current?.click()}
-              className={`inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-lg px-2 sm:px-3 py-2 text-xs font-bold transition-colors border flex-1 min-w-0 ${
-                isLight
-                  ? 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
-                  : 'bg-white/[0.04] hover:bg-white/[0.08] border-white/10 text-white/80'
-              }`}
-            >
-              <Upload className="w-3.5 h-3.5 flex-shrink-0" />
-              <span className="truncate">{copy.uploadImg}</span>
-            </button>
-
-            <button
-              data-testid="attendance-scan-toggle"
-              onClick={() => {
-                if (scanState === 'scanning' || scanState === 'starting') {
-                  stopCamera();
-                  setScanState('idle');
-                  setStatusMessage(copy.ready);
-                  return;
-                }
-                void startCamera();
-              }}
-              className={`inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-lg px-2 sm:px-3 py-2 text-xs font-bold transition-colors border flex-1 min-w-0 ${
-                scanState === 'scanning' || scanState === 'starting'
-                  ? isLight
-                    ? 'bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-700'
-                    : 'bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/20 text-rose-400'
-                  : isLight
+            <div className="flex gap-2 pt-1">
+              <button
+                data-testid="attendance-scan-upload"
+                onClick={() => fileInputRef.current?.click()}
+                className={`inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-lg px-2 sm:px-3 py-2 text-xs font-bold transition-colors border flex-1 min-w-0 ${isLight
                     ? 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
                     : 'bg-white/[0.04] hover:bg-white/[0.08] border-white/10 text-white/80'
-              }`}
+                  }`}
+              >
+                <Upload className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="truncate">{copy.uploadImg}</span>
+              </button>
+
+              <button
+                data-testid="attendance-scan-toggle"
+                onClick={() => {
+                  if (scanState === 'scanning' || scanState === 'starting') {
+                    stopCamera();
+                    setScanState('idle');
+                    setStatusMessage(copy.ready);
+                    return;
+                  }
+                  void startCamera();
+                }}
+                className={`inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-lg px-2 sm:px-3 py-2 text-xs font-bold transition-colors border flex-1 min-w-0 ${scanState === 'scanning' || scanState === 'starting'
+                    ? isLight
+                      ? 'bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-700'
+                      : 'bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/20 text-rose-400'
+                    : isLight
+                      ? 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
+                      : 'bg-white/[0.04] hover:bg-white/[0.08] border-white/10 text-white/80'
+                  }`}
+              >
+                {scanState === 'scanning' || scanState === 'starting' ? <Square className="w-3 h-3 fill-current flex-shrink-0" /> : <Camera className="w-3.5 h-3.5 flex-shrink-0" />}
+                <span className="truncate">{scanState === 'scanning' || scanState === 'starting' ? copy.stop : copy.startCamera}</span>
+              </button>
+            </div>
+          </div>
+
+          <div className={`rounded-xl border px-3 py-2 text-xs leading-relaxed flex items-center gap-2 ${scanState === 'success'
+              ? isLight ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-emerald-400/10 border-emerald-400/20 text-emerald-300'
+              : scanState === 'error' || scanState === 'unsupported'
+                ? isLight ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-amber-400/10 border-amber-400/20 text-amber-300'
+                : isLight ? 'bg-slate-50 border-slate-200 text-slate-500' : 'bg-white/[0.03] border-white/10 text-white/50'
+            }`}>
+            {(scanState === 'error' || scanState === 'unsupported') && <AlertTriangle className="w-4 h-4 flex-shrink-0" />}
+            <span>{statusMessage}</span>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2">
+            <button
+              data-testid="attendance-scan-close"
+              onClick={() => {
+                stopCamera();
+                setScanState('idle');
+                setStatusMessage(copy.desc);
+                onClose();
+              }}
+              className={`w-full rounded-xl py-2.5 text-xs font-bold border transition-colors ${isLight
+                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                  : 'bg-white/[0.04] hover:bg-white/[0.08] text-white/80 border-white/10'
+                }`}
             >
-              {scanState === 'scanning' || scanState === 'starting' ? <Square className="w-3 h-3 fill-current flex-shrink-0" /> : <Camera className="w-3.5 h-3.5 flex-shrink-0" />}
-              <span className="truncate">{scanState === 'scanning' || scanState === 'starting' ? copy.stop : copy.startCamera}</span>
+              {copy.close}
+            </button>
+
+            <button
+              data-testid="attendance-scan-restart"
+              onClick={() => {
+                setManualQr('');
+                setScanState('idle');
+                setStatusMessage(copy.desc);
+                void startCamera();
+              }}
+              className={`w-full rounded-xl py-2.5 text-xs font-bold transition-colors ${isLight
+                  ? 'bg-[#0B1E43] hover:bg-[#122a5b] text-white'
+                  : 'bg-amber-400 hover:bg-amber-300 text-slate-950'
+                }`}
+            >
+              {copy.scanAgain}
             </button>
           </div>
-        </div>
 
-        <div className={`rounded-xl border px-3 py-2 text-xs leading-relaxed flex items-center gap-2 ${
-          scanState === 'success'
-            ? isLight ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-emerald-400/10 border-emerald-400/20 text-emerald-300'
-            : scanState === 'error' || scanState === 'unsupported'
-              ? isLight ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-amber-400/10 border-amber-400/20 text-amber-300'
-              : isLight ? 'bg-slate-50 border-slate-200 text-slate-500' : 'bg-white/[0.03] border-white/10 text-white/50'
-        }`}>
-          {(scanState === 'error' || scanState === 'unsupported') && <AlertTriangle className="w-4 h-4 flex-shrink-0" />}
-          <span>{statusMessage}</span>
-        </div>
+          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
+          <canvas ref={canvasRef} className="hidden" aria-hidden="true" />
 
-        <div className="flex flex-col sm:flex-row gap-2">
-          <button
-            data-testid="attendance-scan-close"
-            onClick={() => {
-              stopCamera();
-              setScanState('idle');
-              setStatusMessage(copy.desc);
-              onClose();
-            }}
-            className={`w-full rounded-xl py-2.5 text-xs font-bold border transition-colors ${
-              isLight
-                ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
-                : 'bg-white/[0.04] hover:bg-white/[0.08] text-white/80 border-white/10'
-            }`}
-          >
-            {copy.close}
-          </button>
-
-          <button
-            data-testid="attendance-scan-restart"
-            onClick={() => {
-              setManualQr('');
-              setScanState('idle');
-              setStatusMessage(copy.desc);
-              void startCamera();
-            }}
-            className={`w-full rounded-xl py-2.5 text-xs font-bold transition-colors ${
-              isLight
-                ? 'bg-[#0B1E43] hover:bg-[#122a5b] text-white'
-                : 'bg-amber-400 hover:bg-amber-300 text-slate-950'
-            }`}
-          >
-            {copy.scanAgain}
-          </button>
-        </div>
-
-        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
-        <canvas ref={canvasRef} className="hidden" aria-hidden="true" />
-        
         </div> {/* End Scrollable Body */}
       </div>
     </div>

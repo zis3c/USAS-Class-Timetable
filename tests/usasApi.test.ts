@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseFallbackJadual, parseSafeJsonResponse, selectProfileText } from '../src/services/usas/usasApi';
+import { parseFallbackJadual, parseSafeJsonResponse, selectProfileText } from '../src/services/usas/Api';
 
 describe('usas api fallback timetable parsing', () => {
   it('coerces numeric jadual values safely', () => {

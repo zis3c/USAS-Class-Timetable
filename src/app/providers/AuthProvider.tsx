@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { loginStudentAPI, fetchTimetableAPI } from '@/services/usas/usasApi';
+import { loginStudentAPI, fetchTimetableAPI } from '@/services/usas/Api';
 import type { AuthContextValue, StudentSession, TimetableData } from '@/shared/types/usas';
 import {
   evaluateLoginThrottle,
