@@ -3,7 +3,6 @@ import { useAuth } from '@/app/providers/AuthProvider';
 import { useLanguage } from '@/app/providers/LanguageProvider';
 import { useTheme } from '@/app/providers/ThemeProvider';
 import LiveNextClassWidget from './LiveNextClassWidget';
-import PrayerTimesWidget from './PrayerTimesWidget';
 import AttendanceMeter from './AttendanceMeter';
 import LecturerModal from './LecturerModal';
 import MatrixGridView from './MatrixGridView';
@@ -286,10 +285,7 @@ export default function TimetableGrid({ attendanceRefreshToken = 0, onOpenExam }
             <MatrixGridView timetable={allCourses} days={daysList} activeHighlights={activeClassKeys} />
           ) : (
             <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
-                <LiveNextClassWidget timetable={allCourses} />
-                <PrayerTimesWidget />
-              </div>
+              <LiveNextClassWidget timetable={allCourses} />
               
               {filteredCourses.length === 0 ? (
                 <div className="py-16 text-center">

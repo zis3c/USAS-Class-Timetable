@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '@/app/providers/LanguageProvider';
 import { useTheme } from '@/app/providers/ThemeProvider';
+import { useNextPrayer, formatCountdown as formatPrayerCountdown } from './PrayerTimesWidget';
 import { playClassChime, sendPushNotification } from '@/shared/lib/audioNotifier';
 import { buildDayScopedNotificationKey, getLocalDateStamp, pruneDayScopedNotificationKeys } from '@/shared/lib/notificationKeys';
-import { Clock, CheckCircle2, Bell, BellOff } from 'lucide-react';
+import { Clock, CheckCircle2, Bell, BellOff, Moon } from 'lucide-react';
 import type { TimetableItem } from '@/shared/types/usas';
 
 type LiveNextClassWidgetProps = {
@@ -25,6 +26,7 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
   });
   const notifiedRef = useRef<Record<string, boolean>>({});
   const activeDayStampRef = useRef('');
+  const { nextPrayer, diffSeconds: prayerDiff } = useNextPrayer();
 
   const isLight = theme === 'light';
 
@@ -43,7 +45,13 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
   const toggleAutoNotify = () => {
     const nextState = !autoNotifyEnabled;
     setAutoNotifyEnabled(nextState);
-    try { localStorage.setItem('usas_auto_notify', String(nextState)); } catch (e) {}
+    try { 
+      localStorage.setItem('usas_auto_notify', String(nextState)); 
+      localStorage.setItem('usas_prayer_auto_notify', String(nextState));
+    } catch (e) {}
+    
+    // Dispatch event so PrayerTimesNotifier picks it up
+    window.dispatchEvent(new Event('usas-prayer-auto-notify-changed'));
     
     if (nextState) {
       playClassChime();
@@ -135,11 +143,12 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
   /* ── No more classes today ─────────────────────────────────────────── */
   if (!ongoingClass && !nextClass) {
     return (
-      <div className={`py-2 px-3 rounded-xl border text-[10px] flex items-center gap-2 transition-all shadow-sm ${
-        isLight
-          ? 'bg-gradient-to-r from-emerald-50/70 to-teal-50/70 border-emerald-100/80 text-emerald-900 shadow-emerald-500/5'
-          : 'bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-emerald-500/20 text-emerald-300 shadow-black/10'
-      }`}>
+      <>
+        <div className={`py-2 px-3 rounded-xl border text-[10px] flex items-center gap-2 transition-all shadow-sm ${
+          isLight
+            ? 'bg-gradient-to-r from-emerald-50/70 to-teal-50/70 border-emerald-100/80 text-emerald-900 shadow-emerald-500/5'
+            : 'bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-emerald-500/20 text-emerald-300 shadow-black/10'
+        }`}>
         <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
           isLight ? 'bg-emerald-100 text-emerald-700' : 'bg-emerald-500/20 text-emerald-400'
         }`}>
@@ -166,6 +175,18 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
             : <BellOff className="w-3 h-3" />}
         </button>
       </div>
+
+      {nextPrayer && (
+        <div className={`mt-2 py-1.5 px-2.5 rounded-md border flex items-center gap-1.5 text-xs transition-colors duration-150 ${
+          isLight ? 'bg-amber-50/50 border-amber-200 text-amber-700' : 'bg-amber-400/10 border-amber-400/20 text-amber-300'
+        }`}>
+          <Moon className="w-3 h-3 flex-shrink-0" />
+          <span className="text-[9px] font-bold uppercase tracking-wider">Next Prayer:</span>
+          <span className="text-[9px] font-bold tabular-nums opacity-80">{formatPrayerCountdown(prayerDiff)}</span>
+          <span className="text-[9.5px] font-semibold truncate flex-1">{nextPrayer.label} at {nextPrayer.content}</span>
+        </div>
+      )}
+      </>
     );
   }
 
@@ -208,8 +229,21 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
             {activeCourse!.course_id}: {activeCourse!.course_name}
           </span>
         </div>
-        <div className={`text-[9px] truncate mt-0.5 ${isLight ? 'text-slate-400' : 'text-white/30'}`}>
-          {activeCourse!.location}
+        <div className="flex items-center gap-2 mt-0.5">
+          <div className={`text-[9px] truncate ${isLight ? 'text-slate-400' : 'text-white/30'}`}>
+            {activeCourse!.location}
+          </div>
+          
+          {/* Minimal Prayer Badge */}
+          {nextPrayer && (
+            <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded border text-[8.5px] ${
+              isLight ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-[#070F22] border-amber-500/20 text-amber-300'
+            }`}>
+              <Moon className="w-2.5 h-2.5" />
+              <span className="font-bold">{formatPrayerCountdown(prayerDiff)}</span>
+              <span className="opacity-80 truncate hidden sm:inline">{nextPrayer.label}</span>
+            </div>
+          )}
         </div>
       </div>
 
