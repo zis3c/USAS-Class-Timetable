@@ -251,37 +251,7 @@ export default function PrayerTimesModal({ isOpen, onClose }: PrayerTimesModalPr
     return h * 3600 + m * 60;
   };
 
-  let activeClassInfo: string | null = null;
-  if (timetableData?.timetable) {
-    let ongoingClass: any = null;
-    let nextClass: any = null;
-    let minDiff = Infinity;
 
-    timetableData.timetable.forEach((item) => {
-      const isToday = item.day?.toUpperCase() === currentDayName;
-      if (!isToday) return;
-
-      const startMin = parseTimeToMinutes(item.start_time);
-      const endMin = item.end_time ? parseTimeToMinutes(item.end_time) : startMin + 120;
-      const startSec = parseTimeToSeconds(item.start_time);
-      if (currentMinutes >= startMin && currentMinutes <= endMin) {
-        ongoingClass = item;
-      }
-      if (startSec > currentSeconds) {
-        const diff = startSec - currentSeconds;
-        if (diff < minDiff) {
-          minDiff = diff;
-          nextClass = item;
-        }
-      }
-    });
-
-    if (ongoingClass) {
-      activeClassInfo = `${ongoingClass.course_id}: ${ongoingClass.course_name}`;
-    } else if (nextClass) {
-      activeClassInfo = `${nextClass.course_id}: ${nextClass.course_name}`;
-    }
-  }
 
   if (!shouldRender) return null;
 
@@ -339,15 +309,8 @@ export default function PrayerTimesModal({ isOpen, onClose }: PrayerTimesModalPr
 
         <div data-lenis-prevent className="p-4 sm:p-6 space-y-5 flex-1 overflow-y-auto usas-scrollbar touch-pan-y overscroll-contain">
           {/* Header Info - ALWAYS SHOW */}
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <PrayerZoneDropdown value={zone} onChange={setZone} isLight={isLight} />
-              {activeClassInfo && (
-                <span className={`text-[9.5px] font-semibold truncate ${isLight ? 'text-slate-600' : 'text-white/90'}`}>
-                  {activeClassInfo}
-                </span>
-              )}
-            </div>
+          <div className="flex items-center justify-between gap-2 pb-2">
+            <PrayerZoneDropdown value={zone} onChange={setZone} isLight={isLight} />
             <div className={`flex items-center gap-1.5 text-[10px] font-medium ${isLight ? 'text-slate-500' : 'text-white/50'}`}>
               <CalendarIcon className="w-3.5 h-3.5 opacity-70" />
               <span>{now.toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric' })}</span>

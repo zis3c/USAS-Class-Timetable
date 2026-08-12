@@ -92,8 +92,6 @@ export default function PrayerToast() {
     }
   };
 
-  if (!isVisible) return null;
-
   const currentPrayerLabel = testMode ? 'Maghrib (Test)' : nextPrayer?.label;
   const currentDiffSeconds = testMode ? testSeconds : diffSeconds;
 
@@ -106,14 +104,18 @@ export default function PrayerToast() {
   const timeStr = `${String(minsLeft).padStart(2, '0')}:${String(secsLeft).padStart(2, '0')}`;
 
   return (
-    <div className={`fixed bottom-4 right-4 z-[9999] animate-in slide-in-from-bottom-5 fade-in duration-300 w-[260px] sm:w-[280px] rounded-2xl shadow-2xl border overflow-hidden backdrop-blur-2xl transition-all ${
+    <div className={`fixed bottom-4 right-4 z-[9999] transition-all duration-500 w-[260px] sm:w-[280px] rounded-2xl shadow-2xl border overflow-hidden backdrop-blur-2xl ${
+      !isVisible 
+        ? 'opacity-0 translate-y-8 scale-95 pointer-events-none'
+        : 'opacity-100 translate-y-0 scale-100'
+    } ${
       isCompleted
         ? (isLight 
             ? 'bg-emerald-500/30 border-emerald-400/50 text-emerald-900 shadow-emerald-500/20' 
             : 'bg-emerald-500/20 border-emerald-500/30 text-emerald-100 shadow-emerald-900/50')
         : (isLight
-            ? 'bg-white/60 border-slate-200 text-slate-800'
-            : 'bg-[#0A1428]/60 border-white/10 text-white')
+            ? 'bg-white/40 border-slate-200/50 text-slate-800'
+            : 'bg-[#0A1428]/40 border-white/10 text-white')
     }`}>
       <div className="p-3.5 flex items-center gap-3 relative">
         {/* Icon */}
@@ -128,7 +130,7 @@ export default function PrayerToast() {
         {/* Content */}
         <div className="flex-1 min-w-0 pr-6">
           <h4 className={`text-sm font-bold truncate ${isCompleted ? 'text-current' : (isLight ? 'text-slate-900' : 'text-white')}`}>
-            {isCompleted ? `Telah Masuk Waktu ${currentPrayerLabel}` : `Azan ${currentPrayerLabel}`}
+            {isCompleted ? currentPrayerLabel : `Azan ${currentPrayerLabel}`}
           </h4>
           <p className={`text-[11px] font-semibold mt-0.5 ${isCompleted ? 'opacity-90' : (isLight ? 'text-slate-500' : 'text-white/60')}`}>
             {isCompleted 
@@ -153,9 +155,9 @@ export default function PrayerToast() {
 
       {/* Progress Bar (Only show during countdown) */}
       {!isCompleted && (
-        <div className={`h-1 w-full relative ${isLight ? 'bg-slate-200/50' : 'bg-white/10'}`}>
+        <div className={`h-1.5 w-[calc(100%-1.5rem)] mx-auto mb-3 rounded-full relative overflow-hidden ${isLight ? 'bg-slate-200/50' : 'bg-white/10'}`}>
           <div 
-            className="absolute top-0 left-0 h-full transition-all duration-1000 ease-linear rounded-r-full"
+            className="absolute top-0 left-0 h-full transition-all duration-1000 ease-linear rounded-full"
             style={{ 
               width: `${progressPercent}%`,
               backgroundColor: `color-mix(in oklch, #10b981 ${progressPercent}%, #ef4444)` 
