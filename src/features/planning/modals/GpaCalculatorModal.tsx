@@ -190,10 +190,10 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: Gp
       }`}>
 
         {/* Modal Header */}
-        <div className={`p-4 sm:p-5 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3 flex-shrink-0 ${
+        <div className={`p-4 sm:p-5 border-b flex items-start sm:items-center justify-between gap-3 flex-shrink-0 ${
           isLight ? 'border-slate-200 bg-slate-50/50' : 'border-white/[0.06] bg-[#0A1428]/95'
         }`}>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex items-start sm:items-center gap-3 min-w-0">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border ${
               isLight ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-amber-400/10 border-amber-400/20 text-amber-400'
             }`}>
@@ -208,7 +208,7 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: Gp
           </div>
           <button
             onClick={onClose}
-            className={`self-end sm:self-auto p-2 sm:p-1.5 rounded-md transition-colors ${
+            className={`flex-shrink-0 p-1.5 rounded-md transition-colors ${
               isLight ? 'text-slate-400 hover:bg-slate-100 hover:text-slate-600' : 'text-white/30 hover:bg-white/[0.06] hover:text-white'
             }`}
           >

@@ -712,7 +712,7 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
         }`}>
 
         {/* Header */}
-        <div className={`p-3 sm:p-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 flex-shrink-0 ${isLight ? 'border-slate-200 bg-slate-50/50' : 'border-white/[0.06] bg-[#0A1428]/95'
+        <div className={`p-3 sm:p-4 border-b flex items-start sm:items-center justify-between gap-3 flex-shrink-0 ${isLight ? 'border-slate-200 bg-slate-50/50' : 'border-white/[0.06] bg-[#0A1428]/95'
           }`}>
           <div className="flex items-start sm:items-center gap-3 min-w-0">
             <img src="/usas-logo.png" alt="USAS Logo" className="w-6 h-6 sm:w-7 sm:h-7 object-contain flex-shrink-0 mt-0.5 sm:mt-0" />
@@ -725,7 +725,7 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
           </div>
           <button
             onClick={onClose}
-            className={`self-end sm:self-auto p-2 sm:p-1.5 rounded-md transition-colors ${isLight ? 'text-slate-400 hover:text-slate-600 hover:bg-slate-100' : 'text-white/30 hover:text-white hover:bg-white/[0.06]'
+            className={`flex-shrink-0 p-1.5 rounded-md transition-colors ${isLight ? 'text-slate-400 hover:text-slate-600 hover:bg-slate-100' : 'text-white/30 hover:text-white hover:bg-white/[0.06]'
               }`}
           >
             <X className="w-4 h-4" />
