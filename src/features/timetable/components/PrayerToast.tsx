@@ -53,6 +53,23 @@ export default function PrayerToast() {
     }
   }, [diffSeconds, nextPrayer, isCompleted, completedPrayerId, testMode]);
 
+  const [isHiding, setIsHiding] = useState(false);
+
+  const closeToast = () => {
+    setIsHiding(true);
+    setTimeout(() => {
+      setIsHiding(false);
+      if (testMode) {
+        setTestMode(false);
+        setIsCompleted(false);
+      }
+      if (nextPrayer) {
+        setCompletedPrayerId(nextPrayer.label);
+        setDismissedPrayerId(nextPrayer.label);
+      }
+    }, 500);
+  };
+
   // Test mode countdown
   useEffect(() => {
     if (!testMode) return;
@@ -67,29 +84,22 @@ export default function PrayerToast() {
       playPrayerChime();
       
       const timer = setTimeout(() => {
-        setIsCompleted(false);
-        setTestMode(false);
+        closeToast();
       }, 5000);
       return () => clearTimeout(timer);
     }
   }, [testMode, testSeconds, isCompleted]);
 
 
-  const isVisible = testMode || Boolean(
+  const isVisible = !isHiding && (testMode || Boolean(
     nextPrayer && 
     nextPrayer.label !== dismissedPrayerId && 
     nextPrayer.label !== completedPrayerId && 
     ((diffSeconds <= 300 && diffSeconds > 0) || isCompleted)
-  );
+  ));
 
   const handleDismiss = () => {
-    if (testMode) {
-      setTestMode(false);
-      return;
-    }
-    if (nextPrayer) {
-      setDismissedPrayerId(nextPrayer.label);
-    }
+    closeToast();
   };
 
   const currentPrayerLabel = testMode ? 'Maghrib (Test)' : nextPrayer?.label;

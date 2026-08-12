@@ -3,7 +3,7 @@ import { X, Moon, Clock, Calendar as CalendarIcon, MapPin, ChevronDown } from 'l
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useLanguage } from '@/app/providers/LanguageProvider';
 import { useTheme } from '@/app/providers/ThemeProvider';
-import { fetchPrayerTimesAPI } from '@/services/usas/Api';
+import { fetchPrayerTimesAPI } from '@/services/jakim/JakimApi';
 import type { WaktuSolatPrayer } from '@/shared/types/usas';
 import { formatCountdown } from '../components/PrayerTimesWidget';
 import { usePrayerZone } from '../components/PrayerTimesWidget';

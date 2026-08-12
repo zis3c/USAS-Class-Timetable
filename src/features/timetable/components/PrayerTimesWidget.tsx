@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/app/providers/AuthProvider';
-import { fetchPrayerTimesAPI, MOCK_PRAYER_TIMES } from '@/services/usas/Api';
+import { MOCK_PRAYER_TIMES } from '@/services/usas/Api';
+import { fetchPrayerTimesAPI } from '@/services/jakim/JakimApi';
 import type { PrayerTimeItem, WaktuSolatPrayer } from '@/shared/types/usas';
 import { playPrayerChime, sendPushNotification } from '@/shared/lib/audioNotifier';
 import { getLocalDateStamp, pruneDayScopedNotificationKeys } from '@/shared/lib/notificationKeys';
