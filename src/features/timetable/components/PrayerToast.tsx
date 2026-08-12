@@ -32,7 +32,7 @@ export default function PrayerToast() {
     return () => window.removeEventListener('test-prayer-toast', handleTest);
   }, []);
 
-  // Normal mode countdown
+  // Normal mode: detect when to start the completed state
   useEffect(() => {
     if (testMode || !nextPrayer) return;
 
@@ -43,13 +43,6 @@ export default function PrayerToast() {
     if (diffSeconds === 0 && !isCompleted && nextPrayer.label !== completedPrayerId) {
       setIsCompleted(true);
       playPrayerChime();
-      
-      const timer = setTimeout(() => {
-        setCompletedPrayerId(nextPrayer.label);
-        setIsCompleted(false);
-      }, 5000);
-      
-      return () => clearTimeout(timer);
     }
   }, [diffSeconds, nextPrayer, isCompleted, completedPrayerId, testMode]);
 
@@ -70,7 +63,7 @@ export default function PrayerToast() {
     }, 500);
   };
 
-  // Test mode countdown
+  // Test mode: countdown
   useEffect(() => {
     if (!testMode) return;
 
@@ -82,13 +75,23 @@ export default function PrayerToast() {
     if (testSeconds === 0 && !isCompleted) {
       setIsCompleted(true);
       playPrayerChime();
-      
+    }
+  }, [testMode, testSeconds, isCompleted]);
+
+  // Auto-close after 5 seconds of being completed
+  useEffect(() => {
+    if (isCompleted) {
       const timer = setTimeout(() => {
-        closeToast();
+        if (testMode) {
+          closeToast();
+        } else if (nextPrayer) {
+          setCompletedPrayerId(nextPrayer.label);
+          setIsCompleted(false);
+        }
       }, 5000);
       return () => clearTimeout(timer);
     }
-  }, [testMode, testSeconds, isCompleted]);
+  }, [isCompleted, testMode, nextPrayer]);
 
 
   const isVisible = !isHiding && (testMode || Boolean(
