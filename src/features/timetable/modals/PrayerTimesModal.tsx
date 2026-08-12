@@ -84,10 +84,7 @@ export default function PrayerTimesModal({ isOpen, onClose }: PrayerTimesModalPr
           };
 
           const raw = [
-            { id: 'imsak', label: 'Imsak', unix: todayPrayers.imsak },
             { id: 'fajr', label: 'Subuh', unix: todayPrayers.fajr },
-            { id: 'syuruk', label: 'Syuruk', unix: todayPrayers.syuruk },
-            { id: 'dhuha', label: 'Dhuha', unix: todayPrayers.dhuha },
             { id: 'dhuhr', label: 'Zohor', unix: todayPrayers.dhuhr },
             { id: 'asr', label: 'Asar', unix: todayPrayers.asr },
             { id: 'maghrib', label: 'Maghrib', unix: todayPrayers.maghrib },
@@ -218,7 +215,7 @@ export default function PrayerTimesModal({ isOpen, onClose }: PrayerTimesModalPr
               </div>
 
               {/* Minimalist Prayer Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
                 {dynamicPrayers.map((prayer) => (
                   <div 
                     key={prayer.id}

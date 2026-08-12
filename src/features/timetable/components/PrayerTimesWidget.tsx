@@ -89,10 +89,7 @@ export function useNextPrayer() {
       if (active && res?.success && res.data?.prayers) {
         const flatTimes: { label: string; timestamp: number }[] = [];
         res.data.prayers.forEach((p: WaktuSolatPrayer) => {
-          flatTimes.push({ label: 'Imsak', timestamp: p.imsak });
           flatTimes.push({ label: 'Subuh', timestamp: p.fajr });
-          flatTimes.push({ label: 'Syuruk', timestamp: p.syuruk });
-          flatTimes.push({ label: 'Dhuha', timestamp: p.dhuha });
           flatTimes.push({ label: 'Zohor', timestamp: p.dhuhr });
           flatTimes.push({ label: 'Asar', timestamp: p.asr });
           flatTimes.push({ label: 'Maghrib', timestamp: p.maghrib });
