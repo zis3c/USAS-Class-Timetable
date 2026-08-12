@@ -3,7 +3,7 @@ import { useAuth } from '@/app/providers/AuthProvider';
 import { useLanguage } from '@/app/providers/LanguageProvider';
 import { useTheme } from '@/app/providers/ThemeProvider';
 import { 
-  X, Download, QrCode, Users,
+  X, Download, QrCode, Users, Moon,
   GraduationCap, LogOut, MessageCircle, Calculator, Calendar, ScanLine, Bell, FileText
 } from 'lucide-react';
 import { useNotification } from '@/app/providers/NotificationProvider';
@@ -17,6 +17,7 @@ interface ToolsDrawerProps {
   onOpenCompare: () => void;
   onOpenAttendanceScan: () => void;
   onOpenGpa: () => void;
+  onOpenPrayerTimes: () => void;
   onOpenLogout: () => void;
 }
 
@@ -28,6 +29,7 @@ export default function ToolsDrawer({
   onOpenCompare,
   onOpenAttendanceScan,
   onOpenGpa,
+  onOpenPrayerTimes,
   onOpenLogout,
 }: ToolsDrawerProps) {
   const { session, timetableData } = useAuth();
@@ -212,6 +214,21 @@ export default function ToolsDrawer({
               <div className="text-xs font-semibold">{t('gpaBtn')}</div>
               <div className={`text-[10px] ${isLight ? 'text-slate-400' : 'text-white/25'}`}>
                 {lang === 'ms' ? 'Kira anggaran GPA & sasaran keputusan semester' : lang === 'zh' ? '估算学期 GPA 与目标成绩' : lang === 'ta' ? 'GPA மற்றும் கல்வி இலக்குகளைக் கணக்கிடுங்கள்' : 'Estimate GPA & academic semester target goals'}
+              </div>
+            </div>
+          </button>
+
+          <button
+            onClick={onOpenPrayerTimes}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors text-left ${
+              isLight ? 'hover:bg-slate-50 text-slate-700 hover:text-slate-900' : 'hover:bg-white/[0.04] text-white/70 hover:text-white'
+            }`}
+          >
+            <Moon className={`w-4 h-4 ${isLight ? 'text-amber-600' : 'text-amber-400/60'}`} />
+            <div>
+              <div className="text-xs font-semibold">Waktu Solat</div>
+              <div className={`text-[10px] ${isLight ? 'text-slate-400' : 'text-white/25'}`}>
+                {lang === 'ms' ? 'Jadual waktu solat harian' : 'Daily prayer times schedule'}
               </div>
             </div>
           </button>

@@ -20,7 +20,7 @@ const ToolsDrawer = lazy(() => import('@/app/shell/ToolsDrawer'));
 const GpaCalculatorModal = lazy(() => import('@/features/planning/modals/GpaCalculatorModal'));
 const AttendanceScanModal = lazy(() => import('@/features/timetable/components/AttendanceScanModal'));
 const CompareScheduleModal = lazy(() => import('@/features/sharing/modals/CompareScheduleModal'));
-
+const PrayerTimesModal = lazy(() => import('@/features/timetable/modals/PrayerTimesModal'));
 const SITE_NAME = 'USAS Class Timetable';
 const SITE_DESCRIPTION = 'Official and independent student schedule portal for Universiti Sultan Azlan Shah (USAS) to preview, format, and export class timetables into calendar feeds (.ICS), printable A4 PDFs, and lockscreen wallpapers.';
 const SITE_IMAGE = '/seo-preview.svg';
@@ -78,6 +78,7 @@ function MainContent() {
 
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
   const [isExamModalOpen, setIsExamModalOpen] = useState(false);
+  const [isPrayerTimesOpen, setIsPrayerTimesOpen] = useState(false);
   const [isAttendanceScanOpen, setIsAttendanceScanOpen] = useState(false);
   const [attendanceRefreshToken, setAttendanceRefreshToken] = useState(0);
   const [isGpaModalOpen, setIsGpaModalOpen] = useState(false);
@@ -287,11 +288,13 @@ function MainContent() {
           onOpenAttendanceScan={() => { setIsAttendanceScanOpen(true); }}
           onOpenCompare={() => { setIsCompareScheduleOpen(true); }}
           onOpenGpa={() => { setIsGpaModalOpen(true); }}
+          onOpenPrayerTimes={() => { setIsPrayerTimesOpen(true); }}
           onOpenLogout={() => { setIsLogoutModalOpen(true); }}
         />
 
         {/* Modals */}
         <PdfExportModal isOpen={isPdfModalOpen} onClose={() => setIsPdfModalOpen(false)} />
+        <PrayerTimesModal isOpen={isPrayerTimesOpen} onClose={() => setIsPrayerTimesOpen(false)} />
         <ExamScheduleModal isOpen={isExamModalOpen} onClose={() => setIsExamModalOpen(false)} courses={timetableData?.timetable || []} />
         <AttendanceScanModal
           isOpen={isAttendanceScanOpen}
