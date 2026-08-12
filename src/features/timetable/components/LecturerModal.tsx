@@ -90,25 +90,27 @@ export default function LecturerModal({ lecturerName, isOpen, onClose }: Lecture
           ? 'bg-white border-slate-200 shadow-xl text-slate-800' 
           : 'bg-[#0A1428]/95 border-white/10 text-white shadow-2xl'
       }`}>
-        <button
-          onClick={onClose}
-          className={`absolute top-4 right-4 p-2 rounded-md transition-colors ${
-            isLight ? 'text-slate-400 hover:text-slate-600 hover:bg-slate-100' : 'text-white/30 hover:text-white hover:bg-white/[0.06]'
-          }`}
-        >
-          <X className="w-4 h-4" />
-        </button>
-
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-0">
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md border ${
-            isLight ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-amber-400/10 border-amber-400/20 text-amber-400'
-          }`}>
-            <User className="w-6 h-6" />
+        {/* Left-Aligned Icon Modal Header */}
+        <div className="flex items-start sm:items-center justify-between gap-3 pt-0 flex-shrink-0">
+          <div className="flex items-start sm:items-center gap-3 min-w-0">
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md border ${
+              isLight ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-amber-400/10 border-amber-400/20 text-amber-400'
+            }`}>
+              <User className="w-6 h-6" />
+            </div>
+            <div className="text-left min-w-0">
+              <h3 className={`text-sm sm:text-base font-bold leading-tight truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>{sanitizeTextForShare(cachedName, 160)}</h3>
+              <p className={`text-[11px] sm:text-xs font-semibold truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>Pensyarah Universiti Sultan Azlan Shah</p>
+            </div>
           </div>
-          <div className="text-left min-w-0">
-            <h3 className={`text-base font-bold leading-tight truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>{sanitizeTextForShare(cachedName, 160)}</h3>
-            <p className={`text-xs font-semibold truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>Pensyarah Universiti Sultan Azlan Shah</p>
-          </div>
+          <button
+            onClick={onClose}
+            className={`flex-shrink-0 p-1.5 rounded-md transition-colors ${
+              isLight ? 'text-slate-400 hover:text-slate-600 hover:bg-slate-100' : 'text-white/30 hover:text-white hover:bg-white/[0.06]'
+            }`}
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
         <div className={`space-y-3 text-xs p-4 rounded-xl border shadow-inner ${

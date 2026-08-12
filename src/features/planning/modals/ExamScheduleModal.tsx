@@ -66,40 +66,41 @@ export default function ExamScheduleModal({ isOpen, onClose, courses = [] }) {
           ? 'bg-white border-slate-200 shadow-xl text-slate-800' 
           : 'bg-[#0A1428]/95 border-white/10 text-white shadow-2xl'
       }`}>
-        <button
-          onClick={onClose}
-          className={`absolute top-4 right-4 p-2 rounded-md transition-colors ${
-            isLight ? 'text-slate-400 hover:text-slate-600 hover:bg-slate-100' : 'text-white/30 hover:text-white hover:bg-white/[0.06]'
-          }`}
-        >
-          <X className="w-4 h-4" />
-        </button>
-
         {/* Modal Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border ${
-            isLight ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-amber-400/10 border-amber-400/20 text-amber-400'
-          }`}>
-            <FileText className="w-5 h-5" />
+        <div className="flex items-start sm:items-center justify-between gap-3 flex-shrink-0">
+          <div className="flex items-start sm:items-center gap-3 min-w-0">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border ${
+              isLight ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-amber-400/10 border-amber-400/20 text-amber-400'
+            }`}>
+              <FileText className="w-5 h-5" />
+            </div>
+            <div className="text-left min-w-0">
+              <h3 className={`text-sm sm:text-base font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>Jadual Peperiksaan Akhir USAS</h3>
+              <p className={`text-[11px] sm:text-xs font-semibold truncate ${isLight ? 'text-amber-650' : 'text-amber-400/90'}`}>Semakan Tarikh, Dewan Peperiksaan & Nombor Meja</p>
+            </div>
           </div>
-          <div className="text-left min-w-0">
-            <h3 className={`text-base font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>Jadual Peperiksaan Akhir USAS</h3>
-            <p className={`text-xs font-semibold truncate ${isLight ? 'text-amber-650' : 'text-amber-400/90'}`}>Semakan Tarikh, Dewan Peperiksaan & Nombor Meja</p>
-          </div>
+          <button
+            onClick={onClose}
+            className={`flex-shrink-0 p-1.5 rounded-md transition-colors ${
+              isLight ? 'text-slate-400 hover:text-slate-600 hover:bg-slate-100' : 'text-white/30 hover:text-white hover:bg-white/[0.06]'
+            }`}
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
         {/* Exam Cards List */}
         <div data-lenis-prevent className="space-y-3 overflow-y-auto flex-1 min-h-0 pr-1 usas-scrollbar touch-pan-y overscroll-contain">
           {examList.map((e, idx) => (
-            <div key={idx} className={`p-4 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-sm transition-all ${
+            <div key={idx} className={`p-3 sm:p-4 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-3 shadow-sm transition-all ${
               isLight 
                 ? 'bg-slate-50/50 border-slate-200 hover:bg-slate-50' 
                 : 'bg-white/[0.02] border-white/[0.05] hover:bg-white/[0.04]'
             }`}>
               <div className="space-y-1 text-left min-w-0">
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className={`font-bold text-xs ${isLight ? 'text-amber-700' : 'text-amber-400'}`}>{e.id}</span>
-                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${
+                  <span className={`font-bold text-[11px] sm:text-xs ${isLight ? 'text-amber-700' : 'text-amber-400'}`}>{e.id}</span>
+                  <span className={`px-2 py-0.5 rounded-md text-[9px] sm:text-[10px] font-bold border ${
                     isLight 
                       ? 'bg-amber-50 text-amber-800 border-amber-200' 
                       : 'bg-amber-400/10 text-amber-300 border-amber-400/20'
@@ -107,18 +108,18 @@ export default function ExamScheduleModal({ isOpen, onClose, courses = [] }) {
                     {e.seatNo}
                   </span>
                 </div>
-                <h4 className={`text-sm font-semibold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>{e.name}</h4>
-                <div className={`text-xs font-medium flex flex-wrap items-center gap-x-3 gap-y-1 ${isLight ? 'text-slate-400' : 'text-white/40'}`}>
-                  <span className="flex items-center gap-1 min-w-0"><Calendar className={`w-3.5 h-3.5 flex-shrink-0 ${isLight ? 'text-amber-655' : 'text-amber-400/70'}`} /> <span className="truncate">{e.date}</span></span>
-                  <span className="flex items-center gap-1 min-w-0"><Clock className={`w-3.5 h-3.5 flex-shrink-0 ${isLight ? 'text-amber-655' : 'text-amber-400/70'}`} /> <span className="truncate">{e.time}</span></span>
+                <h4 className={`text-[13px] sm:text-sm font-semibold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>{e.name}</h4>
+                <div className={`text-[11px] sm:text-xs font-medium flex flex-wrap items-center gap-x-2.5 gap-y-1 ${isLight ? 'text-slate-400' : 'text-white/40'}`}>
+                  <span className="flex items-center gap-1 min-w-0"><Calendar className={`w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0 ${isLight ? 'text-amber-655' : 'text-amber-400/70'}`} /> <span className="truncate">{e.date}</span></span>
+                  <span className="flex items-center gap-1 min-w-0"><Clock className={`w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0 ${isLight ? 'text-amber-655' : 'text-amber-400/70'}`} /> <span className="truncate">{e.time}</span></span>
                 </div>
               </div>
 
-              <div className="text-right flex flex-col sm:flex-row md:flex-col justify-between items-start sm:items-center md:items-end gap-1">
-                <div className={`text-xs font-semibold flex items-center gap-1 ${isLight ? 'text-slate-700' : 'text-white/70'}`}>
-                  <MapPin className={`w-3.5 h-3.5 ${isLight ? 'text-sky-655' : 'text-sky-400/70'}`} /> {e.venue}
+              <div className="text-right flex items-center justify-start md:justify-end gap-2.5 mt-2 md:mt-0 flex-shrink-0">
+                <div className={`text-[11px] sm:text-xs font-semibold flex items-center gap-1 ${isLight ? 'text-slate-700' : 'text-white/70'}`}>
+                  <MapPin className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${isLight ? 'text-sky-655' : 'text-sky-400/70'}`} /> {e.venue}
                 </div>
-                <div className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border mt-1 flex-shrink-0 ${
+                <div className={`text-[10px] sm:text-[11px] font-semibold px-2 py-1 rounded-full border flex-shrink-0 ${
                   isLight 
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
                     : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'

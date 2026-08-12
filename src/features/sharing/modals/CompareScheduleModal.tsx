@@ -274,10 +274,8 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
         }`}
       >
         {/* Header */}
-        <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 border-b shrink-0 ${
-          isLight ? 'border-slate-200 bg-slate-50/50' : 'border-white/[0.06] bg-[#0A1428]/95'
-        }`}>
-          <div className="flex items-center gap-3">
+        <div className={`p-4 sm:p-5 border-b flex justify-between items-start sm:items-center gap-3 flex-shrink-0 ${isLight ? 'bg-slate-50/50 border-slate-200' : 'bg-[#0A1428]/95 border-white/[0.06]'}`}>
+          <div className="flex items-start sm:items-center gap-3 min-w-0">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border shadow-sm ${
               isLight ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
             }`}>
@@ -289,16 +287,16 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
                 <FileText className="w-5 h-5" />
               )}
             </div>
-            <div className="text-left min-w-0 pr-4">
-              <h3 className={`text-base font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>
+            <div className="text-left min-w-0">
+              <h3 className={`text-sm sm:text-base font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>
                 {lang === 'ms' ? 'Banding / Kongsi Jadual' : 'Compare / Share Schedule'}
               </h3>
-              <p className={`text-xs font-semibold truncate ${isLight ? 'text-amber-600' : 'text-amber-400/80'}`}>
+              <p className={`text-[11px] sm:text-xs font-semibold truncate ${isLight ? 'text-amber-600' : 'text-amber-400/80'}`}>
                 {lang === 'ms' ? 'Imbas QR kawan atau kongsi jadual anda' : 'Scan friend\'s QR or share your schedule'}
               </p>
             </div>
           </div>
-          <button onClick={onClose} className={`absolute top-4 right-4 sm:relative sm:top-0 sm:right-0 p-2 rounded-md transition-colors ${isLight ? 'text-slate-400 hover:text-slate-700 hover:bg-slate-100' : 'text-white/30 hover:text-white hover:bg-white/[0.06]'}`}>
+          <button onClick={onClose} className={`flex-shrink-0 p-1.5 rounded-md transition-colors ${isLight ? 'text-slate-400 hover:text-slate-700 hover:bg-slate-100' : 'text-white/30 hover:text-white hover:bg-white/[0.06]'}`}>
             <X className="w-4 h-4" />
           </button>
         </div>

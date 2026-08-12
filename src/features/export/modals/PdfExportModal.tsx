@@ -736,7 +736,7 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
         <div data-lenis-prevent className="p-3 sm:p-4 flex-1 min-h-0 overflow-y-auto space-y-3.5 sm:space-y-4 touch-pan-y overscroll-contain">
 
           {/* Main Mode Tabs */}
-          <div className={`grid grid-cols-1 sm:grid-cols-2 gap-2 p-1 rounded-xl border ${isLight ? 'bg-slate-100 border-slate-200' : 'bg-white/[0.03] border-white/[0.04]'
+          <div className={`grid grid-cols-2 gap-2 p-1 rounded-xl border ${isLight ? 'bg-slate-100 border-slate-200' : 'bg-white/[0.03] border-white/[0.04]'
             }`}>
             <button
               onClick={() => setExportMode('FORMAL_A4')}
@@ -745,8 +745,8 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                   : (isLight ? 'text-slate-500 hover:text-slate-800' : 'text-white/40 hover:text-white')
                 }`}
             >
-              <FileBadge className="w-3.5 h-3.5" />
-              <span className="truncate">Formal</span>
+              <FileBadge className="w-4 h-4 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
+              <span className="hidden sm:inline truncate">Formal</span>
             </button>
 
             <button
@@ -756,8 +756,8 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                   : (isLight ? 'text-slate-500 hover:text-slate-800' : 'text-white/40 hover:text-white')
                 }`}
             >
-              <Smartphone className="w-3.5 h-3.5" />
-              <span className="truncate">Wallpaper Lockscreen</span>
+              <Smartphone className="w-4 h-4 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
+              <span className="hidden sm:inline truncate">Wallpaper Lockscreen</span>
             </button>
           </div>
 
@@ -1289,10 +1289,10 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
             </span>
           </div>
 
-          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 w-full sm:w-auto order-1 sm:order-2">
+          <div className="flex flex-row items-center justify-end gap-2 w-full sm:w-auto order-1 sm:order-2">
             <button
               onClick={onClose}
-              className={`px-3.5 py-2 rounded-xl border text-xs font-semibold transition-all w-full sm:w-auto ${isLight
+              className={`px-3.5 py-2 rounded-xl border text-xs font-semibold transition-all flex-1 sm:flex-none text-center ${isLight
                   ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
                   : 'bg-white/[0.04] hover:bg-white/[0.08] text-white/80 hover:text-white border-white/10'
                 }`}
@@ -1303,20 +1303,20 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
             <button
               onClick={handleDownload}
               disabled={exporting}
-              className={`px-4 py-2 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 transition-all w-full sm:w-auto ${isLight
+              className={`px-4 sm:px-4 py-2 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 transition-all flex-1 sm:flex-none ${isLight
                   ? 'bg-[#0B1E43] hover:bg-[#152e63] text-white shadow-slate-900/10'
                   : 'bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-amber-400/10'
                 }`}
             >
               {exporting ? (
                 <>
-                  <RotateCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>{lang === 'en' ? 'Generating...' : 'Menjana...'}</span>
+                  <RotateCw className="w-4 h-4 sm:w-3.5 sm:h-3.5 animate-spin flex-shrink-0" />
+                  <span className="hidden sm:inline truncate">{lang === 'en' ? 'Generating...' : 'Menjana...'}</span>
                 </>
               ) : (
                 <>
-                  <Download className="w-3.5 h-3.5" />
-                  <span>{lang === 'en' ? 'Download' : 'Muat Turun'}</span>
+                  <Download className="w-4 h-4 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
+                  <span className="hidden sm:inline truncate">{lang === 'en' ? 'Download' : 'Muat Turun'}</span>
                 </>
               )}
             </button>

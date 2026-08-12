@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useTheme } from '@/app/providers/ThemeProvider';
 import { fetchAttendanceHistoryAPI } from '@/services/usas/usasApi';
@@ -81,28 +81,29 @@ export default function AttendanceHistoryModal({ isOpen, onClose, course, refres
           ? 'bg-white border-slate-200 shadow-xl text-slate-800' 
           : 'bg-[#0A1428]/95 border-white/10 text-white shadow-2xl'
       }`}>
-        <button
-          onClick={onClose}
-          className={`absolute top-4 right-4 p-2 rounded-md transition-colors ${
-            isLight ? 'text-slate-400 hover:text-slate-600 hover:bg-slate-100' : 'text-white/30 hover:text-white hover:bg-white/[0.06]'
-          }`}
-        >
-          <X className="w-4 h-4" />
-        </button>
-
         {/* Left-Aligned Icon Modal Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-0">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md border ${
-            isLight ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-amber-400/10 border-amber-400/20 text-amber-400'
-          }`}>
-            <CalendarCheck className="w-5 h-5" />
+        <div className="flex items-start sm:items-center justify-between gap-3 pt-0 flex-shrink-0">
+          <div className="flex items-start sm:items-center gap-3 min-w-0">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md border ${
+              isLight ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-amber-400/10 border-amber-400/20 text-amber-400'
+            }`}>
+              <CalendarCheck className="w-5 h-5" />
+            </div>
+            <div className="text-left min-w-0">
+              <h3 className={`text-sm sm:text-base font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>Laporan Kehadiran Mingguan (Week 1 - 14)</h3>
+              <p className={`text-[11px] sm:text-xs font-semibold truncate ${isLight ? 'text-amber-750' : 'text-amber-400/90'}`}>
+                {course.course_id || course.kod_kursus} ({groupDisplay}): {course.course_name || course.kursus}
+              </p>
+            </div>
           </div>
-          <div className="text-left min-w-0">
-            <h3 className={`text-base font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>Laporan Kehadiran Mingguan (Week 1 - 14)</h3>
-            <p className={`text-xs font-semibold truncate ${isLight ? 'text-amber-750' : 'text-amber-400/90'}`}>
-              {course.course_id || course.kod_kursus} ({groupDisplay}): {course.course_name || course.kursus}
-            </p>
-          </div>
+          <button
+            onClick={onClose}
+            className={`flex-shrink-0 p-1.5 rounded-md transition-colors ${
+              isLight ? 'text-slate-400 hover:text-slate-600 hover:bg-slate-100' : 'text-white/30 hover:text-white hover:bg-white/[0.06]'
+            }`}
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
         {/* Attendance List (uses themed custom-scrollbar) */}
