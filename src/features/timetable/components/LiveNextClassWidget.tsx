@@ -26,7 +26,7 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
   });
   const notifiedRef = useRef<Record<string, boolean>>({});
   const activeDayStampRef = useRef('');
-  const { nextPrayer, diffSeconds: prayerDiff } = useNextPrayer();
+  const { nextPrayer, diffSeconds: prayerDiff, location } = useNextPrayer();
 
   const isLight = theme === 'light';
 
@@ -177,15 +177,31 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
       </div>
 
       {nextPrayer && (
-        <div 
-          title={`Next Prayer: ${nextPrayer.label} at ${nextPrayer.content}`}
-          className={`mt-2 py-1.5 px-2.5 rounded-md border flex items-center gap-1.5 text-xs transition-colors duration-150 ${
-          isLight ? 'bg-amber-50/50 border-amber-200 text-amber-700' : 'bg-amber-400/10 border-amber-400/20 text-amber-300'
-        }`}>
-          <Moon className="w-3 h-3 flex-shrink-0" />
-          <span className="text-[9px] font-bold uppercase tracking-wider">Next Prayer:</span>
-          <span className="text-[9px] font-bold tabular-nums opacity-80">{formatPrayerCountdown(prayerDiff)}</span>
-          <span className="text-[9.5px] font-semibold truncate flex-1">{nextPrayer.label} at {nextPrayer.content}</span>
+        <div className="group relative mt-2">
+          <div className={`py-1.5 px-2.5 rounded-md border flex items-center gap-1.5 text-xs transition-colors duration-150 cursor-help ${
+            isLight ? 'bg-amber-50/50 border-amber-200 text-amber-700' : 'bg-amber-400/10 border-amber-400/20 text-amber-300'
+          }`}>
+            <Moon className="w-3 h-3 flex-shrink-0" />
+            <span className="text-[9px] font-bold uppercase tracking-wider flex-shrink-0">Next Prayer:</span>
+            <span className="text-[9px] font-bold tabular-nums opacity-80 flex-shrink-0">{formatPrayerCountdown(prayerDiff)}</span>
+            <span className="text-[9.5px] font-semibold truncate flex-1">{nextPrayer.label} at {nextPrayer.content}</span>
+          </div>
+          
+          <div className="absolute top-full left-0 mt-2 w-56 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+            <div className={`p-2.5 rounded-lg shadow-xl border text-left ${
+              isLight ? 'bg-white border-amber-100 shadow-amber-900/5' : 'bg-slate-900 border-amber-500/20 shadow-black/40'
+            }`}>
+              <div className={`font-semibold text-xs mb-1 ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
+                {nextPrayer.label} at {nextPrayer.content}
+              </div>
+              <div className={`text-[10px] mb-1.5 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                {location}
+              </div>
+              <div className={`text-[8.5px] uppercase tracking-wider font-bold ${isLight ? 'text-amber-600' : 'text-amber-500'}`}>
+                Powered by API Waktu Solat JAKIM
+              </div>
+            </div>
+          </div>
         </div>
       )}
       </>
@@ -238,14 +254,30 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
           
           {/* Minimal Prayer Badge */}
           {nextPrayer && (
-            <div 
-              title={`Next Prayer: ${nextPrayer.label} at ${nextPrayer.content}`}
-              className={`flex items-center gap-1 px-1.5 py-0.5 rounded border text-[8.5px] ${
-              isLight ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-[#070F22] border-amber-500/20 text-amber-300'
-            }`}>
-              <Moon className="w-2.5 h-2.5" />
-              <span className="font-bold">{formatPrayerCountdown(prayerDiff)}</span>
-              <span className="opacity-80 truncate hidden sm:inline">{nextPrayer.label}</span>
+            <div className="group relative">
+              <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded border text-[8.5px] cursor-help ${
+                isLight ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-[#070F22] border-amber-500/20 text-amber-300'
+              }`}>
+                <Moon className="w-2.5 h-2.5 flex-shrink-0" />
+                <span className="font-bold flex-shrink-0">{formatPrayerCountdown(prayerDiff)}</span>
+                <span className="opacity-80 truncate hidden sm:inline flex-1">{nextPrayer.label}</span>
+              </div>
+              
+              <div className="absolute top-full right-0 mt-2 w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div className={`p-2 rounded-lg shadow-xl border text-left ${
+                  isLight ? 'bg-white border-amber-100 shadow-amber-900/5' : 'bg-slate-900 border-amber-500/20 shadow-black/40'
+                }`}>
+                  <div className={`font-semibold text-xs mb-1 ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
+                    {nextPrayer.label} at {nextPrayer.content}
+                  </div>
+                  <div className={`text-[9px] mb-1.5 leading-snug ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                    {location}
+                  </div>
+                  <div className={`text-[8px] uppercase tracking-wider font-bold ${isLight ? 'text-amber-600' : 'text-amber-500'}`}>
+                    Powered by API Waktu Solat JAKIM
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>
