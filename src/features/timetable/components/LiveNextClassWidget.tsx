@@ -214,12 +214,12 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
           )}
         </div>
         <div className="flex items-center gap-1.5 mt-0.5 leading-none">
+          <span className={`text-[9.5px] font-bold truncate ${isLight ? 'text-slate-800' : 'text-white/90'}`}>
+            {activeCourse!.course_id}: {activeCourse!.course_name}
+          </span>
           <div className={`text-[9px] truncate flex-shrink-0 ${isLight ? 'text-slate-400' : 'text-white/30'}`}>
             {activeCourse!.location}
           </div>
-          <span className={`text-[9.5px] font-semibold truncate ${isLight ? 'text-slate-700' : 'text-white/80'}`}>
-            • {activeCourse!.course_id}: {activeCourse!.course_name}
-          </span>
         </div>
       </div>
 

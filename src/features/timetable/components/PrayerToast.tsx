@@ -3,6 +3,7 @@ import { useNextPrayer } from './PrayerTimesWidget';
 import { useTheme } from '@/app/providers/ThemeProvider';
 import { X, Moon } from 'lucide-react';
 import { useLanguage } from '@/app/providers/LanguageProvider';
+import { playPrayerChime } from '@/shared/lib/audioNotifier';
 
 export default function PrayerToast() {
   const { theme } = useTheme();
@@ -11,39 +12,9 @@ export default function PrayerToast() {
   
   const { nextPrayer, diffSeconds } = useNextPrayer();
 
-  // Track if user manually dismissed for this specific prayer
   const [dismissedPrayerId, setDismissedPrayerId] = useState<string | null>(null);
-  
-  // Track if we've completed the 5 sec green state for this prayer
   const [completedPrayerId, setCompletedPrayerId] = useState<string | null>(null);
-  
-  // Local state for the "green" completion mode
   const [isCompleted, setIsCompleted] = useState(false);
-
-  // If nextPrayer changes, reset completion state if it's a new prayer
-  useEffect(() => {
-    if (nextPrayer && nextPrayer.label !== completedPrayerId) {
-      setIsCompleted(false);
-    }
-  }, [nextPrayer, completedPrayerId]);
-
-  // Handle countdown and transition to green state
-  useEffect(() => {
-    if (!nextPrayer) return;
-
-    if (diffSeconds === 0 && !isCompleted && nextPrayer.label !== completedPrayerId) {
-      // Transition to complete!
-      setIsCompleted(true);
-      
-      // Auto close after 5 seconds
-      const timer = setTimeout(() => {
-        setCompletedPrayerId(nextPrayer.label);
-        setIsCompleted(false);
-      }, 5000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [diffSeconds, nextPrayer, isCompleted, completedPrayerId]);
 
   // TEST MODE
   const [testMode, setTestMode] = useState(false);
@@ -61,13 +32,40 @@ export default function PrayerToast() {
     return () => window.removeEventListener('test-prayer-toast', handleTest);
   }, []);
 
+  // Normal mode countdown
   useEffect(() => {
-    if (testMode && testSeconds > 0) {
+    if (testMode || !nextPrayer) return;
+
+    if (nextPrayer.label !== completedPrayerId) {
+      setIsCompleted(false);
+    }
+
+    if (diffSeconds === 0 && !isCompleted && nextPrayer.label !== completedPrayerId) {
+      setIsCompleted(true);
+      playPrayerChime();
+      
+      const timer = setTimeout(() => {
+        setCompletedPrayerId(nextPrayer.label);
+        setIsCompleted(false);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [diffSeconds, nextPrayer, isCompleted, completedPrayerId, testMode]);
+
+  // Test mode countdown
+  useEffect(() => {
+    if (!testMode) return;
+
+    if (testSeconds > 0) {
       const timer = setTimeout(() => setTestSeconds(s => s - 1), 1000);
       return () => clearTimeout(timer);
     }
-    if (testMode && testSeconds === 0 && !isCompleted) {
+    
+    if (testSeconds === 0 && !isCompleted) {
       setIsCompleted(true);
+      playPrayerChime();
+      
       const timer = setTimeout(() => {
         setIsCompleted(false);
         setTestMode(false);
@@ -76,8 +74,7 @@ export default function PrayerToast() {
     }
   }, [testMode, testSeconds, isCompleted]);
 
-  // Determine if toast should be visible
-  // Visible if: we have a nextPrayer AND it wasn't dismissed AND (it's <= 5 mins OR it is currently in 'completed' green state)
+
   const isVisible = testMode || Boolean(
     nextPrayer && 
     nextPrayer.label !== dismissedPrayerId && 
@@ -100,32 +97,30 @@ export default function PrayerToast() {
   const currentPrayerLabel = testMode ? 'Maghrib (Test)' : nextPrayer?.label;
   const currentDiffSeconds = testMode ? testSeconds : diffSeconds;
 
-  // Progress calculations (300 seconds total)
   const progressPercent = currentDiffSeconds > 0 && currentDiffSeconds <= 300 
     ? ((300 - currentDiffSeconds) / 300) * 100 
     : 100;
 
-  // Format the time left e.g. "04:59"
   const minsLeft = Math.floor(currentDiffSeconds / 60);
   const secsLeft = currentDiffSeconds % 60;
   const timeStr = `${String(minsLeft).padStart(2, '0')}:${String(secsLeft).padStart(2, '0')}`;
 
   return (
-    <div className={`fixed bottom-4 right-4 z-[9999] animate-in slide-in-from-bottom-5 fade-in duration-300 w-[280px] sm:w-[320px] rounded-2xl shadow-2xl border overflow-hidden backdrop-blur-xl ${
+    <div className={`fixed bottom-4 right-4 z-[9999] animate-in slide-in-from-bottom-5 fade-in duration-300 w-[260px] sm:w-[280px] rounded-2xl shadow-2xl border overflow-hidden backdrop-blur-2xl transition-all ${
       isCompleted
         ? (isLight 
-            ? 'bg-emerald-500/90 border-emerald-400 text-white shadow-emerald-500/20' 
+            ? 'bg-emerald-500/30 border-emerald-400/50 text-emerald-900 shadow-emerald-500/20' 
             : 'bg-emerald-500/20 border-emerald-500/30 text-emerald-100 shadow-emerald-900/50')
         : (isLight
-            ? 'bg-white/95 border-slate-200 text-slate-800'
-            : 'bg-[#0A1428]/95 border-white/10 text-white')
+            ? 'bg-white/60 border-slate-200 text-slate-800'
+            : 'bg-[#0A1428]/60 border-white/10 text-white')
     }`}>
-      <div className="p-4 flex items-start gap-3 relative">
+      <div className="p-3.5 flex items-center gap-3 relative">
         {/* Icon */}
         <div className={`flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center border ${
           isCompleted 
-            ? (isLight ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-emerald-500/30 border-emerald-400/50 text-emerald-300')
-            : (isLight ? 'bg-amber-100 border-amber-200 text-amber-600' : 'bg-amber-400/10 border-amber-400/20 text-amber-400')
+            ? (isLight ? 'bg-emerald-600/20 border-emerald-500/30 text-emerald-700' : 'bg-emerald-500/30 border-emerald-400/50 text-emerald-300')
+            : (isLight ? 'bg-amber-100/50 border-amber-200/50 text-amber-600' : 'bg-amber-400/10 border-amber-400/20 text-amber-400')
         }`}>
           <Moon className="w-4 h-4" />
         </div>
@@ -133,12 +128,12 @@ export default function PrayerToast() {
         {/* Content */}
         <div className="flex-1 min-w-0 pr-6">
           <h4 className={`text-sm font-bold truncate ${isCompleted ? 'text-current' : (isLight ? 'text-slate-900' : 'text-white')}`}>
-            {isCompleted ? `Telah Masuk Waktu ${currentPrayerLabel}` : `Waktu ${currentPrayerLabel} Hampir Tiba`}
+            {isCompleted ? `Telah Masuk Waktu ${currentPrayerLabel}` : `Azan ${currentPrayerLabel}`}
           </h4>
-          <p className={`text-[11px] font-medium mt-0.5 ${isCompleted ? 'opacity-90' : (isLight ? 'text-slate-500' : 'text-white/60')}`}>
+          <p className={`text-[11px] font-semibold mt-0.5 ${isCompleted ? 'opacity-90' : (isLight ? 'text-slate-500' : 'text-white/60')}`}>
             {isCompleted 
-              ? (lang === 'ms' ? 'Marilah mendirikan solat' : 'Time for prayer')
-              : (lang === 'ms' ? `Azan berkumandang dalam ${timeStr}` : `Azan in ${timeStr}`)
+              ? (lang === 'ms' ? 'Dirikanlah solat' : 'Time for prayer')
+              : (lang === 'ms' ? `Bermula dalam ${timeStr}` : `Starts in ${timeStr}`)
             }
           </p>
         </div>
@@ -146,7 +141,7 @@ export default function PrayerToast() {
         {/* Close Button */}
         <button 
           onClick={handleDismiss}
-          className={`absolute top-3 right-3 p-1.5 rounded-lg transition-colors ${
+          className={`absolute top-2 right-2 p-1.5 rounded-lg transition-colors ${
             isCompleted 
               ? 'hover:bg-black/10 text-current opacity-70 hover:opacity-100'
               : (isLight ? 'text-slate-400 hover:bg-slate-100' : 'text-white/40 hover:bg-white/10')
@@ -158,7 +153,7 @@ export default function PrayerToast() {
 
       {/* Progress Bar (Only show during countdown) */}
       {!isCompleted && (
-        <div className={`h-1.5 w-full relative ${isLight ? 'bg-slate-100' : 'bg-white/5'}`}>
+        <div className={`h-1 w-full relative ${isLight ? 'bg-slate-200/50' : 'bg-white/10'}`}>
           <div 
             className="absolute top-0 left-0 h-full transition-all duration-1000 ease-linear rounded-r-full"
             style={{ 

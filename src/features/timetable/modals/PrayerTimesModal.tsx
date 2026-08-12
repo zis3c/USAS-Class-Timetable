@@ -109,7 +109,7 @@ function PrayerZoneDropdown({
 }
 
 export default function PrayerTimesModal({ isOpen, onClose }: PrayerTimesModalProps) {
-  const { session } = useAuth();
+  const { session, timetableData } = useAuth();
   const { theme } = useTheme();
   const { lang, t } = useLanguage();
   const isLight = theme === 'light';
@@ -252,12 +252,12 @@ export default function PrayerTimesModal({ isOpen, onClose }: PrayerTimesModalPr
   };
 
   let activeClassInfo: string | null = null;
-  if (session?.timetableData?.timetable) {
-    let ongoingClass = null;
-    let nextClass = null;
+  if (timetableData?.timetable) {
+    let ongoingClass: any = null;
+    let nextClass: any = null;
     let minDiff = Infinity;
 
-    session.timetableData.timetable.forEach((item) => {
+    timetableData.timetable.forEach((item) => {
       const isToday = item.day?.toUpperCase() === currentDayName;
       if (!isToday) return;
 
