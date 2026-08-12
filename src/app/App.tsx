@@ -188,6 +188,16 @@ function MainContent() {
   }, [session]);
 
   useEffect(() => {
+    if (view !== 'landing') {
+      // Ensure any lingering Lenis instance is removed when not on landing page
+      const lenisWindow = window as unknown as Window & { usasLenis?: Lenis };
+      if (lenisWindow.usasLenis) {
+        lenisWindow.usasLenis.destroy();
+        delete lenisWindow.usasLenis;
+      }
+      return;
+    }
+
     const lenis = new Lenis({
       lerp: 0.09,
       smoothWheel: true,
@@ -208,7 +218,7 @@ function MainContent() {
       lenis.destroy();
       delete lenisWindow.usasLenis;
     };
-  }, []);
+  }, [view]);
 
   useEffect(() => {
     if (session) {
