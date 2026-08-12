@@ -170,18 +170,14 @@ function MainContent() {
   useEffect(() => {
     const root = document.documentElement;
     const body = document.body;
-    body.style.overflowX = 'hidden';
     body.style.overflowY = session ? 'hidden' : 'auto';
     body.style.height = session ? '100%' : 'auto';
-    root.style.overflowX = 'hidden';
     root.style.overflowY = session ? 'hidden' : 'auto';
     root.style.height = session ? '100%' : 'auto';
 
     return () => {
-      body.style.overflowX = '';
       body.style.overflowY = '';
       body.style.height = '';
-      root.style.overflowX = '';
       root.style.overflowY = '';
       root.style.height = '';
     };
