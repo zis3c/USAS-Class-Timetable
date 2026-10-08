@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useLanguage } from '@/app/providers/LanguageProvider';
 import { useTheme } from '@/app/providers/ThemeProvider';
 import { 
-  X, Download, Award, QrCode, Users,
-  GraduationCap, LogOut, MessageCircle, Calculator, Calendar, ScanLine, Bell
+  X, Download, Users, Moon,
+  GraduationCap, LogOut, Calculator, Calendar, ScanLine, Bell, FileText
 } from 'lucide-react';
 import { useNotification } from '@/app/providers/NotificationProvider';
 import { exportTimetableICS } from '@/features/export/lib/icsGenerator';
@@ -17,6 +17,7 @@ interface ToolsDrawerProps {
   onOpenCompare: () => void;
   onOpenAttendanceScan: () => void;
   onOpenGpa: () => void;
+  onOpenPrayerTimes: () => void;
   onOpenLogout: () => void;
 }
 
@@ -28,6 +29,7 @@ export default function ToolsDrawer({
   onOpenCompare,
   onOpenAttendanceScan,
   onOpenGpa,
+  onOpenPrayerTimes,
   onOpenLogout,
 }: ToolsDrawerProps) {
   const { session, timetableData } = useAuth();
@@ -72,7 +74,7 @@ export default function ToolsDrawer({
       />
 
       {/* Drawer Panel */}
-      <div className={`fixed top-0 right-0 h-full w-[min(20rem,85vw)] sm:w-80 border-l z-50 flex flex-col shadow-2xl transition-all duration-250 ease-in-out ${animate ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'} ${
+      <div role="dialog" aria-modal="true" aria-label="Menu Alat" className={`fixed top-0 right-0 h-full w-[min(20rem,85vw)] sm:w-80 border-l z-50 flex flex-col shadow-2xl transition-all duration-250 ease-in-out ${animate ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'} ${
         isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-[#0A1428] border-white/[0.06] text-white/80'
       }`}>
         
@@ -99,7 +101,7 @@ export default function ToolsDrawer({
         {session && (
           <div className={`px-4 py-3 border-b ${isLight ? 'bg-slate-50/50 border-slate-200' : 'border-white/[0.06]'}`}>
             <div className="flex items-center gap-3 min-w-0">
-              <img src="/usas-logo.png" alt="USAS" className="w-7 h-7 object-contain" />
+              <img src={isLight ? '/usas-logo-light.png' : '/usas-logo-dark.png'} alt="USAS" className="w-7 h-7 object-contain" />
               <div className="min-w-0">
                 <p className={`text-xs font-semibold truncate ${isLight ? 'text-slate-800' : 'text-white/80'}`}>{timetableData?.studentName || session.user_id}</p>
                 <p className={`text-[10px] flex items-center gap-1 min-w-0 ${isLight ? 'text-slate-500' : 'text-white/30'}`}>
@@ -161,9 +163,9 @@ export default function ToolsDrawer({
           >
             <Users className={`w-4 h-4 ${isLight ? 'text-blue-600' : 'text-blue-400/70'}`} />
             <div>
-              <div className="text-xs font-semibold">{lang === 'ms' ? 'Kongsi / Banding Jadual' : 'Share / Compare Schedule'}</div>
+              <div className="text-xs font-semibold">{t('compareTitle')}</div>
               <div className={`text-[10px] ${isLight ? 'text-slate-400' : 'text-white/25'}`}>
-                {lang === 'ms' ? 'Kongsi QR anda atau imbas QR kawan' : 'Share your QR or scan a friend\'s QR'}
+                {t('compareDesc')}
               </div>
             </div>
           </button>
@@ -194,7 +196,7 @@ export default function ToolsDrawer({
               isLight ? 'hover:bg-slate-50 text-slate-700 hover:text-slate-900' : 'hover:bg-white/[0.04] text-white/70 hover:text-white'
             }`}
           >
-            <Award className={`w-4 h-4 ${isLight ? 'text-amber-600' : 'text-amber-400/60'}`} />
+            <FileText className={`w-4 h-4 ${isLight ? 'text-amber-600' : 'text-amber-400/60'}`} />
             <div>
               <div className="text-xs font-semibold">{t('examTitle')}</div>
               <div className={`text-[10px] ${isLight ? 'text-slate-400' : 'text-white/25'}`}>{t('examDesc')}</div>
@@ -216,10 +218,25 @@ export default function ToolsDrawer({
             </div>
           </button>
 
+          <button
+            onClick={onOpenPrayerTimes}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors text-left ${
+              isLight ? 'hover:bg-slate-50 text-slate-700 hover:text-slate-900' : 'hover:bg-white/[0.04] text-white/70 hover:text-white'
+            }`}
+          >
+            <Moon className={`w-4 h-4 ${isLight ? 'text-amber-600' : 'text-amber-400/60'}`} />
+            <div>
+              <div className="text-xs font-semibold">{t('prayerTitle')}</div>
+              <div className={`text-[10px] ${isLight ? 'text-slate-400' : 'text-white/25'}`}>
+                {t('prayerSubtitle')}
+              </div>
+            </div>
+          </button>
+
           {/* Account Section */}
           <p className={`text-[9px] font-semibold uppercase tracking-widest px-2 pt-3 pb-1 ${
             isLight ? 'text-slate-400' : 'text-white/20'
-          }`}>{lang === 'ms' ? 'AKAUN & TETAPAN' : 'ACCOUNT & SETTINGS'}</p>
+          }`}>{t('accountSection')}</p>
 
           <button
             onClick={toggleNotifications}
@@ -230,9 +247,9 @@ export default function ToolsDrawer({
             <div className="flex items-center gap-3">
               <Bell className={`w-4 h-4 ${isLight ? 'text-indigo-500' : 'text-indigo-400/80'}`} />
               <div>
-                <div className="text-xs font-semibold">{lang === 'ms' ? 'Peringatan Kelas' : 'Class Alerts'}</div>
+                <div className="text-xs font-semibold">{t('classAlertsTitle')}</div>
                 <div className={`text-[10px] ${isLight ? 'text-slate-400' : 'text-white/25'}`}>
-                  {lang === 'ms' ? 'Pemberitahuan 15 minit awal' : '15-min early notifications'}
+                  {t('classAlertsDesc')}
                 </div>
               </div>
             </div>
@@ -252,7 +269,7 @@ export default function ToolsDrawer({
           <button
             onClick={onOpenLogout}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors text-left ${
-              isLight ? 'hover:bg-red-50 text-slate-700 hover:text-red-600' : 'hover:bg-red-955 bg-transparent text-white/70 hover:text-red-400'
+              isLight ? 'hover:bg-red-50 text-slate-700 hover:text-red-600' : 'hover:bg-red-950 bg-transparent text-white/70 hover:text-red-400'
             }`}
           >
             <LogOut className="w-4 h-4 text-red-500/80 flex-shrink-0" />

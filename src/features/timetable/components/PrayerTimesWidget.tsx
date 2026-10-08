@@ -1,34 +1,29 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/app/providers/AuthProvider';
-import { fetchPrayerTimesAPI, MOCK_PRAYER_TIMES } from '@/services/usas/usasApi';
-import type { PrayerTimeItem } from '@/shared/types/usas';
-import { playClassChime, sendPushNotification } from '@/shared/lib/audioNotifier';
+import { fetchPrayerTimesAPI } from '@/services/jakim/JakimApi';
+import type { WaktuSolatPrayer } from '@/shared/types/usas';
+import { playPrayerChime, sendPushNotification } from '@/shared/lib/audioNotifier';
 import { getLocalDateStamp, pruneDayScopedNotificationKeys } from '@/shared/lib/notificationKeys';
-import { Moon, AlertCircle, Bell, BellOff } from 'lucide-react';
+import { isPrayerNotificationDue } from '@/shared/lib/notificationTiming';
 
 type PrayerData = {
-  times: PrayerTimeItem[];
+  times: { label: string; timestamp: number }[];
   location: string;
 };
 
-const NOTIFY_WINDOW_SECONDS = 600;
 const PRAYER_NOTIFY_KEY = 'usas_prayer_auto_notify';
 const PRAYER_NOTIFY_EVENT = 'usas-prayer-auto-notify-changed';
+const PRAYER_NOTIFIED_STORE_KEY = 'usas_prayer_notified_store';
 
-const parsePrayerTimeToSeconds = (timeStr: string | undefined) => {
-  if (!timeStr) return null;
-  const raw = String(timeStr).trim();
-  const match = raw.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
-  if (!match) return null;
-  let hour = parseInt(match[1], 10);
-  const minute = parseInt(match[2], 10);
-  const ampm = match[3]?.toUpperCase();
-  if (ampm === 'PM' && hour < 12) hour += 12;
-  if (ampm === 'AM' && hour === 12) hour = 0;
-  return hour * 3600 + minute * 60;
+
+export const formatCountdown = (diffSeconds: number) => {
+  const h = Math.floor(diffSeconds / 3600);
+  const m = Math.floor((diffSeconds % 3600) / 60);
+  const s = diffSeconds % 60;
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 };
 
-const usePrayerAutoNotifySetting = () => {
+export const usePrayerAutoNotifySetting = () => {
   const [enabled, setEnabled] = useState(() => {
     try {
       return localStorage.getItem(PRAYER_NOTIFY_KEY) === 'true';
@@ -64,7 +59,7 @@ const usePrayerAutoNotifySetting = () => {
     setEnabled(nextState);
     try {
       localStorage.setItem(PRAYER_NOTIFY_KEY, String(nextState));
-    } catch (e) {}
+    } catch (e) { }
     window.dispatchEvent(new Event(PRAYER_NOTIFY_EVENT));
 
     if (nextState && 'Notification' in window && Notification.permission !== 'granted') {
@@ -75,102 +70,169 @@ const usePrayerAutoNotifySetting = () => {
   return [enabled, setAutoNotifyEnabled] as const;
 };
 
-export default function PrayerTimesWidget() {
+export const PRAYER_ZONE_KEY = 'usas_prayer_zone';
+export const PRAYER_ZONE_EVENT = 'usas_prayer_zone_change';
+
+export const usePrayerZone = () => {
+  const [zone, setZone] = useState(() => {
+    try {
+      return localStorage.getItem(PRAYER_ZONE_KEY) || 'PRK02';
+    } catch (e) {
+      return 'PRK02';
+    }
+  });
+
+  useEffect(() => {
+    const syncSetting = () => {
+      try {
+        setZone(localStorage.getItem(PRAYER_ZONE_KEY) || 'PRK02');
+      } catch (e) {
+        setZone('PRK02');
+      }
+    };
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === PRAYER_ZONE_KEY) {
+        syncSetting();
+      }
+    };
+
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener(PRAYER_ZONE_EVENT, syncSetting);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener(PRAYER_ZONE_EVENT, syncSetting);
+    };
+  }, []);
+
+  const setPrayerZone = (newZone: string) => {
+    setZone(newZone);
+    try {
+      localStorage.setItem(PRAYER_ZONE_KEY, newZone);
+    } catch (e) { }
+    window.dispatchEvent(new Event(PRAYER_ZONE_EVENT));
+  };
+
+  return [zone, setPrayerZone] as const;
+};
+
+export function useNextPrayer() {
   const { session } = useAuth();
+  const [zone] = usePrayerZone();
   const [prayerData, setPrayerData] = useState<PrayerData>({
-    times: MOCK_PRAYER_TIMES,
+    times: [],
     location: 'Kuala Kangsar (PRK02)',
   });
-  const [autoNotifyEnabled, setAutoNotifyEnabled] = usePrayerAutoNotifySetting();
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     let active = true;
-    fetchPrayerTimesAPI(session).then(res => {
-      if (active && res?.success && res.times) {
-        setPrayerData({ times: res.times, location: res.location || 'Kuala Kangsar (PRK02)' });
+    fetchPrayerTimesAPI(session, zone).then(res => {
+      if (active && res?.success && res.data?.prayers) {
+        const flatTimes: { label: string; timestamp: number }[] = [];
+        res.data.prayers.forEach((p: WaktuSolatPrayer) => {
+          flatTimes.push({ label: 'Subuh', timestamp: p.fajr });
+          flatTimes.push({ label: 'Zohor', timestamp: p.dhuhr });
+          flatTimes.push({ label: 'Asar', timestamp: p.asr });
+          flatTimes.push({ label: 'Maghrib', timestamp: p.maghrib });
+          flatTimes.push({ label: 'Isyak', timestamp: p.isha });
+        });
+        flatTimes.sort((a, b) => a.timestamp - b.timestamp);
+        setPrayerData({ times: flatTimes, location: res.location });
       }
     });
     return () => { active = false; };
-  }, [session]);
+  }, [session, zone]);
 
-  useEffect(() => {
-    // visible widget only shows and controls the setting
-  }, [prayerData]);
+  const currentUnix = Math.floor(now.getTime() / 1000);
 
-  const toggleAutoNotify = () => {
-    setAutoNotifyEnabled(!autoNotifyEnabled);
+  const formatTime = (ts: number) => {
+    const date = new Date(ts * 1000);
+    const hours = date.getHours();
+    const mins = date.getMinutes();
+    return `${hours % 12 || 12}:${mins.toString().padStart(2, '0')} ${hours >= 12 ? 'PM' : 'AM'}`;
   };
 
-  const isFriday = new Date().getDay() === 5; // Friday
+  let nextPrayer = null;
+  let diffSeconds = 0;
+  let currentPrayer = null;
+  let secondsSinceCurrent = 0;
 
-  return (
-    <div className="glass-card rounded-2xl p-4 border border-amber-500/20 bg-[#0F2148]/70 space-y-3 shadow-lg">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs border-b border-amber-500/10 pb-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <Moon className="w-4 h-4 text-amber-400" />
-          <span className="font-extrabold text-white truncate">Waktu Solat USAS</span>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[10px] font-bold text-amber-300 bg-[#070F22] px-2 py-0.5 rounded-full border border-amber-500/20">
-            {prayerData.location}
-          </span>
-          <button
-            onClick={toggleAutoNotify}
-            className={`px-2 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1 transition-colors ${
-              autoNotifyEnabled
-                ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25'
-                : 'bg-white/[0.03] text-white/40 border-white/10'
-            }`}
-            title="Notifikasi waktu solat"
-          >
-            {autoNotifyEnabled ? <Bell className="w-3 h-3" /> : <BellOff className="w-3 h-3" />}
-            <span>{autoNotifyEnabled ? 'Notify ON' : 'Notify OFF'}</span>
-          </button>
-        </div>
-      </div>
+  for (const p of prayerData.times) {
+    if (p.timestamp > currentUnix) {
+      nextPrayer = { label: p.label, content: formatTime(p.timestamp), timestamp: p.timestamp };
+      diffSeconds = p.timestamp - currentUnix;
+      break;
+    }
 
-      {/* Friday Prayer Break Banner */}
-      {isFriday && (
-        <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-400/30 text-amber-300 text-[11px] font-bold flex flex-col sm:flex-row sm:items-center gap-2">
-          <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
-          <span>Rehat Solat Jumaat: <strong>12:15 PM - 2:30 PM</strong> (Tiada kuliah berlangsung).</span>
-        </div>
-      )}
+    currentPrayer = { label: p.label, content: formatTime(p.timestamp), timestamp: p.timestamp };
+    secondsSinceCurrent = currentUnix - p.timestamp;
+  }
 
-      {/* Prayer Times Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-1.5 text-center text-[10px]">
-        {prayerData.times.map((p, idx) => (
-          <div key={idx} className="bg-[#070F22] p-1.5 rounded-xl border border-amber-500/10">
-            <div className="text-slate-400 font-semibold">{p.label}</div>
-            <div className="font-black text-amber-300 mt-0.5">{p.content}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  return { nextPrayer, diffSeconds, currentPrayer, secondsSinceCurrent, location: prayerData.location };
 }
 
-export function PrayerTimesNotifier() {
+function readPrayerNotifiedStore(): Set<string> {
+  try {
+    const raw = localStorage.getItem(PRAYER_NOTIFIED_STORE_KEY);
+    const parsed: unknown = raw ? JSON.parse(raw) : null;
+    if (Array.isArray(parsed)) {
+      return new Set(parsed.filter((key): key is string => typeof key === 'string'));
+    }
+    if (parsed && typeof parsed === 'object') {
+      return new Set(Object.entries(parsed).filter(([, value]) => value === true).map(([key]) => key));
+    }
+  } catch {
+    // Ignore malformed storage.
+  }
+  return new Set();
+}
+
+function persistPrayerNotifiedStore(store: ReadonlySet<string>): void {
+  try {
+    localStorage.setItem(PRAYER_NOTIFIED_STORE_KEY, JSON.stringify([...store]));
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+export function PrayerTimesNotifier(): null {
   const { session } = useAuth();
+  const [zone] = usePrayerZone();
   const [prayerData, setPrayerData] = useState<PrayerData>({
-    times: MOCK_PRAYER_TIMES,
+    times: [],
     location: 'Kuala Kangsar (PRK02)',
   });
   const [now, setNow] = useState(new Date());
   const [autoNotifyEnabled] = usePrayerAutoNotifySetting();
-  const notifiedRef = useRef<Record<string, boolean>>({});
+  // Persist the notified keys so a page refresh does not replay the chime for
+  // a prayer that was already announced.
+  const notifiedRef = useRef(readPrayerNotifiedStore());
   const activeDayStampRef = useRef('');
 
   useEffect(() => {
     let active = true;
-    fetchPrayerTimesAPI(session).then(res => {
-      if (active && res?.success && res.times) {
-        setPrayerData({ times: res.times, location: res.location || 'Kuala Kangsar (PRK02)' });
+    fetchPrayerTimesAPI(session, zone).then(res => {
+      if (active && res?.success && res.data?.prayers) {
+        const flatTimes: { label: string; timestamp: number }[] = [];
+        res.data.prayers.forEach((p: WaktuSolatPrayer) => {
+          flatTimes.push({ label: 'Subuh', timestamp: p.fajr });
+          flatTimes.push({ label: 'Zohor', timestamp: p.dhuhr });
+          flatTimes.push({ label: 'Asar', timestamp: p.asr });
+          flatTimes.push({ label: 'Maghrib', timestamp: p.maghrib });
+          flatTimes.push({ label: 'Isyak', timestamp: p.isha });
+        });
+        flatTimes.sort((a, b) => a.timestamp - b.timestamp);
+        setPrayerData({ times: flatTimes, location: res.location });
       }
     });
     return () => { active = false; };
-  }, [session]);
+  }, [session, zone]);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 30_000);
@@ -182,32 +244,33 @@ export function PrayerTimesNotifier() {
     if (activeDayStampRef.current === dayStamp) return;
     activeDayStampRef.current = dayStamp;
     notifiedRef.current = pruneDayScopedNotificationKeys(notifiedRef.current, now);
+    persistPrayerNotifiedStore(notifiedRef.current);
   }, [now]);
 
   useEffect(() => {
     if (!autoNotifyEnabled || prayerData.times.length === 0) return;
 
     const dayStamp = getLocalDateStamp(now);
-    const currentSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+    const currentUnix = Math.floor(now.getTime() / 1000);
+    let changed = false;
 
     prayerData.times.forEach((prayer) => {
-      const label = prayer.label?.toLowerCase() || '';
-      if (!['subuh', 'zohor', 'asar', 'maghrib', 'isyak'].includes(label)) return;
+      const label = prayer.label.toLowerCase();
 
-      const prayerSeconds = parsePrayerTimeToSeconds(prayer.content);
-      if (prayerSeconds === null) return;
-
-      const diff = prayerSeconds - currentSeconds;
-      const notifyKey = `${dayStamp}-${label}`;
-      if (diff > 0 && diff <= NOTIFY_WINDOW_SECONDS && !notifiedRef.current[notifyKey]) {
-        notifiedRef.current[notifyKey] = true;
-        playClassChime();
+      const diff = prayer.timestamp - currentUnix;
+      const notifyKey = `${dayStamp}-${label}-${prayer.timestamp}`;
+      if (isPrayerNotificationDue(diff) && !notifiedRef.current.has(notifyKey)) {
+        notifiedRef.current.add(notifyKey);
+        changed = true;
+        playPrayerChime();
         sendPushNotification(
           `Waktu Solat USAS: ${prayer.label}`,
-          `${prayer.label} masuk dalam ${Math.ceil(diff / 60)} minit di ${prayerData.location}`
+          `${prayer.label} telah masuk di ${prayerData.location}`
         );
       }
     });
+
+    if (changed) persistPrayerNotifiedStore(notifiedRef.current);
   }, [autoNotifyEnabled, now, prayerData]);
 
   return null;

@@ -1,5 +1,7 @@
 import LZString from 'lz-string';
 import type { TimetableItem } from '@/shared/types/usas';
+import { extractDayName } from '@/shared/lib/dayFormat';
+import { getOwnRecordValue } from '@/shared/lib/security';
 
 export type FreeSlot = {
   dayStr: string;
@@ -7,7 +9,7 @@ export type FreeSlot = {
   endMins: number;
 };
 
-// Map malay days to integers (1=ISNIN, 5=JUMAAT)
+// Map Malay day names to integers (1 = ISNIN, 5 = JUMAAT)
 const dayMap: Record<string, number> = {
   'ISNIN': 1, 'SELASA': 2, 'RABU': 3, 'KHAMIS': 4, 'JUMAAT': 5, 'SABTU': 6, 'AHAD': 0
 };
@@ -39,7 +41,7 @@ export function parseTimeStr(timeStr: string | undefined): [number, number] | nu
  */
 export function compressTimetable(timetable: TimetableItem[], studentName: string): string {
   const minified = timetable.map(item => {
-    const dayInt = dayMap[item.day?.toUpperCase() || ''] ?? 1;
+    const dayInt = getOwnRecordValue<number>(dayMap, extractDayName(item.day)) ?? 1;
     const times = parseTimeStr(`${item.start_time || ''} - ${item.end_time || ''}`);
     const code = item.course_id || item.kod_kursus || 'Class';
     return [dayInt, times?.[0] || 0, times?.[1] || 0, code];
@@ -69,9 +71,10 @@ export function decompressTimetable(compressed: string): { studentName: string; 
         return `${displayH.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')} ${period}`;
       };
 
+      const safeDayIndex = Number.isInteger(dayInt) && dayInt >= 0 && dayInt < reverseDayMap.length ? dayInt : 1;
       return {
         id: `gen-${Math.random().toString(36).substring(2, 9)}`,
-        day: reverseDayMap[dayInt],
+        day: reverseDayMap.at(safeDayIndex) ?? 'ISNIN',
         course_id: code,
         course_name: code,
         start_time: formatTime(startMins),
@@ -98,11 +101,12 @@ export function calculateOverlappingFreeTime(myTimetable: TimetableItem[], frien
   const freeSlots: FreeSlot[] = [];
 
   for (let dayInt = 1; dayInt <= 5; dayInt++) {
-    const dayStr = reverseDayMap[dayInt];
+    const dayStr = reverseDayMap.at(dayInt);
+    if (!dayStr) continue;
     
     // Get all busy blocks for this day
     const busyBlocks = allClasses
-      .filter(c => c.day?.toUpperCase() === dayStr)
+      .filter(c => extractDayName(c.day) === dayStr)
       .map(c => {
         const times = parseTimeStr(`${c.start_time || ''} - ${c.end_time || ''}`);
         return { start: times?.[0] || 0, end: times?.[1] || 0 };

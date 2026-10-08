@@ -12,6 +12,7 @@ import TimetableGrid from '@/features/timetable/components/TimetableGrid';
 import { PrayerTimesNotifier } from '@/features/timetable/components/PrayerTimesWidget';
 import ErrorScreen from '@/app/shell/ErrorScreen';
 import ErrorBoundary from '@/app/shell/ErrorBoundary';
+import { AlertTriangle, RefreshCw, X } from 'lucide-react';
 const LogoutModal = lazy(() => import('@/features/auth/modals/LogoutModal'));
 import PwaInstallPrompt from '@/features/pwa/components/PwaInstallPrompt';
 const PdfExportModal = lazy(() => import('@/features/export/modals/PdfExportModal'));
@@ -20,6 +21,8 @@ const ToolsDrawer = lazy(() => import('@/app/shell/ToolsDrawer'));
 const GpaCalculatorModal = lazy(() => import('@/features/planning/modals/GpaCalculatorModal'));
 const AttendanceScanModal = lazy(() => import('@/features/timetable/components/AttendanceScanModal'));
 const CompareScheduleModal = lazy(() => import('@/features/sharing/modals/CompareScheduleModal'));
+const PrayerTimesModal = lazy(() => import('@/features/timetable/modals/PrayerTimesModal'));
+const PrayerToast = lazy(() => import('@/features/timetable/components/PrayerToast'));
 
 const SITE_NAME = 'USAS Class Timetable';
 const SITE_DESCRIPTION = 'Official and independent student schedule portal for Universiti Sultan Azlan Shah (USAS) to preview, format, and export class timetables into calendar feeds (.ICS), printable A4 PDFs, and lockscreen wallpapers.';
@@ -66,7 +69,7 @@ function removeStructuredData(id: string) {
 }
 
 function MainContent() {
-  const { session, timetableData, login, logout } = useAuth();
+  const { session, timetableData, login, logout, error, setError, refreshTimetable } = useAuth();
   const { theme } = useTheme();
   const { lang } = useLanguage();
   const [pathname, setPathname] = useState(() => window.location.pathname || '/');
@@ -78,6 +81,7 @@ function MainContent() {
 
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
   const [isExamModalOpen, setIsExamModalOpen] = useState(false);
+  const [isPrayerTimesOpen, setIsPrayerTimesOpen] = useState(false);
   const [isAttendanceScanOpen, setIsAttendanceScanOpen] = useState(false);
   const [attendanceRefreshToken, setAttendanceRefreshToken] = useState(0);
   const [isGpaModalOpen, setIsGpaModalOpen] = useState(false);
@@ -105,7 +109,7 @@ function MainContent() {
     }
   }, [session, login]);
 
-  // Keep browser tab title strictly as USAS Class Timetable
+  // Update document title, meta tags, and structured data
   useEffect(() => {
     const title = view === 'login'
       ? 'Login | USAS Class Timetable'
@@ -167,24 +171,32 @@ function MainContent() {
   useEffect(() => {
     const root = document.documentElement;
     const body = document.body;
-    body.style.overflowX = 'hidden';
     body.style.overflowY = session ? 'hidden' : 'auto';
     body.style.height = session ? '100%' : 'auto';
-    root.style.overflowX = 'hidden';
     root.style.overflowY = session ? 'hidden' : 'auto';
     root.style.height = session ? '100%' : 'auto';
 
     return () => {
-      body.style.overflowX = '';
       body.style.overflowY = '';
       body.style.height = '';
-      root.style.overflowX = '';
       root.style.overflowY = '';
       root.style.height = '';
     };
   }, [session]);
 
   useEffect(() => {
+    const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
+    
+    if (view !== 'landing' || isTouchDevice) {
+      // Ensure any lingering Lenis instance is removed when not on landing page or on mobile
+      const lenisWindow = window as unknown as Window & { usasLenis?: Lenis };
+      if (lenisWindow.usasLenis) {
+        lenisWindow.usasLenis.destroy();
+        delete lenisWindow.usasLenis;
+      }
+      return;
+    }
+
     const lenis = new Lenis({
       lerp: 0.09,
       smoothWheel: true,
@@ -205,7 +217,7 @@ function MainContent() {
       lenis.destroy();
       delete lenisWindow.usasLenis;
     };
-  }, []);
+  }, [view]);
 
   useEffect(() => {
     if (session) {
@@ -260,6 +272,36 @@ function MainContent() {
         onNavigateHome={() => navigateTo('/')}
         onNavigateLogin={() => navigateTo('/login')}
       />
+      {session && error && (
+        <div
+          role="alert"
+          aria-live="polite"
+          className={`flex items-center gap-3 px-3 sm:px-6 py-2 text-xs font-semibold border-b flex-shrink-0 ${
+            theme === THEMES.LIGHT
+              ? 'bg-amber-50 border-amber-200 text-amber-800'
+              : 'bg-amber-400/10 border-amber-400/20 text-amber-200'
+          }`}
+        >
+          <AlertTriangle className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+          <span className="flex-1 min-w-0">{error}</span>
+          <button
+            type="button"
+            onClick={() => { setError(null); void refreshTimetable(); }}
+            className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 border border-current/30 hover:bg-black/5"
+          >
+            <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
+            <span>{lang === 'ms' ? 'Cuba lagi' : 'Retry'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setError(null)}
+            aria-label={lang === 'ms' ? 'Tutup' : 'Dismiss'}
+            className="p-1 rounded-md hover:bg-black/5"
+          >
+            <X className="w-3.5 h-3.5" aria-hidden="true" />
+          </button>
+        </div>
+      )}
       {session && <PrayerTimesNotifier />}
       
       <main className={view === 'app' ? 'flex-1 min-h-0 overflow-hidden relative' : 'flex-1 relative'}>
@@ -278,6 +320,8 @@ function MainContent() {
       </main>
 
       <Suspense fallback={null}>
+        {session && <PrayerToast />}
+        
         {/* Tools Drawer — houses ALL secondary actions */}
         <ToolsDrawer
           isOpen={isToolsOpen}
@@ -287,11 +331,13 @@ function MainContent() {
           onOpenAttendanceScan={() => { setIsAttendanceScanOpen(true); }}
           onOpenCompare={() => { setIsCompareScheduleOpen(true); }}
           onOpenGpa={() => { setIsGpaModalOpen(true); }}
+          onOpenPrayerTimes={() => { setIsPrayerTimesOpen(true); }}
           onOpenLogout={() => { setIsLogoutModalOpen(true); }}
         />
 
         {/* Modals */}
         <PdfExportModal isOpen={isPdfModalOpen} onClose={() => setIsPdfModalOpen(false)} />
+        <PrayerTimesModal isOpen={isPrayerTimesOpen} onClose={() => setIsPrayerTimesOpen(false)} />
         <ExamScheduleModal isOpen={isExamModalOpen} onClose={() => setIsExamModalOpen(false)} courses={timetableData?.timetable || []} />
         <AttendanceScanModal
           isOpen={isAttendanceScanOpen}

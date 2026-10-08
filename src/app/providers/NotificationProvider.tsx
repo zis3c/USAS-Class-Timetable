@@ -1,6 +1,9 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useAuth } from './AuthProvider';
-import { getActiveCourseHighlights } from '@/shared/lib/timetableTime';
+import { buildDayScopedNotificationKey, getLocalDateStamp, persistDayScopedNotificationKeys, pruneDayScopedNotificationKeys, readDayScopedNotificationKeys } from '@/shared/lib/notificationKeys';
+import { extractDayName } from '@/shared/lib/dayFormat';
+import { playClassChime } from '@/shared/lib/audioNotifier';
+import { isWithinClassNotificationWindow } from '@/shared/lib/notificationTiming';
 
 type NotificationContextType = {
   isNotificationsEnabled: boolean;
@@ -9,6 +12,7 @@ type NotificationContextType = {
 };
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
+const NOTIFIED_CLASSES_KEY = 'usas_notification_notified_classes';
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const { timetableData } = useAuth();
@@ -18,7 +22,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [isNotificationsEnabled, setIsNotificationsEnabled] = useState(() => {
     return localStorage.getItem('usas_notifications_enabled') === 'true';
   });
-  const [notifiedClasses, setNotifiedClasses] = useState<Set<string>>(new Set());
+  const notifiedClasses = useRef(readDayScopedNotificationKeys(NOTIFIED_CLASSES_KEY, new Date()));
+  const activeDayStamp = useRef('');
 
   useEffect(() => {
     if (!isNotificationsEnabled || permissionStatus !== 'granted') return;
@@ -27,6 +32,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       if (!timetableData?.timetable) return;
 
       const now = new Date();
+      const dayStamp = getLocalDateStamp(now);
+      if (activeDayStamp.current !== dayStamp) {
+        activeDayStamp.current = dayStamp;
+        notifiedClasses.current = pruneDayScopedNotificationKeys(notifiedClasses.current, now);
+        persistDayScopedNotificationKeys(NOTIFIED_CLASSES_KEY, notifiedClasses.current);
+      }
+
       // Check every class
       const courses = timetableData.timetable;
       
@@ -36,7 +48,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       const currentDay = daysStrMap[now.getDay()];
 
       courses.forEach(course => {
-        if (course.day?.toUpperCase() !== currentDay) return;
+        if (extractDayName(course.day) !== currentDay) return;
         
         // Parse class start time
         const startStr = course.start_time;
@@ -58,33 +70,30 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
         // Calculate diff in minutes
         const diffMs = classTime.getTime() - now.getTime();
-        const diffMins = Math.floor(diffMs / 1000 / 60);
 
-        // If class is in exactly 15 minutes and we haven't notified yet today
-        const classKey = `${course.course_id}-${now.toDateString()}`;
+        // Notify once while the class is within its 15-minute reminder window.
+        const classKey = buildDayScopedNotificationKey(now, course.course_id, course.day, startStr);
         
-        if (diffMins === 15 && !notifiedClasses.has(classKey)) {
+        if (isWithinClassNotificationWindow(diffMs) && !notifiedClasses.current.has(classKey)) {
+          notifiedClasses.current.add(classKey);
+          persistDayScopedNotificationKeys(NOTIFIED_CLASSES_KEY, notifiedClasses.current);
+          playClassChime();
           // Fire notification
           new Notification('Class Starting Soon!', {
-            body: `${course.course_name} starts in 15 minutes at ${course.location}`,
-            icon: '/usas-logo.png'
+            body: `${course.course_name} starts in ${Math.ceil(diffMs / 60000)} minutes at ${course.location}`,
+            icon: '/usas-logo-dark.png'
           });
           
-          setNotifiedClasses(prev => {
-            const next = new Set(prev);
-            next.add(classKey);
-            return next;
-          });
         }
       });
     };
 
-    // Check immediately, then every 1 minute
+    // Check immediately, then poll often enough to catch the reminder window.
     checkClasses();
-    const interval = setInterval(checkClasses, 60000);
+    const interval = setInterval(checkClasses, 30000);
 
     return () => clearInterval(interval);
-  }, [isNotificationsEnabled, permissionStatus, timetableData, notifiedClasses]);
+  }, [isNotificationsEnabled, permissionStatus, timetableData]);
 
   const toggleNotifications = async () => {
     if (!('Notification' in window)) {
@@ -96,6 +105,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       setIsNotificationsEnabled(false);
       localStorage.setItem('usas_notifications_enabled', 'false');
     } else {
+      playClassChime();
       if (Notification.permission === 'granted') {
         setIsNotificationsEnabled(true);
         localStorage.setItem('usas_notifications_enabled', 'true');

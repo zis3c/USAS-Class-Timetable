@@ -3,6 +3,7 @@ import {
   copyTextToClipboard,
   evaluateLoginThrottle,
   getEmptyThrottleState,
+  getOwnRecordValue,
   isValidLoginUserId,
   recordLoginFailure,
   recordLoginSuccess,
@@ -12,6 +13,16 @@ import {
 } from '../src/shared/lib/security';
 
 describe('security helpers', () => {
+  it('reads own data properties only', () => {
+    const record = Object.create({ inherited: 'unsafe' }) as Record<string, unknown>;
+    record.own = 'safe';
+    Object.defineProperty(record, 'accessor', { get: () => 'unsafe' });
+
+    expect(getOwnRecordValue<string>(record, 'own')).toBe('safe');
+    expect(getOwnRecordValue(record, 'inherited')).toBeUndefined();
+    expect(getOwnRecordValue(record, 'accessor')).toBeUndefined();
+  });
+
   it('sanitizes single line text', () => {
     expect(sanitizeSingleLine('  Hello\nWorld\t<script>  ', 20)).toBe('Hello World <script>');
   });
@@ -62,6 +73,16 @@ describe('security helpers', () => {
     expect(item.location).toBe('Lab 3<script>');
     expect(item.lecturer).toBe('Dr. Example Name');
     expect(item.catatan).toBe('Line one Line two<script>');
+  });
+
+  it('keeps the embedded date when stripping the raw USAS day prefix', () => {
+    const item = sanitizeTimetableItem({
+      id: '1',
+      day: 'days.05-10-2026 (ISNIN)',
+      course_id: 'RKS6093',
+    });
+
+    expect(item.day).toBe('05-10-2026 (ISNIN)');
   });
 
   it('removes the clipboard fallback textarea even when copy fails', async () => {

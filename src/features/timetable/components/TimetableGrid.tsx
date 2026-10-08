@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useLanguage } from '@/app/providers/LanguageProvider';
 import { useTheme } from '@/app/providers/ThemeProvider';
@@ -14,7 +14,10 @@ import {
   getCourseHighlightKey,
   getShortTimeRange,
 } from '@/shared/lib/timetableTime';
+import { extractDayName, formatDayDisplay, isSameDay, sortDayLabels } from '@/shared/lib/dayFormat';
+import { buildCourseColorMap, getCourseColorSlot } from '@/shared/lib/courseColors';
 import { restoreStringRecord } from '@/shared/lib/storage';
+import { getOwnRecordValue } from '@/shared/lib/security';
 import { 
   Clock, MapPin, User, BookOpen, Search, 
   GraduationCap, StickyNote, Edit3,
@@ -22,27 +25,55 @@ import {
   CalendarOff, RefreshCw, ChevronDown
 } from 'lucide-react';
 
-// Day color system
-const getCardDayColor = (day: string | undefined, isLight: boolean) => {
-  const darkColors = {
-    'ISNIN':  { dot: 'bg-emerald-400', text: 'text-emerald-400 font-bold', accent: 'border-l-emerald-400', bg: 'bg-emerald-500/[0.18]', border: 'border-emerald-500/40', badge: 'bg-emerald-500/30 text-emerald-300 border border-emerald-500/50 font-bold' },
-    'SELASA': { dot: 'bg-blue-400',    text: 'text-blue-400 font-bold',    accent: 'border-l-blue-400',    bg: 'bg-blue-500/[0.18]',    border: 'border-blue-500/40',    badge: 'bg-blue-500/30 text-blue-300 border border-blue-500/50 font-bold' },
-    'RABU':   { dot: 'bg-amber-400',   text: 'text-amber-400 font-bold',   accent: 'border-l-amber-400',   bg: 'bg-amber-500/[0.18]',   border: 'border-amber-500/40',   badge: 'bg-amber-500/30 text-amber-300 border border-amber-500/50 font-bold' },
-    'KHAMIS': { dot: 'bg-purple-400',  text: 'text-purple-400 font-bold',  accent: 'border-l-purple-400',  bg: 'bg-purple-500/[0.18]',  border: 'border-purple-500/40',  badge: 'bg-purple-500/30 text-purple-300 border border-purple-500/50 font-bold' },
-    'JUMAAT': { dot: 'bg-rose-400',    text: 'text-rose-400 font-bold',    accent: 'border-l-rose-400',    bg: 'bg-rose-500/[0.18]',    border: 'border-rose-500/40',    badge: 'bg-rose-500/30 text-rose-300 border border-rose-500/50 font-bold' },
-    'SABTU':  { dot: 'bg-orange-400',  text: 'text-orange-400 font-bold',  accent: 'border-l-orange-400',  bg: 'bg-orange-500/[0.18]',  border: 'border-orange-500/40',  badge: 'bg-orange-500/30 text-orange-300 border border-orange-500/50 font-bold' },
-    'AHAD':   { dot: 'bg-slate-400',   text: 'text-slate-400 font-bold',   accent: 'border-l-slate-400',   bg: 'bg-slate-500/[0.18]',   border: 'border-slate-500/40',   badge: 'bg-slate-500/30 text-slate-300 border border-slate-500/50 font-bold' },
-  };
-  const lightColors = {
-    'ISNIN':  { dot: 'bg-emerald-500', text: 'text-emerald-800 font-bold', accent: 'border-l-emerald-500', bg: 'bg-emerald-100/70', border: 'border-emerald-300/80', badge: 'bg-emerald-600 text-white font-extrabold shadow-sm' },
-    'SELASA': { dot: 'bg-blue-500',    text: 'text-blue-800 font-bold',    accent: 'border-l-blue-500',    bg: 'bg-blue-100/70',    border: 'border-blue-300/80',    badge: 'bg-blue-600 text-white font-extrabold shadow-sm' },
-    'RABU':   { dot: 'bg-amber-500',   text: 'text-amber-800 font-bold',   accent: 'border-l-amber-500',   bg: 'bg-amber-100/80',   border: 'border-amber-300/85',   badge: 'bg-amber-600 text-white font-extrabold shadow-sm' },
-    'KHAMIS': { dot: 'bg-purple-500',  text: 'text-purple-800 font-bold',  accent: 'border-l-purple-500',  bg: 'bg-purple-100/70',  border: 'border-purple-300/80',  badge: 'bg-purple-600 text-white font-extrabold shadow-sm' },
-    'JUMAAT': { dot: 'bg-rose-500',    text: 'text-rose-800 font-bold',    accent: 'border-l-rose-500',    bg: 'bg-rose-100/70',    border: 'border-rose-300/80',    badge: 'bg-rose-600 text-white font-extrabold shadow-sm' },
-    'SABTU':  { dot: 'bg-orange-500',  text: 'text-orange-800 font-bold',  accent: 'border-l-orange-500',  bg: 'bg-orange-100/70',  border: 'border-orange-300/80',  badge: 'bg-orange-600 text-white font-extrabold shadow-sm' },
-    'AHAD':   { dot: 'bg-slate-500',   text: 'text-slate-800 font-bold',   accent: 'border-l-slate-500',   bg: 'bg-slate-200/70',   border: 'border-slate-300/80',   badge: 'bg-slate-600 text-white font-extrabold shadow-sm' },
-  };
-  return (isLight ? lightColors[day] : darkColors[day]) || (isLight ? lightColors['ISNIN'] : darkColors['ISNIN']);
+// Colour system: each course card gets its own colour (hashed by course code)
+// while the weekday filter chips keep a colour per weekday.
+type CardColorScheme = {
+  dot: string;
+  text: string;
+  accent: string;
+  bg: string;
+  border: string;
+  badge: string;
+};
+
+const CARD_DARK_COLORS: Record<string, CardColorScheme> = {
+  emerald: { dot: 'bg-emerald-400', text: 'text-emerald-400 font-bold', accent: 'border-l-emerald-400', bg: 'bg-emerald-500/[0.18]', border: 'border-emerald-500/40', badge: 'bg-emerald-500/30 text-emerald-300 border border-emerald-500/50 font-bold' },
+  blue:    { dot: 'bg-blue-400',    text: 'text-blue-400 font-bold',    accent: 'border-l-blue-400',    bg: 'bg-blue-500/[0.18]',    border: 'border-blue-500/40',    badge: 'bg-blue-500/30 text-blue-300 border border-blue-500/50 font-bold' },
+  amber:   { dot: 'bg-amber-400',   text: 'text-amber-400 font-bold',   accent: 'border-l-amber-400',   bg: 'bg-amber-500/[0.18]',   border: 'border-amber-500/40',   badge: 'bg-amber-500/30 text-amber-300 border border-amber-500/50 font-bold' },
+  purple:  { dot: 'bg-purple-400',  text: 'text-purple-400 font-bold',  accent: 'border-l-purple-400',  bg: 'bg-purple-500/[0.18]',  border: 'border-purple-500/40',  badge: 'bg-purple-500/30 text-purple-300 border border-purple-500/50 font-bold' },
+  rose:    { dot: 'bg-rose-400',    text: 'text-rose-400 font-bold',    accent: 'border-l-rose-400',    bg: 'bg-rose-500/[0.18]',    border: 'border-rose-500/40',    badge: 'bg-rose-500/30 text-rose-300 border border-rose-500/50 font-bold' },
+  orange:  { dot: 'bg-orange-400',  text: 'text-orange-400 font-bold',  accent: 'border-l-orange-400',  bg: 'bg-orange-500/[0.18]',  border: 'border-orange-500/40',  badge: 'bg-orange-500/30 text-orange-300 border border-orange-500/50 font-bold' },
+  slate:   { dot: 'bg-slate-400',   text: 'text-slate-400 font-bold',   accent: 'border-l-slate-400',   bg: 'bg-slate-500/[0.18]',   border: 'border-slate-500/40',   badge: 'bg-slate-500/30 text-slate-300 border border-slate-500/50 font-bold' },
+  teal:    { dot: 'bg-teal-400',    text: 'text-teal-400 font-bold',    accent: 'border-l-teal-400',    bg: 'bg-teal-500/[0.18]',    border: 'border-teal-500/40',    badge: 'bg-teal-500/30 text-teal-300 border border-teal-500/50 font-bold' },
+  indigo:  { dot: 'bg-indigo-400',  text: 'text-indigo-400 font-bold',  accent: 'border-l-indigo-400',  bg: 'bg-indigo-500/[0.18]',  border: 'border-indigo-500/40',  badge: 'bg-indigo-500/30 text-indigo-300 border border-indigo-500/50 font-bold' },
+  cyan:    { dot: 'bg-cyan-400',    text: 'text-cyan-400 font-bold',    accent: 'border-l-cyan-400',    bg: 'bg-cyan-500/[0.18]',    border: 'border-cyan-500/40',    badge: 'bg-cyan-500/30 text-cyan-300 border border-cyan-500/50 font-bold' },
+  fuchsia: { dot: 'bg-fuchsia-400', text: 'text-fuchsia-400 font-bold', accent: 'border-l-fuchsia-400', bg: 'bg-fuchsia-500/[0.18]', border: 'border-fuchsia-500/40', badge: 'bg-fuchsia-500/30 text-fuchsia-300 border border-fuchsia-500/50 font-bold' },
+  lime:    { dot: 'bg-lime-400',    text: 'text-lime-400 font-bold',    accent: 'border-l-lime-400',    bg: 'bg-lime-500/[0.18]',    border: 'border-lime-500/40',    badge: 'bg-lime-500/30 text-lime-300 border border-lime-500/50 font-bold' },
+};
+
+const CARD_LIGHT_COLORS: Record<string, CardColorScheme> = {
+  emerald: { dot: 'bg-emerald-500', text: 'text-emerald-800 font-bold', accent: 'border-l-emerald-500', bg: 'bg-emerald-100/70', border: 'border-emerald-300/80', badge: 'bg-emerald-600 text-white font-extrabold shadow-sm' },
+  blue:    { dot: 'bg-blue-500',    text: 'text-blue-800 font-bold',    accent: 'border-l-blue-500',    bg: 'bg-blue-100/70',    border: 'border-blue-300/80',    badge: 'bg-blue-600 text-white font-extrabold shadow-sm' },
+  amber:   { dot: 'bg-amber-500',   text: 'text-amber-800 font-bold',   accent: 'border-l-amber-500',   bg: 'bg-amber-100/80',   border: 'border-amber-300/85',   badge: 'bg-amber-600 text-white font-extrabold shadow-sm' },
+  purple:  { dot: 'bg-purple-500',  text: 'text-purple-800 font-bold',  accent: 'border-l-purple-500',  bg: 'bg-purple-100/70',  border: 'border-purple-300/80',  badge: 'bg-purple-600 text-white font-extrabold shadow-sm' },
+  rose:    { dot: 'bg-rose-500',    text: 'text-rose-800 font-bold',    accent: 'border-l-rose-500',    bg: 'bg-rose-100/70',    border: 'border-rose-300/80',    badge: 'bg-rose-600 text-white font-extrabold shadow-sm' },
+  orange:  { dot: 'bg-orange-500',  text: 'text-orange-800 font-bold',  accent: 'border-l-orange-500',  bg: 'bg-orange-100/70',  border: 'border-orange-300/80',  badge: 'bg-orange-600 text-white font-extrabold shadow-sm' },
+  slate:   { dot: 'bg-slate-500',   text: 'text-slate-800 font-bold',   accent: 'border-l-slate-500',   bg: 'bg-slate-200/70',   border: 'border-slate-300/80',   badge: 'bg-slate-600 text-white font-extrabold shadow-sm' },
+  teal:    { dot: 'bg-teal-500',    text: 'text-teal-800 font-bold',    accent: 'border-l-teal-500',    bg: 'bg-teal-100/70',    border: 'border-teal-300/80',    badge: 'bg-teal-600 text-white font-extrabold shadow-sm' },
+  indigo:  { dot: 'bg-indigo-500',  text: 'text-indigo-800 font-bold',  accent: 'border-l-indigo-500',  bg: 'bg-indigo-100/70',  border: 'border-indigo-300/80',  badge: 'bg-indigo-600 text-white font-extrabold shadow-sm' },
+  cyan:    { dot: 'bg-cyan-500',    text: 'text-cyan-800 font-bold',    accent: 'border-l-cyan-500',    bg: 'bg-cyan-100/70',    border: 'border-cyan-300/80',    badge: 'bg-cyan-600 text-white font-extrabold shadow-sm' },
+  fuchsia: { dot: 'bg-fuchsia-500', text: 'text-fuchsia-800 font-bold', accent: 'border-l-fuchsia-500', bg: 'bg-fuchsia-100/70', border: 'border-fuchsia-300/80', badge: 'bg-fuchsia-600 text-white font-extrabold shadow-sm' },
+  lime:    { dot: 'bg-lime-500',    text: 'text-lime-800 font-bold',    accent: 'border-l-lime-500',    bg: 'bg-lime-100/70',    border: 'border-lime-300/80',    badge: 'bg-lime-600 text-white font-extrabold shadow-sm' },
+};
+
+const DAY_COLOR_KEY: Record<string, string> = {
+  ISNIN: 'emerald', SELASA: 'blue', RABU: 'amber', KHAMIS: 'purple', JUMAAT: 'rose', SABTU: 'orange', AHAD: 'slate',
+};
+
+const getCardColorBySlot = (slot: string | undefined, isLight: boolean): CardColorScheme => {
+  const key = DAY_COLOR_KEY[slot || ''] || 'emerald';
+  const colors = isLight ? CARD_LIGHT_COLORS : CARD_DARK_COLORS;
+  return getOwnRecordValue<CardColorScheme>(colors, key) || colors.emerald;
 };
 
 type TimetableGridProps = {
@@ -51,7 +82,7 @@ type TimetableGridProps = {
 };
 
 export default function TimetableGrid({ attendanceRefreshToken = 0, onOpenExam }: TimetableGridProps) {
-  const { timetableData, session, refreshTimetable, loading } = useAuth();
+  const { timetableData, session, refreshTimetable, loading, timeFormat } = useAuth();
   const { lang, t } = useLanguage();
   const { theme } = useTheme();
   
@@ -61,7 +92,7 @@ export default function TimetableGrid({ attendanceRefreshToken = 0, onOpenExam }
   const [selectedDay, setSelectedDay] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('cards');
-  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(() => new Set());
   const [expandAll, setExpandAll] = useState(false);
   // Modals
   const [selectedLecturer, setSelectedLecturer] = useState<string | null>(null);
@@ -79,34 +110,41 @@ export default function TimetableGrid({ attendanceRefreshToken = 0, onOpenExam }
   const [noteInput, setNoteInput] = useState('');
 
   const normalizeGroup = (groupStr?: string) => {
-    if (!groupStr) return 'G1';
+    if (!groupStr) return '';
     return groupStr.replace(/^GRP/i, 'G');
   };
 
+  const timetableDays = timetableData?.days;
+  const timetableItems = timetableData?.timetable;
+
   const daysList = useMemo(() => {
-    if (timetableData?.days && timetableData.days.length > 0) {
-      return timetableData.days;
+    if (timetableDays && timetableDays.length > 0) {
+      return sortDayLabels(Array.from(new Set(timetableDays)));
     }
     const defaultOrder = ['ISNIN', 'SELASA', 'RABU', 'KHAMIS', 'JUMAAT', 'SABTU', 'AHAD'];
-    const daysInCourses = new Set((timetableData?.timetable || []).map(c => c.day?.toUpperCase()).filter(Boolean));
+    const daysInCourses = new Set((timetableItems || []).map(c => extractDayName(c.day)).filter(Boolean));
     const baseDays = ['ISNIN', 'SELASA', 'RABU', 'KHAMIS', 'JUMAAT'];
     const extraDays = defaultOrder.filter(d => daysInCourses.has(d) && !baseDays.includes(d));
     return [...baseDays, ...extraDays];
-  }, [timetableData?.days, timetableData?.timetable]);
+  }, [timetableDays, timetableItems]);
 
-  const allCourses = useMemo(() => timetableData?.timetable || [], [timetableData?.timetable]);
+  const allCourses = useMemo(() => timetableItems || [], [timetableItems]);
 
-  const handleSaveNote = (courseId) => {
-    const updated = { ...courseNotes, [courseId]: noteInput };
+  // Assign each distinct course a stable, unique colour slot.
+  const courseColorMap = useMemo(() => buildCourseColorMap(allCourses), [allCourses]);
+
+  const handleSaveNote = (courseId: string) => {
+    const updated = { ...courseNotes };
+    Object.defineProperty(updated, courseId, { value: noteInput, enumerable: true, configurable: true, writable: true });
     setCourseNotes(updated);
     try { localStorage.setItem('usas_course_notes', JSON.stringify(updated)); } catch (e) {}
     setEditingCourseId(null);
   };
 
-  // Detect clashes
+  // Filter courses by selected day and search query
   const filteredCourses = useMemo(() => {
     return allCourses.filter(item => {
-      const matchesDay = selectedDay === 'ALL' || item.day?.toUpperCase() === selectedDay.toUpperCase();
+      const matchesDay = selectedDay === 'ALL' || isSameDay(item.day, selectedDay);
       const q = searchQuery.toLowerCase();
       const matchesQuery = !q || 
         item.course_name?.toLowerCase().includes(q) ||
@@ -161,7 +199,7 @@ export default function TimetableGrid({ attendanceRefreshToken = 0, onOpenExam }
     <div className="h-full flex flex-col min-h-0 overflow-hidden">
       
       {/* Exam Widget */}
-      <ExamCountdownWidget courses={allCourses} onOpenExam={onOpenExam || (() => {})} />
+      <ExamCountdownWidget courses={allCourses} isDemo={session?.isDemo} onOpenExam={onOpenExam || (() => {})} />
 
       {/* TOP FILTER BAR */}
       <div className={`flex-shrink-0 px-2.5 sm:px-6 py-2 sm:py-2.5 border-b transition-colors duration-150 ${
@@ -183,9 +221,8 @@ export default function TimetableGrid({ attendanceRefreshToken = 0, onOpenExam }
           {/* Day Filter Pills */}
           <div className="flex items-center gap-0.5 w-full sm:flex-1 overflow-x-auto no-scrollbar -mx-0.5 px-0.5">
             {daysList.map(day => {
-              const color = getCardDayColor(day, isLight);
-              const count = allCourses.filter(c => c.day?.toUpperCase() === day).length;
-              const isActive = selectedDay === day;
+              const count = allCourses.filter(c => isSameDay(c.day, day)).length;
+              const isActive = selectedDay === day || (selectedDay !== 'ALL' && isSameDay(selectedDay, day));
               return (
                 <button
                   key={day}
@@ -200,16 +237,16 @@ export default function TimetableGrid({ attendanceRefreshToken = 0, onOpenExam }
                           : 'border-transparent text-white/30 hover:text-white/50 hover:bg-white/[0.04]')
                   }`}
                 >
-                  <span className={`w-1.5 h-1.5 rounded-full ${color.dot}`} />
-                  <span>{t(`days.${day}`) || day}</span>
+                  <span>{formatDayDisplay(day, t)}</span>
                   {count > 0 && <span className={`text-[9px] ${isLight ? 'text-slate-400' : 'text-white/20'}`}>{count}</span>}
                 </button>
               );
             })}
           </div>
 
-          {/* Search */}
-          <div className="relative w-full sm:w-48 md:w-56 min-w-0 sm:ml-auto">
+          {/* Search + View controls (grouped on mobile) */}
+          <div className="flex items-center gap-2 w-full sm:w-auto sm:contents">
+          <div className="relative flex-1 sm:flex-none sm:w-48 md:w-56 min-w-0 sm:ml-auto">
             <Search className={`w-3 h-3 absolute left-2.5 top-1/2 -translate-y-1/2 ${isLight ? 'text-slate-400' : 'text-white/20'}`} />
             <input
               type="text"
@@ -225,7 +262,7 @@ export default function TimetableGrid({ attendanceRefreshToken = 0, onOpenExam }
           </div>
 
           {/* View Toggle & Expand All */}
-          <div className={`flex items-center gap-0.5 border rounded-md p-0.5 self-start sm:self-auto ${
+          <div className={`flex items-center gap-0.5 border rounded-md p-0.5 shrink-0 ${
             isLight ? 'bg-slate-100/80 border-slate-200/80' : 'bg-white/[0.04] border-white/[0.06]'
           }`}>
             {viewMode === 'cards' && (
@@ -234,7 +271,7 @@ export default function TimetableGrid({ attendanceRefreshToken = 0, onOpenExam }
                   const nextExpandAll = !expandAll;
                   setExpandAll(nextExpandAll);
                   if (!nextExpandAll) {
-                    setExpandedCards({});
+                    setExpandedCards(new Set());
                   }
                 }}
                 className={`px-2 py-1 rounded text-[10px] font-semibold transition-all ${
@@ -270,6 +307,7 @@ export default function TimetableGrid({ attendanceRefreshToken = 0, onOpenExam }
               <Grid className="w-3.5 h-3.5" />
             </button>
           </div>
+          </div>
         </div>
       </div>
 
@@ -282,7 +320,7 @@ export default function TimetableGrid({ attendanceRefreshToken = 0, onOpenExam }
           
           {/* View Content */}
           {viewMode === 'matrix' ? (
-            <MatrixGridView timetable={allCourses} days={daysList} activeHighlights={activeClassKeys} />
+            <MatrixGridView timetable={allCourses} days={daysList} activeDay={selectedDay} activeHighlights={activeClassKeys} />
           ) : (
             <div className="space-y-4">
               <LiveNextClassWidget timetable={allCourses} />
@@ -290,16 +328,16 @@ export default function TimetableGrid({ attendanceRefreshToken = 0, onOpenExam }
               {filteredCourses.length === 0 ? (
                 <div className="py-16 text-center">
                   <BookOpen className={`w-8 h-8 mx-auto mb-3 ${isLight ? 'text-slate-300' : 'text-white/8'}`} />
-                  <p className={`text-xs font-medium ${isLight ? 'text-slate-500' : 'text-white/25'}`}>{t('noClassesOnDay')} {t(`days.${selectedDay}`) || selectedDay}</p>
+                  <p className={`text-xs font-medium ${isLight ? 'text-slate-500' : 'text-white/25'}`}>{t('noClassesOnDay')} {formatDayDisplay(selectedDay, t)}</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 items-start">
                   {filteredCourses.map((course) => {
-                    const courseId = course.course_id || course.kod_kursus;
-                    const dayColor = getCardDayColor(course.day?.toUpperCase(), isLight);
+                    const courseId = course.course_id || course.kod_kursus || course.id;
+                    const cardColor = getCardColorBySlot(getCourseColorSlot(courseColorMap, courseId), isLight);
                     const cardKey = getCourseHighlightKey(course);
-                    const isExpanded = expandAll ? true : !!expandedCards[cardKey];
-                    const currentNote = courseNotes[courseId] || '';
+                    const isExpanded = expandAll || expandedCards.has(cardKey);
+                    const currentNote = getOwnRecordValue<string>(courseNotes, courseId) || '';
                     const courseStatus =
                       activeClassKeys.ongoingKey === cardKey
                         ? 'ongoing'
@@ -310,13 +348,7 @@ export default function TimetableGrid({ attendanceRefreshToken = 0, onOpenExam }
                     return (
                       <div
                         key={cardKey}
-                        className={`rounded-lg border border-l-2 transition-all duration-300 ${dayColor.accent} ${dayColor.border} ${dayColor.bg} hover:brightness-105 shadow-sm ${
-                          courseStatus === 'ongoing'
-                            ? 'ring-1 ring-emerald-400/70 shadow-[0_0_18px_rgba(52,211,153,0.22)]'
-                            : courseStatus === 'upcoming'
-                              ? 'ring-1 ring-amber-300/60 shadow-[0_0_16px_rgba(251,191,36,0.18)] animate-[pulse_4s_ease-in-out_infinite]'
-                              : ''
-                        }`}
+                        className={`rounded-lg border border-l-2 transition-all duration-300 flex flex-col ${cardColor.accent} ${cardColor.border} ${cardColor.bg} hover:brightness-105 shadow-sm`}
                       >
                         {/* Card Header - Click to expand/collapse independently */}
                         <div 
@@ -325,10 +357,12 @@ export default function TimetableGrid({ attendanceRefreshToken = 0, onOpenExam }
                           }`}
                           onClick={(e) => {
                             e.stopPropagation();
-                            setExpandedCards(prev => ({
-                              ...prev,
-                              [cardKey]: expandAll ? false : !prev[cardKey]
-                            }));
+                            setExpandedCards((prev) => {
+                              const next = new Set(prev);
+                              if (expandAll || next.has(cardKey)) next.delete(cardKey);
+                              else next.add(cardKey);
+                              return next;
+                            });
                             if (expandAll) setExpandAll(false);
                           }}
                         >
@@ -336,19 +370,31 @@ export default function TimetableGrid({ attendanceRefreshToken = 0, onOpenExam }
                             {/* Card Header Top Row */}
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex flex-col gap-0.5">
-                                <span className={`text-[10px] font-black tracking-wider ${dayColor.text}`}>{courseId}</span>
+                                <span className={`text-[10px] font-black tracking-wider ${cardColor.text} flex items-center gap-1.5`}>
+                                  {courseId}
+                                  <span
+                                    className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${
+                                      courseStatus === 'ongoing'
+                                        ? 'bg-emerald-400 animate-pulse'
+                                        : courseStatus === 'upcoming'
+                                          ? 'bg-amber-400'
+                                          : 'bg-transparent'
+                                    }`}
+                                    aria-hidden="true"
+                                  />
+                                </span>
                                 <div className={`flex items-center gap-1 text-[9.5px] leading-none ${isLight ? 'text-slate-500 font-semibold' : 'text-white/45'}`}>
-                                  <Clock className={`w-3 h-3 flex-shrink-0 self-center ${isLight ? 'text-amber-650' : 'text-amber-400/70'}`} />
-                                  <span className="inline-flex items-center leading-none self-center">{getShortTimeRange(course.start_time, course.end_time)}</span>
+                                  <Clock className={`w-3 h-3 flex-shrink-0 self-center ${isLight ? 'text-amber-600' : 'text-amber-400/70'}`} />
+                                  <span className="inline-flex items-center leading-none self-center">{getShortTimeRange(course.start_time, course.end_time, timeFormat)}</span>
                                 </div>
                               </div>
-                              <span className={`px-1.5 py-0.5 rounded text-[8px] font-extrabold uppercase shrink-0 ${dayColor.badge}`}>
-                                {t(`days.${course.day?.toUpperCase()}`) || course.day}
+                              <span className={`px-1.5 py-0.5 rounded text-[8px] font-extrabold uppercase shrink-0 whitespace-nowrap ${cardColor.badge}`}>
+                                {formatDayDisplay(course.day, t)}
                               </span>
                             </div>
 
                             {/* Course Name */}
-                            <h3 className={`text-[11.5px] font-bold leading-snug ${
+                            <h3 className={`text-[11.5px] font-bold leading-snug line-clamp-2 min-h-[32px] ${
                               isLight ? 'text-slate-800' : 'text-white/95'
                             }`}>
                               {course.course_name || course.kursus}
@@ -364,13 +410,13 @@ export default function TimetableGrid({ attendanceRefreshToken = 0, onOpenExam }
                               </span>
                               <div className="flex items-center gap-1 flex-shrink-0">
                                 {currentNote && (
-                                  <span className={isLight ? 'text-amber-605' : 'text-amber-400/60'} title="Nota Wujud">
+                                  <span className={isLight ? 'text-amber-600' : 'text-amber-400/60'} title="Nota Wujud">
                                     <StickyNote className="w-2.5 h-2.5" />
                                   </span>
                                 )}
                                 <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${
                                   isExpanded 
-                                    ? (isLight ? 'rotate-180 text-amber-650 font-bold' : 'rotate-180 text-amber-400') 
+                                    ? (isLight ? 'rotate-180 text-amber-600 font-bold' : 'rotate-180 text-amber-400') 
                                     : (isLight ? 'text-slate-400' : 'text-white/20')
                                 }`} />
                               </div>
@@ -394,7 +440,7 @@ export default function TimetableGrid({ attendanceRefreshToken = 0, onOpenExam }
                               className="flex items-center gap-2 text-[9.5px] cursor-pointer group"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setSelectedLecturer(course.lecturer || course.pensyarah);
+                                setSelectedLecturer(course.lecturer || course.pensyarah || '');
                               }}
                             >
                               <User className={`w-3 h-3 flex-shrink-0 ${isLight ? 'text-emerald-600' : 'text-emerald-400/60'}`} />
@@ -409,7 +455,7 @@ export default function TimetableGrid({ attendanceRefreshToken = 0, onOpenExam }
                             <div className="flex items-center gap-2 text-[9.5px]">
                               <GraduationCap className={`w-3 h-3 flex-shrink-0 ${isLight ? 'text-amber-600/75' : 'text-amber-400/55'}`} />
                               <span className={`font-medium leading-none ${isLight ? 'text-slate-500' : 'text-white/35'}`}>
-                                {t('group')}: {normalizeGroup(course.group || course.kumpulan || 'A')}
+                                {t('group')}: {normalizeGroup(course.group || course.kumpulan) || '—'}
                               </span>
                             </div>
 

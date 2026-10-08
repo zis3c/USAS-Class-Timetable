@@ -1,8 +1,17 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from 'react';
 import type { ThemeContextValue, ThemeName } from '@/shared/types/usas';
 import { normalizeThemeName } from '@/shared/lib/storage';
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
+
+type ViewTransitionLike = {
+  ready: Promise<void>;
+  finished: Promise<void>;
+};
+
+type DocumentWithViewTransition = Document & {
+  startViewTransition?: (callback: () => void) => ViewTransitionLike;
+};
 
 export const THEMES: Record<string, ThemeName> = {
   NAVY: 'navy',
@@ -24,10 +33,15 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     }
   });
 
+  const isTransitioning = useRef(false);
+
   const changeTheme = (newTheme: ThemeName, e?: React.MouseEvent) => {
-    const nextTheme = normalizeThemeName(newTheme);
+    if (isTransitioning.current) return;
     
-    if (!(document as any).startViewTransition || !e) {
+    const nextTheme = normalizeThemeName(newTheme);
+    const viewDocument = document as DocumentWithViewTransition;
+    
+    if (!viewDocument.startViewTransition || !e) {
       setTheme(nextTheme);
       try { localStorage.setItem('usas_theme', nextTheme); } catch {}
       return;
@@ -40,7 +54,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
       Math.max(y, innerHeight - y)
     );
 
-    const transition = (document as any).startViewTransition(() => {
+    const transition = viewDocument.startViewTransition(() => {
       const root = document.documentElement;
       root.classList.remove('theme-light', 'theme-navy', 'theme-oled', 'theme-emerald');
       root.classList.add(`theme-${nextTheme}`);
@@ -68,6 +82,10 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
           pseudoElement: '::view-transition-new(root)',
         }
       );
+    });
+
+    transition.finished.finally(() => {
+      isTransitioning.current = false;
     });
   };
 

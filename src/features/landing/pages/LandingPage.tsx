@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLanguage } from '@/app/providers/LanguageProvider';
 import { useTheme, THEMES } from '@/app/providers/ThemeProvider';
 import type { LanguageCode } from '@/shared/types/usas';
+import { getOwnRecordValue } from '@/shared/lib/security';
 import {
   Download, Moon, Share2, AlertTriangle, ArrowRight,
-  Sparkles, ExternalLink, Send, Play, Instagram, Github, ShieldAlert, ScanLine, ArrowUp
+  ExternalLink, Send, Play, Instagram, Github, ShieldAlert, ScanLine, ArrowUp
 } from 'lucide-react';
 
 type LandingPageProps = {
@@ -21,6 +22,7 @@ const LANDING_COPY: Record<LanguageCode, {
   ctaSecondary: string;
   disclaimerTitle: string;
   disclaimerText: string;
+  privacyLink: string;
   createdBy: string;
   previewTitle: string;
   featureOneTitle: string;
@@ -69,7 +71,8 @@ const LANDING_COPY: Record<LanguageCode, {
     cta: 'Log In Now',
     ctaSecondary: 'Watch Guide Video',
     disclaimerTitle: 'Data Security & Official Disclaimer',
-    disclaimerText: 'This portal connects directly to the official USAS UMC API. We (the developers & STEM USAS) do not operate middle servers, do not store, and do not touch any personal student data or login credentials.',
+    disclaimerText: 'Login requests pass through Cloudflare Pages to the official USAS UMC API. Your session and timetable cache are stored in this browser. Read our privacy notice for details.',
+    privacyLink: 'Privacy notice',
     createdBy: 'An Independent Project by STEM USAS',
     previewTitle: 'Sample Timetable Preview',
     featureOneTitle: 'Official Academic Prints',
@@ -142,7 +145,8 @@ const LANDING_COPY: Record<LanguageCode, {
     cta: 'Log Masuk Sekarang',
     ctaSecondary: 'Tonton Panduan Video',
     disclaimerTitle: 'Keselamatan Data & Penafian Rasmi',
-    disclaimerText: 'Portal ini menghubungi API rasmi UMC USAS secara terus. Kami (pembangun & STEM USAS) tidak mempunyai pelayan tengah, tidak menyimpan, tidak memodifikasi, dan tidak menyentuh sebarang data peribadi mahupun kredensial log masuk pelajar.',
+    disclaimerText: 'Permintaan log masuk melalui Cloudflare Pages ke API rasmi UMC USAS. Sesi dan cache jadual disimpan dalam pelayar ini. Baca notis privasi untuk maklumat lanjut.',
+    privacyLink: 'Notis privasi',
     createdBy: 'Projek Pembelajaran Bebas oleh STEM USAS',
     previewTitle: 'Paparan Contoh Jadual',
     featureOneTitle: 'Eksport Akademik Rasmi',
@@ -215,7 +219,8 @@ const LANDING_COPY: Record<LanguageCode, {
     cta: '立即登录',
     ctaSecondary: '观看使用指南',
     disclaimerTitle: '数据安全与官方声明',
-    disclaimerText: '本门户直接与官方 USAS UMC API 通信。我们（开发团队与 STEM USAS）不设立中间服务器，绝不存储、修改或接触任何学生个人数据与登录凭据。',
+    disclaimerText: '登录请求会经由 Cloudflare Pages 转发至 USAS UMC 官方 API。登录会话和课表缓存保存在此浏览器中。详情请阅读隐私说明。',
+    privacyLink: '隐私说明',
     createdBy: 'STEM USAS 独立技术项目',
     previewTitle: '示例课程表预览',
     featureOneTitle: '官方学术打印版',
@@ -288,7 +293,8 @@ const LANDING_COPY: Record<LanguageCode, {
     cta: 'இப்போது உள்நுழைக',
     ctaSecondary: 'வழிகாட்டி வீடியோவைப் பாருங்கள்',
     disclaimerTitle: 'தரவு பாதுகாப்பு மற்றும் அதிகாரப்பூர்வ மறுப்பு',
-    disclaimerText: 'இந்த தளம் அதிகாரப்பூர்வ USAS UMC API உடன் நேரடியாக இணைகிறது. நாங்கள் (உருவாக்குநர்கள் & STEM USAS) மாணவர் தனிப்பட்ட தரவு அல்லது உள்நுழைவு தகவல்களை சேமிக்கவோ தொடவோ மாட்டோம்.',
+    disclaimerText: 'உள்நுழைவு கோரிக்கைகள் Cloudflare Pages வழியாக அதிகாரப்பூர்வ USAS UMC API-க்கு அனுப்பப்படும். அமர்வும் அட்டவணை தற்காலிகச் சேமிப்பும் இந்த உலாவியில் சேமிக்கப்படும். விவரங்களுக்கு தனியுரிமை அறிவிப்பைப் படிக்கவும்.',
+    privacyLink: 'தனியுரிமை அறிவிப்பு',
     createdBy: 'STEM USAS இன் சுயாதீன திட்டம்',
     previewTitle: 'மாதிரி அட்டவணை முன்னோட்டம்',
     featureOneTitle: 'அதிகாரப்பூர்வ கல்வி அச்சிடல்கள்',
@@ -364,6 +370,14 @@ export default function LandingPage({ onNavigateLogin, onGoToLogin }: LandingPag
   // 3D Card Hover Perspective State
   const [mouseRotate, setMouseRotate] = useState({ x: 0, y: 0 });
   const [isHoveringCard, setIsHoveringCard] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile, { passive: true });
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -384,13 +398,20 @@ export default function LandingPage({ onNavigateLogin, onGoToLogin }: LandingPag
   const [scrollPercent, setScrollPercent] = useState(0);
 
   useEffect(() => {
+    let ticking = false;
     const handleScroll = () => {
-      const currentScrollY = window.scrollY || document.documentElement.scrollTop;
-      setScrollY(currentScrollY);
-      
-      const windowHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-      if (windowHeight > 0) {
-        setScrollPercent(currentScrollY / windowHeight);
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentScrollY = window.scrollY || document.documentElement.scrollTop;
+          setScrollY(currentScrollY);
+          
+          const windowHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+          if (windowHeight > 0) {
+            setScrollPercent(currentScrollY / windowHeight);
+          }
+          ticking = false;
+        });
+        ticking = true;
       }
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -400,15 +421,11 @@ export default function LandingPage({ onNavigateLogin, onGoToLogin }: LandingPag
 
   const isLight = theme === THEMES.LIGHT;
 
-  // Compute scroll progress (0 to 450px scroll range)
-  const scrollRange = 450;
-  const progress = Math.min(1, scrollY / scrollRange);
-
-  const copy = LANDING_COPY[lang] || LANDING_COPY.en;
+  const copy = getOwnRecordValue<typeof LANDING_COPY.en>(LANDING_COPY, lang) || LANDING_COPY.en;
   const steps = copy.steps;
 
   return (
-    <div className={`relative isolate overflow-hidden min-h-[120dvh] transition-colors duration-150 ${
+    <div className={`relative isolate overflow-hidden min-h-[120svh] ${
       theme === THEMES.LIGHT ? 'bg-[#f8fafc] text-slate-800' :
       theme === THEMES.OLED ? 'bg-black text-slate-100' :
       theme === THEMES.EMERALD ? 'bg-[#012117] text-slate-100' :
@@ -425,25 +442,25 @@ export default function LandingPage({ onNavigateLogin, onGoToLogin }: LandingPag
 
       {/* Dynamic Background Blurs */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {/* Subtle grid pattern overlay */}
+        {/* Subtle Grid Pattern Overlay */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
 
-        {/* Colorful glowing ambient blobs */}
-        <div className={`absolute -top-40 left-1/2 -translate-x-1/2 h-[380px] w-[min(600px,90vw)] rounded-full blur-[120px] opacity-40 transition-colors duration-500 ${isLight ? 'bg-gradient-to-tr from-amber-200 to-sky-200' : 'bg-gradient-to-tr from-amber-500/10 to-indigo-500/10'
+        {/* Colorful Glowing Ambient Blobs */}
+        <div className={`absolute -top-40 left-1/2 -translate-x-1/2 h-[380px] w-[min(600px,90vw)] rounded-full blur-[120px] opacity-40 ${isLight ? 'bg-gradient-to-tr from-amber-200 to-sky-200' : 'bg-gradient-to-tr from-amber-500/10 to-indigo-500/10'
           }`} />
-        <div className={`absolute top-20 right-10 h-80 w-80 rounded-full blur-[100px] opacity-35 transition-colors duration-500 ${isLight ? 'bg-amber-200' : 'bg-amber-500/5'
+        <div className={`absolute top-20 right-10 h-80 w-80 rounded-full blur-[100px] opacity-35 ${isLight ? 'bg-amber-200' : 'bg-amber-500/5'
           }`} />
-        <div className={`absolute top-60 left-10 h-96 w-96 rounded-full blur-[100px] opacity-35 transition-colors duration-500 ${isLight ? 'bg-sky-200' : 'bg-sky-500/5'
+        <div className={`absolute top-60 left-10 h-96 w-96 rounded-full blur-[100px] opacity-35 ${isLight ? 'bg-sky-200' : 'bg-sky-500/5'
           }`} />
       </div>
 
       {/* SECTION 1: Above-the-fold Viewport (Hero Area) */}
-      <section className="relative w-full min-h-[calc(100dvh-3.5rem)] lg:h-[calc(100dvh-3.5rem)] flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 pb-12 lg:pb-28 border-b border-slate-200/10 dark:border-white/5 overflow-hidden">
+      <section className="relative w-full min-h-[calc(100svh-3.5rem)] lg:min-h-[calc(100vh-3.5rem)] flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 pb-12 lg:pb-28 border-b border-slate-200/10 dark:border-white/5 overflow-hidden">
         
         <div className="max-w-3xl w-full text-center space-y-6 z-10 relative">
           
-          {/* Eyebrow badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-[11px] font-bold tracking-wide transition-all shadow-sm mx-auto animate-fade-in border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+          {/* Eyebrow Badge */}
+          <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-[11px] font-bold tracking-wide transition-all shadow-sm mx-auto animate-fade-in ${isLight ? 'border-amber-300 bg-amber-100 text-amber-800' : 'border-amber-500/20 bg-amber-500/10 text-amber-400'}`}>
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span>{copy.eyebrow}</span>
           </div>
@@ -483,7 +500,7 @@ export default function LandingPage({ onNavigateLogin, onGoToLogin }: LandingPag
 
         </div>
 
-        {/* Desktop scroll down prompt */}
+        {/* Desktop Scroll-Down Prompt */}
         <div className="hidden lg:flex absolute bottom-5 left-1/2 -translate-x-1/2 flex-col items-center gap-2.5 z-20">
           <span className="text-[9px] font-black tracking-[0.2em] uppercase opacity-60 text-slate-500 dark:text-slate-400 select-none">
             {lang === 'ms' ? 'Skrol ke Bawah' : lang === 'zh' ? '向下滚动' : lang === 'ta' ? 'கீழே உருட்டவும்' : 'Scroll Down'}
@@ -516,13 +533,13 @@ export default function LandingPage({ onNavigateLogin, onGoToLogin }: LandingPag
                 ? 'border-slate-200 bg-white/95'
                 : 'border-white/[0.08] bg-[#0A1428]/95'
                 }`}
-              style={{
-                transform: `rotateX(${(12 - progress * 12) + mouseRotate.x}deg) rotateY(${mouseRotate.y}deg) scale(${0.94 + progress * 0.06}) translateY(${(1 - progress) * 15}px)`,
+              style={isMobile ? undefined : {
+                transform: `rotateX(${mouseRotate.x}deg) rotateY(${mouseRotate.y}deg) scale(1) translateY(0px)`,
                 transformStyle: 'preserve-3d',
                 willChange: 'transform',
                 backfaceVisibility: 'hidden',
                 WebkitFontSmoothing: 'antialiased',
-                opacity: 0.85 + progress * 0.15
+                opacity: 1
               }}
             >
               {/* Mockup Header */}
@@ -612,12 +629,12 @@ export default function LandingPage({ onNavigateLogin, onGoToLogin }: LandingPag
                 ))}
               </div>
 
-              {/* Mockup footer indicator */}
+              {/* Mockup Footer Indicator */}
               <div
                 className="mt-4 pt-2 border-t border-slate-200/50 dark:border-white/10 flex items-center justify-between text-[8px] font-semibold opacity-40 uppercase tracking-widest"
                 style={{ transform: 'translateZ(20px)' }}
               >
-                <span>USAS PORTAL UMC</span>
+                <span />
                 <span>STEM USAS</span>
               </div>
             </div>
@@ -665,7 +682,7 @@ export default function LandingPage({ onNavigateLogin, onGoToLogin }: LandingPag
 
           <div className="grid gap-4 md:grid-cols-3">
 
-            {/* CARD 1: DOWNLOADABLE FORMATS */}
+            {/* Card 1: Downloadable Formats */}
             <div className={`md:col-span-2 rounded-2xl border p-5 transition-all duration-300 hover:shadow-lg relative overflow-hidden flex flex-col justify-between min-h-[160px] ${isLight ? 'bg-white border-slate-200/60 shadow-sm' : 'bg-white/[0.015] border-white/[0.04] hover:bg-white/[0.025]'
               }`}>
               <div className="space-y-2 max-w-full sm:max-w-[52%]">
@@ -681,7 +698,7 @@ export default function LandingPage({ onNavigateLogin, onGoToLogin }: LandingPag
                 </p>
               </div>
 
-              {/* Graphical Stack representation inside Bento grid card */}
+              {/* Graphical Stack Representation Inside Bento Card */}
               <div className="absolute right-3 bottom-0 top-6 w-32 hidden sm:block pointer-events-none" style={{ perspective: '800px' }}>
                 <div className="absolute right-0 bottom-[-10px] w-14 h-24 rounded-lg bg-amber-500/10 border border-amber-500/20 rotate-[-12deg] shadow-lg flex flex-col p-1 gap-1 text-[4px] leading-none select-none">
                   <div className="h-2 w-full bg-amber-500/20 rounded-sm" />
@@ -699,7 +716,7 @@ export default function LandingPage({ onNavigateLogin, onGoToLogin }: LandingPag
               </div>
             </div>
 
-            {/* CARD 2: CALENDAR SYNC */}
+            {/* Card 2: Calendar Sync */}
             <div className={`md:col-span-1 rounded-2xl border p-5 transition-all duration-300 hover:shadow-lg flex flex-col justify-between min-h-[160px] ${isLight ? 'bg-white border-slate-200/60 shadow-sm' : 'bg-white/[0.015] border-white/[0.04] hover:bg-white/[0.025]'
               }`}>
               <div className="space-y-2">
@@ -716,7 +733,7 @@ export default function LandingPage({ onNavigateLogin, onGoToLogin }: LandingPag
               </div>
             </div>
 
-            {/* CARD 3: WHATSAPP & QR SHARING */}
+            {/* Card 3: WhatsApp & QR Sharing */}
             <div className={`md:col-span-1 rounded-2xl border p-5 transition-all duration-300 hover:shadow-lg flex flex-col justify-between min-h-[160px] ${isLight ? 'bg-white border-slate-200/60 shadow-sm' : 'bg-white/[0.015] border-white/[0.04] hover:bg-white/[0.025]'
               }`}>
               <div className="space-y-2">
@@ -733,7 +750,7 @@ export default function LandingPage({ onNavigateLogin, onGoToLogin }: LandingPag
               </div>
             </div>
 
-            {/* CARD 4: CLASH DETECTION & ATTENDANCE */}
+            {/* Card 4: Clash Detection & Attendance */}
             <div className={`md:col-span-2 rounded-2xl border p-5 transition-all duration-300 hover:shadow-lg relative overflow-hidden flex flex-col justify-between min-h-[160px] ${isLight ? 'bg-white border-slate-200/60 shadow-sm' : 'bg-white/[0.015] border-white/[0.04] hover:bg-white/[0.025]'
               }`}>
               <div className="space-y-2 max-w-full sm:max-w-[52%]">
@@ -749,7 +766,7 @@ export default function LandingPage({ onNavigateLogin, onGoToLogin }: LandingPag
                 </p>
               </div>
 
-              {/* Decorative mini widgets */}
+              {/* Decorative Mini Widgets */}
               <div className="absolute right-5 bottom-4 hidden sm:flex items-center gap-3 pointer-events-none">
                 <div className="px-2 py-1.5 rounded-lg border border-red-500/20 bg-red-500/10 text-red-500 text-[8px] font-bold flex items-center gap-1">
                   <AlertTriangle className="w-3.5 h-3.5" />
@@ -761,7 +778,7 @@ export default function LandingPage({ onNavigateLogin, onGoToLogin }: LandingPag
               </div>
             </div>
 
-            {/* CARD 5: SMART QR ATTENDANCE SCAN */}
+            {/* Card 5: Smart QR Attendance Scan */}
             <div className={`md:col-span-3 rounded-2xl border p-5 transition-all duration-300 hover:shadow-lg relative overflow-hidden flex flex-col justify-between min-h-[140px] ${isLight ? 'bg-white border-slate-200/60 shadow-sm' : 'bg-white/[0.015] border-white/[0.04] hover:bg-white/[0.025]'
               }`}>
               <div className="space-y-2 max-w-full sm:max-w-[70%]">
@@ -777,7 +794,7 @@ export default function LandingPage({ onNavigateLogin, onGoToLogin }: LandingPag
                 </p>
               </div>
 
-              {/* Decorative mini widgets */}
+              {/* Decorative Mini Widgets */}
               <div className="absolute right-6 bottom-4 top-4 hidden sm:flex flex-col items-center justify-center gap-2 pointer-events-none opacity-80">
                 <div className="h-14 w-14 rounded-xl border border-dashed border-amber-500/50 bg-amber-500/5 flex items-center justify-center relative">
                   <div className="absolute top-1 left-1 w-2 h-2 border-t border-l border-amber-500"></div>
@@ -792,7 +809,7 @@ export default function LandingPage({ onNavigateLogin, onGoToLogin }: LandingPag
           </div>
         </div>
 
-        {/* Pasang Aplikasi (PWA) Suggestion Section */}
+        {/* Install App (PWA) Suggestion Section */}
         <div className={`mt-24 rounded-2xl border p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-6 justify-between text-center sm:text-left transition-all hover:shadow-lg ${
           isLight 
             ? 'bg-gradient-to-br from-amber-50 to-white border-amber-200/60 shadow-sm' 
@@ -941,6 +958,14 @@ export default function LandingPage({ onNavigateLogin, onGoToLogin }: LandingPag
             <p className="text-xs leading-relaxed opacity-75">
               {copy.disclaimerText}
             </p>
+            <a
+              href="https://github.com/zis3c/USAS-Class-Timetable/blob/main/docs/PRIVACY.md"
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 inline-block text-xs font-bold underline underline-offset-2"
+            >
+              {copy.privacyLink}
+            </a>
           </div>
         </div>
 
@@ -956,7 +981,7 @@ export default function LandingPage({ onNavigateLogin, onGoToLogin }: LandingPag
                   : 'bg-gradient-to-br from-amber-500/[0.02] to-transparent border-white/[0.05] hover:border-white/[0.08]'
           }`}>
             
-            {/* Left Column: Helpdesk info */}
+            {/* Left Column: Helpdesk Information */}
             <div className="flex-1 flex flex-col justify-between text-left space-y-4">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
@@ -1038,6 +1063,20 @@ export default function LandingPage({ onNavigateLogin, onGoToLogin }: LandingPag
             <span className="text-amber-500">STEM USAS</span>
             <span className="opacity-30 text-[8px]">-</span>
             <span className={isLight ? 'text-slate-600' : 'text-slate-400'}>zis3c</span>
+            <span className="opacity-30 text-[8px]">-</span>
+            {import.meta.env.VITE_GIT_COMMIT ? (
+              <a
+                href={`https://github.com/zis3c/USAS-Class-Timetable/commit/${import.meta.env.VITE_GIT_COMMIT}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={`Build ${import.meta.env.VITE_GIT_COMMIT}`}
+                className="text-slate-500 hover:text-amber-500"
+              >
+                build {import.meta.env.VITE_GIT_COMMIT.slice(0, 7)}
+              </a>
+            ) : (
+              <span className="text-slate-500">build local</span>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <a
@@ -1089,7 +1128,7 @@ export default function LandingPage({ onNavigateLogin, onGoToLogin }: LandingPag
       {/* Floating Scroll-to-Top Button */}
       <button
         onClick={() => {
-          const lenis = (window as any).usasLenis;
+          const lenis = (window as Window & { usasLenis?: { scrollTo: (target: number, options?: { duration?: number }) => void } }).usasLenis;
           if (lenis) {
             lenis.scrollTo(0, { duration: 1.5 });
           } else {

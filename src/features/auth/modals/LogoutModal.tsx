@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/app/providers/LanguageProvider';
 import { useTheme } from '@/app/providers/ThemeProvider';
-import { LogOut, X } from 'lucide-react';
+import { useModalA11y } from '@/shared/lib/useModalA11y';
+import { LogOut } from 'lucide-react';
 
 type LogoutModalProps = {
   isOpen: boolean;
@@ -10,6 +11,7 @@ type LogoutModalProps = {
 };
 
 export default function LogoutModal({ isOpen, onClose, onConfirm }: LogoutModalProps) {
+  const modalRef = useModalA11y(isOpen, onClose);
   const { lang } = useLanguage();
   const { theme } = useTheme();
   const [animate, setAnimate] = useState(false);
@@ -52,7 +54,7 @@ export default function LogoutModal({ isOpen, onClose, onConfirm }: LogoutModalP
   };
 
   return (
-    <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-md transition-all duration-200 touch-none ${
+    <div ref={modalRef} role="dialog" aria-modal="true" aria-label="Log Keluar" className={`fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-md transition-all duration-200 touch-none ${
       animate ? 'bg-slate-900/30 opacity-100' : 'bg-slate-900/0 opacity-0 pointer-events-none'
     }`}>
       <div 
@@ -72,9 +74,9 @@ export default function LogoutModal({ isOpen, onClose, onConfirm }: LogoutModalP
         <div className={`flex items-center justify-between px-5 py-4 border-b ${
           isLight ? 'border-slate-200 bg-slate-50/50' : 'border-white/[0.06] bg-[#0A1428]/95'
         }`}>
-          <div className="flex items-center gap-2.5">
-            <LogOut className={`w-4 h-4 ${isLight ? 'text-red-600' : 'text-red-400'}`} />
-            <h2 className={`text-sm font-bold tracking-wide ${
+          <div className="flex items-center gap-2.5 min-w-0">
+            <LogOut className={`w-4 h-4 flex-shrink-0 ${isLight ? 'text-red-600' : 'text-red-400'}`} />
+            <h2 className={`text-sm sm:text-base font-bold tracking-wide truncate ${
               isLight ? 'text-slate-900' : 'text-white'
             }`}>
               {copy.title}

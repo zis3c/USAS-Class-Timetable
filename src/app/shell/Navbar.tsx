@@ -24,7 +24,7 @@ const LANGUAGES: { code: LanguageCode; label: string; short: string; native: str
 ];
 
 export default function Navbar({ onOpenTools, onNavigateHome, onNavigateLogin, view }: NavbarProps) {
-  const { session, refreshTimetable, loading, isOffline } = useAuth();
+  const { session, refreshTimetable, loading, isOffline, timeFormat, setTimeFormat } = useAuth();
   const { lang, setLang, t } = useLanguage();
   const { theme, changeTheme, THEMES } = useTheme();
 
@@ -67,7 +67,7 @@ export default function Navbar({ onOpenTools, onNavigateHome, onNavigateLogin, v
             onClick={onNavigateHome}
             className="flex items-center gap-1.5 min-w-0 cursor-pointer select-none"
           >
-            <img src="/usas-logo.png" alt="USAS Emblem" className="w-8 h-8 object-contain drop-shadow-[0_2px_8px_rgba(212,175,55,0.2)]" />
+            <img src={isLight ? '/usas-logo-light.png' : '/usas-logo-dark.png'} alt="USAS Emblem" className={`w-8 h-8 object-contain ${isLight ? 'drop-shadow-[0_2px_8px_rgba(16,47,97,0.15)]' : 'drop-shadow-[0_2px_8px_rgba(255,204,0,0.2)]'}`} />
             <div className="flex flex-col justify-center text-left leading-none min-w-0">
               <h2 className={`max-w-[11rem] sm:max-w-none truncate text-[11px] sm:text-[12px] font-semibold tracking-tight leading-none whitespace-nowrap ${isLight ? 'text-slate-800' : 'text-white'}`}>
                 USAS Class Timetable
@@ -191,6 +191,21 @@ export default function Navbar({ onOpenTools, onNavigateHome, onNavigateLogin, v
 
           {session && (
             <>
+              <button
+                type="button"
+                onClick={() => setTimeFormat(timeFormat === '24h' ? '12h' : '24h')}
+                aria-label={lang === 'ms'
+                  ? `Format masa ${timeFormat === '24h' ? '24 jam' : '12 jam'}. Tukar format`
+                  : `Time format ${timeFormat}. Switch format`}
+                title={lang === 'ms' ? 'Tukar format jam' : 'Switch time format'}
+                className={`h-7 min-w-10 px-1.5 rounded-md border text-[10px] font-bold transition-colors ${isLight
+                  ? 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
+                  : 'bg-white/[0.04] hover:bg-white/[0.08] border-white/10 text-amber-300'
+                }`}
+              >
+                {timeFormat.toUpperCase()}
+              </button>
+
               {/* Refresh */}
               <button
                 onClick={refreshTimetable}

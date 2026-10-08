@@ -2,6 +2,7 @@ import type { Dispatch, SetStateAction } from 'react';
 
 export type LanguageCode = 'ms' | 'en' | 'zh' | 'ta';
 export type ThemeName = 'navy' | 'oled' | 'emerald' | 'light';
+export type TimeFormat = '12h' | '24h';
 
 export interface ApiErrorResponse {
   success: false;
@@ -72,21 +73,26 @@ export interface AttendanceHistoryItem {
   catatan?: string;
 }
 
-export interface AcademicCalendarItem {
-  acara: string;
-  tarikh: string;
-  status: string;
+export interface WaktuSolatPrayer {
+  day: number;
+  hijri: string;
+  imsak: number;
+  fajr: number;
+  syuruk: number;
+  dhuha: number;
+  dhuhr: number;
+  asr: number;
+  maghrib: number;
+  isha: number;
 }
 
-export interface CampusNewsItem {
-  tajuk: string;
-  tarikh: string;
-  ringkasan: string;
-}
-
-export interface PrayerTimeItem {
-  label: string;
-  content: string;
+export interface WaktuSolatApiResponse {
+  zone: string;
+  year: number;
+  month: string;
+  month_number: number;
+  last_updated: string | null;
+  prayers: WaktuSolatPrayer[];
 }
 
 export interface AuthContextValue {
@@ -95,7 +101,9 @@ export interface AuthContextValue {
   loading: boolean;
   error: string | null;
   isOffline: boolean;
-  login: (userId: string, password: string, isDemo?: boolean) => Promise<boolean>;
+  timeFormat: TimeFormat;
+  setTimeFormat: (format: TimeFormat) => void;
+  login: (userId: string, password: string, isDemo?: boolean, captchaToken?: string) => Promise<boolean>;
   logout: () => void;
   refreshTimetable: () => Promise<void>;
   setError: Dispatch<SetStateAction<string | null>>;
