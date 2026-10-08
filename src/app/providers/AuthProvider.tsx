@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { loginStudentAPI, fetchTimetableAPI } from '@/services/usas/usasApi';
-import type { AuthContextValue, StudentSession, TimetableData } from '@/shared/types/usas';
+import { loginStudentAPI, fetchTimetableAPI, UsasUnavailableError } from '@/services/usas/Api';
+import type { AuthContextValue, StudentSession, TimeFormat, TimetableData } from '@/shared/types/usas';
 import {
   evaluateLoginThrottle,
   formatRetryAt,
@@ -22,6 +22,16 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 const CACHE_KEY_SESSION = 'usas_student_session_cache';
 const CACHE_KEY_TIMETABLE = 'usas_student_timetable_cache';
 const CACHE_KEY_LOGIN_THROTTLE = 'usas_login_throttle_cache';
+const getTimeFormatKey = (userId: string) => `usas_time_format_${userId}`;
+
+const readTimeFormat = (userId?: string): TimeFormat => {
+  if (!userId) return '24h';
+  try {
+    return localStorage.getItem(getTimeFormatKey(userId)) === '12h' ? '12h' : '24h';
+  } catch {
+    return '24h';
+  }
+};
 
 type AuthProviderProps = {
   children: ReactNode;
@@ -47,6 +57,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [timeFormat, setTimeFormatState] = useState<TimeFormat>(() => readTimeFormat(session?.user_id));
   const loginRequestRef = useRef(0);
   const refreshRequestRef = useRef(0);
   const sessionRef = useRef<StudentSession | null>(session);
@@ -59,6 +70,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     sessionRef.current = session;
   }, [session]);
+
+  useEffect(() => {
+    setTimeFormatState(readTimeFormat(session?.user_id));
+  }, [session?.user_id]);
+
+  const setTimeFormat = (format: TimeFormat) => {
+    setTimeFormatState(format);
+    if (!session?.user_id) return;
+    try {
+      localStorage.setItem(getTimeFormatKey(session.user_id), format);
+    } catch {
+      // Keep the preference for this session if storage is unavailable.
+    }
+  };
 
   const readThrottleState = () => {
     try {
@@ -91,7 +116,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
   }, []);
 
-  const login = async (userId: string, password: string, isDemo = false) => {
+  const login = async (userId: string, password: string, isDemo = false, captchaToken?: string) => {
     const requestId = ++loginRequestRef.current;
     refreshRequestRef.current += 1;
     setLoading(true);
@@ -112,7 +137,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return false;
       }
 
-      const res = await loginStudentAPI(userId, password, isDemo);
+      const res = await loginStudentAPI(userId, password, isDemo, captchaToken);
       if (loginRequestRef.current !== requestId) return false;
       if (res.success) {
         const safeSession = sanitizeSession(res.data);
@@ -133,10 +158,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
           } catch {
             // ignore storage failures
           }
-        } catch {
+        } catch (err) {
           if (loginRequestRef.current !== requestId) return false;
-          setTimetableData(null);
-          setError('Gagal memuat jadual.');
+          setError(err instanceof UsasUnavailableError
+            ? 'Pelayan USAS tidak dapat dihubungi. Sila cuba lagi sebentar.'
+            : 'Gagal memuat jadual. Sila cuba lagi.');
         }
         return true;
       } else {
@@ -193,15 +219,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
       } catch {
         // ignore storage failures
       }
-    } catch {
+    } catch (err) {
       if (refreshRequestRef.current !== requestId || getSessionKey(sessionRef.current) !== sessionKey) return;
-      setError('Gagal memuat jadual.');
+      setError(err instanceof UsasUnavailableError
+        ? 'Pelayan USAS tidak dapat dihubungi. Memaparkan jadual tersimpan.'
+        : 'Gagal memuat jadual. Sila cuba lagi.');
     } finally {
       if (refreshRequestRef.current === requestId && getSessionKey(sessionRef.current) === sessionKey) {
         setLoading(false);
       }
     }
   };
+
+  // A restored session may come with a stale cached timetable (e.g. missing
+  // group_id or attendance data), so refresh once from the API on first load.
+  const didAutoRefreshRef = useRef(false);
+  useEffect(() => {
+    if (didAutoRefreshRef.current) return;
+    if (!sessionRef.current) return;
+    didAutoRefreshRef.current = true;
+    void refreshTimetable();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <AuthContext.Provider value={{
@@ -210,6 +249,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       loading,
       error,
       isOffline,
+      timeFormat,
+      setTimeFormat,
       login,
       logout,
       refreshTimetable,

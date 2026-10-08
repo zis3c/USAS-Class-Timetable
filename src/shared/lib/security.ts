@@ -1,4 +1,5 @@
 import type { StudentSession, TimetableItem } from '../types/usas';
+import { normalizeDayLabel } from './dayFormat';
 
 // eslint-disable-next-line no-control-regex
 const CONTROL_CHARS = /[\u0000-\u001f\u007f]/g;
@@ -6,6 +7,11 @@ const WHITESPACE = /\s+/g;
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOGIN_LOCKOUT_MS = 5 * 60 * 1000;
 const POISON_IDENTIFIERS = new Set(['__proto__', 'constructor', 'prototype']);
+
+export function getOwnRecordValue<T>(record: object, key: PropertyKey): T | undefined {
+  const descriptor = Object.getOwnPropertyDescriptor(record, key);
+  return descriptor && 'value' in descriptor ? descriptor.value as T : undefined;
+}
 
 export type LoginThrottleState = {
   failedAttempts: number;
@@ -65,7 +71,7 @@ export function sanitizeTimetableItem(item: TimetableItem): TimetableItem {
   return {
     ...item,
     id: sanitizeSingleLine(item.id, 64),
-    day: sanitizeSingleLine(item.day, 32).toUpperCase(),
+    day: normalizeDayLabel(sanitizeSingleLine(item.day, 64)),
     course_id: sanitizeSingleLine(item.course_id, 64),
     kod_kursus: sanitizeSingleLine(item.kod_kursus, 64),
     course_name: sanitizeSingleLine(item.course_name, 160),

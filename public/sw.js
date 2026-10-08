@@ -11,6 +11,8 @@ const SHELL_ASSETS = [
   '/error.css',
   '/error-page.js',
   '/usas-logo.png',
+  '/usas-logo-dark.png',
+  '/usas-logo-light.png',
 ];
 
 self.addEventListener('install', (event) => {
@@ -36,7 +38,7 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-async function serveOfflineFallback(request) {
+async function serveOfflineFallback(_request) {
   const cache = await caches.open(CACHE_NAME);
   const offline = await cache.match('/offline.html');
   if (offline) return offline;
@@ -56,7 +58,9 @@ function shouldCacheRequest(pathname, destination) {
     pathname === '/504.html' ||
     pathname === '/error.css' ||
     pathname === '/error-page.js' ||
-    pathname === '/usas-logo.png'
+    pathname === '/usas-logo.png' ||
+    pathname === '/usas-logo-dark.png' ||
+    pathname === '/usas-logo-light.png'
   ) {
     return true;
   }

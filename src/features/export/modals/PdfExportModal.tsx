@@ -2,11 +2,18 @@ import { useState, useRef, useMemo, useEffect } from 'react';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useLanguage } from '@/app/providers/LanguageProvider';
 import { useTheme } from '@/app/providers/ThemeProvider';
+import { useModalA11y } from '@/shared/lib/useModalA11y';
 import { generateTimetablePdf, generateElementPng, generateLockscreenImage } from '@/features/export/lib/pdfGenerator';
+import { extractDayName, formatDayDisplay, sortDayLabels } from '@/shared/lib/dayFormat';
+import { buildCourseColorMap, getCourseColorSlot } from '@/shared/lib/courseColors';
+import { getOwnRecordValue } from '@/shared/lib/security';
+import { formatTimeFromMinutes, getShortTimeRange } from '@/shared/lib/timetableTime';
+import { buildWallpaperGridSlots, getWallpaperAxisPosition } from '@/features/export/lib/wallpaperGrid';
 import type { TimetableItem } from '@/shared/types/usas';
-import { 
-  X, Download, Smartphone, RotateCw, Award, ChevronDown, Plus, Minus
+import {
+  X, Download, Smartphone, RotateCw, ChevronDown, Plus, Minus, FileBadge, ImagePlus
 } from 'lucide-react';
+import MinimalWeekCard from '../components/MinimalWeekCard';
 
 type PdfExportModalProps = {
   isOpen: boolean;
@@ -17,54 +24,66 @@ type ExportMode = 'FORMAL_A4' | 'WALLPAPER';
 type ExportFileType = 'PDF' | 'PNG';
 type WallpaperPreset = 'phone' | 'tablet' | 'desktop' | 'square';
 type ContentDetail = 'CODE' | 'DETAILS';
+type WallpaperDesign = 'GRID' | 'MINIMAL' | 'GLASS';
 type ExportTheme = 'light' | 'dark' | 'emerald' | 'oled' | 'warm';
+type WallpaperPresetStyle = {
+  tableFontSize: string;
+  thPadding: string;
+  tdPadding: string;
+  minH: string;
+  courseTitleSize: string;
+  courseSubSize?: string;
+  courseLocSize: string;
+  durationSize: string;
+  iconSize: string;
+};
 
 const getModalDayColors = (day: string | undefined, theme: ExportTheme) => {
   const isLight = theme === 'light';
   const darkColors = {
-    'ISNIN':  { bg: 'bg-emerald-500/25', border: 'border-emerald-500/40', text: 'text-emerald-300 font-bold' },
-    'SELASA': { bg: 'bg-blue-500/25',    border: 'border-blue-500/40',    text: 'text-blue-300 font-bold' },
-    'RABU':   { bg: 'bg-amber-500/25',   border: 'border-amber-500/40',   text: 'text-amber-300 font-bold' },
-    'KHAMIS': { bg: 'bg-purple-500/25',  border: 'border-purple-500/40',  text: 'text-purple-300 font-bold' },
-    'JUMAAT': { bg: 'bg-rose-500/25',    border: 'border-rose-500/40',    text: 'text-rose-300 font-bold' },
-    'SABTU':  { bg: 'bg-orange-500/25',  border: 'border-orange-500/40',  text: 'text-orange-300 font-bold' },
-    'AHAD':   { bg: 'bg-slate-500/25',   border: 'border-slate-500/40',   text: 'text-slate-300 font-bold' },
+    'ISNIN': { bg: 'bg-emerald-500/25', border: 'border-emerald-500/40', text: 'text-emerald-300 font-bold' },
+    'SELASA': { bg: 'bg-blue-500/25', border: 'border-blue-500/40', text: 'text-blue-300 font-bold' },
+    'RABU': { bg: 'bg-amber-500/25', border: 'border-amber-500/40', text: 'text-amber-300 font-bold' },
+    'KHAMIS': { bg: 'bg-purple-500/25', border: 'border-purple-500/40', text: 'text-purple-300 font-bold' },
+    'JUMAAT': { bg: 'bg-rose-500/25', border: 'border-rose-500/40', text: 'text-rose-300 font-bold' },
+    'SABTU': { bg: 'bg-orange-500/25', border: 'border-orange-500/40', text: 'text-orange-300 font-bold' },
+    'AHAD': { bg: 'bg-slate-500/25', border: 'border-slate-500/40', text: 'text-slate-300 font-bold' },
   };
   const emeraldColors = {
-    'ISNIN':  { bg: 'bg-emerald-500/30', border: 'border-emerald-400/50', text: 'text-emerald-200 font-bold' },
-    'SELASA': { bg: 'bg-teal-500/30',    border: 'border-teal-400/50',    text: 'text-teal-200 font-bold' },
-    'RABU':   { bg: 'bg-amber-500/30',   border: 'border-amber-400/50',   text: 'text-amber-200 font-bold' },
-    'KHAMIS': { bg: 'bg-lime-500/30',    border: 'border-lime-400/50',    text: 'text-lime-200 font-bold' },
+    'ISNIN': { bg: 'bg-emerald-500/30', border: 'border-emerald-400/50', text: 'text-emerald-200 font-bold' },
+    'SELASA': { bg: 'bg-teal-500/30', border: 'border-teal-400/50', text: 'text-teal-200 font-bold' },
+    'RABU': { bg: 'bg-amber-500/30', border: 'border-amber-400/50', text: 'text-amber-200 font-bold' },
+    'KHAMIS': { bg: 'bg-lime-500/30', border: 'border-lime-400/50', text: 'text-lime-200 font-bold' },
     'JUMAAT': { bg: 'bg-emerald-600/35', border: 'border-emerald-300/60', text: 'text-emerald-100 font-bold' },
-    'SABTU':  { bg: 'bg-amber-600/30',   border: 'border-amber-400/50',   text: 'text-amber-200 font-bold' },
-    'AHAD':   { bg: 'bg-slate-500/30',   border: 'border-slate-400/50',   text: 'text-slate-200 font-bold' },
+    'SABTU': { bg: 'bg-amber-600/30', border: 'border-amber-400/50', text: 'text-amber-200 font-bold' },
+    'AHAD': { bg: 'bg-slate-500/30', border: 'border-slate-400/50', text: 'text-slate-200 font-bold' },
   };
   const warmColors = {
-    'ISNIN':  { bg: 'bg-amber-500/30',   border: 'border-amber-400/50',   text: 'text-amber-200 font-bold' },
-    'SELASA': { bg: 'bg-orange-500/30',  border: 'border-orange-400/50',  text: 'text-orange-200 font-bold' },
-    'RABU':   { bg: 'bg-yellow-500/30',  border: 'border-yellow-400/50',  text: 'text-yellow-200 font-bold' },
-    'KHAMIS': { bg: 'bg-red-500/30',     border: 'border-red-400/50',     text: 'text-red-200 font-bold' },
-    'JUMAAT': { bg: 'bg-amber-600/35',   border: 'border-amber-300/60',   text: 'text-amber-100 font-bold' },
-    'SABTU':  { bg: 'bg-orange-600/30',  border: 'border-orange-400/50',  text: 'text-orange-200 font-bold' },
-    'AHAD':   { bg: 'bg-stone-500/30',   border: 'border-stone-400/50',   text: 'text-stone-200 font-bold' },
+    'ISNIN': { bg: 'bg-amber-500/30', border: 'border-amber-400/50', text: 'text-amber-200 font-bold' },
+    'SELASA': { bg: 'bg-orange-500/30', border: 'border-orange-400/50', text: 'text-orange-200 font-bold' },
+    'RABU': { bg: 'bg-yellow-500/30', border: 'border-yellow-400/50', text: 'text-yellow-200 font-bold' },
+    'KHAMIS': { bg: 'bg-red-500/30', border: 'border-red-400/50', text: 'text-red-200 font-bold' },
+    'JUMAAT': { bg: 'bg-amber-600/35', border: 'border-amber-300/60', text: 'text-amber-100 font-bold' },
+    'SABTU': { bg: 'bg-orange-600/30', border: 'border-orange-400/50', text: 'text-orange-200 font-bold' },
+    'AHAD': { bg: 'bg-stone-500/30', border: 'border-stone-400/50', text: 'text-stone-200 font-bold' },
   };
   const oledColors = {
-    'ISNIN':  { bg: 'bg-emerald-950/60', border: 'border-emerald-500/60', text: 'text-emerald-300 font-bold' },
-    'SELASA': { bg: 'bg-blue-950/60',    border: 'border-blue-500/60',    text: 'text-blue-300 font-bold' },
-    'RABU':   { bg: 'bg-amber-950/60',   border: 'border-amber-500/60',   text: 'text-amber-300 font-bold' },
-    'KHAMIS': { bg: 'bg-purple-950/60',  border: 'border-purple-500/60',  text: 'text-purple-300 font-bold' },
-    'JUMAAT': { bg: 'bg-rose-950/60',    border: 'border-rose-500/60',    text: 'text-rose-300 font-bold' },
-    'SABTU':  { bg: 'bg-orange-950/60',  border: 'border-orange-500/60',  text: 'text-orange-300 font-bold' },
-    'AHAD':   { bg: 'bg-zinc-900/80',    border: 'border-zinc-500/60',    text: 'text-zinc-300 font-bold' },
+    'ISNIN': { bg: 'bg-emerald-950/60', border: 'border-emerald-500/60', text: 'text-emerald-300 font-bold' },
+    'SELASA': { bg: 'bg-blue-950/60', border: 'border-blue-500/60', text: 'text-blue-300 font-bold' },
+    'RABU': { bg: 'bg-amber-950/60', border: 'border-amber-500/60', text: 'text-amber-300 font-bold' },
+    'KHAMIS': { bg: 'bg-purple-950/60', border: 'border-purple-500/60', text: 'text-purple-300 font-bold' },
+    'JUMAAT': { bg: 'bg-rose-950/60', border: 'border-rose-500/60', text: 'text-rose-300 font-bold' },
+    'SABTU': { bg: 'bg-orange-950/60', border: 'border-orange-500/60', text: 'text-orange-300 font-bold' },
+    'AHAD': { bg: 'bg-zinc-900/80', border: 'border-zinc-500/60', text: 'text-zinc-300 font-bold' },
   };
   const lightColors = {
-    'ISNIN':  { bg: 'bg-emerald-100/80', border: 'border-emerald-300', text: 'text-emerald-800 font-bold' },
-    'SELASA': { bg: 'bg-blue-100/80',    border: 'border-blue-300',    text: 'text-blue-800 font-bold' },
-    'RABU':   { bg: 'bg-amber-100/90',   border: 'border-amber-350',   text: 'text-amber-800 font-bold' },
-    'KHAMIS': { bg: 'bg-purple-100/80',  border: 'border-purple-300',  text: 'text-purple-800 font-bold' },
-    'JUMAAT': { bg: 'bg-rose-100/80',    border: 'border-rose-300',    text: 'text-rose-800 font-bold' },
-    'SABTU':  { bg: 'bg-orange-100/80',  border: 'border-orange-300',  text: 'text-orange-800 font-bold' },
-    'AHAD':   { bg: 'bg-slate-200/80',   border: 'border-slate-300',   text: 'text-slate-800 font-bold' },
+    'ISNIN': { bg: 'bg-emerald-100/80', border: 'border-emerald-300', text: 'text-emerald-800 font-bold' },
+    'SELASA': { bg: 'bg-blue-100/80', border: 'border-blue-300', text: 'text-blue-800 font-bold' },
+    'RABU': { bg: 'bg-amber-100/90', border: 'border-amber-350', text: 'text-amber-800 font-bold' },
+    'KHAMIS': { bg: 'bg-purple-100/80', border: 'border-purple-300', text: 'text-purple-800 font-bold' },
+    'JUMAAT': { bg: 'bg-rose-100/80', border: 'border-rose-300', text: 'text-rose-800 font-bold' },
+    'SABTU': { bg: 'bg-orange-100/80', border: 'border-orange-300', text: 'text-orange-800 font-bold' },
+    'AHAD': { bg: 'bg-slate-200/80', border: 'border-slate-300', text: 'text-slate-800 font-bold' },
   };
 
   const map = theme === 'emerald'
@@ -77,7 +96,9 @@ const getModalDayColors = (day: string | undefined, theme: ExportTheme) => {
           ? lightColors
           : darkColors;
 
-  return map[day as keyof typeof map] || map['ISNIN'];
+  const key = (extractDayName(day) || 'ISNIN') as keyof typeof map;
+  return getOwnRecordValue<(typeof map)[keyof typeof map]>(map, key)
+    || getOwnRecordValue<(typeof map)[keyof typeof map]>(map, 'ISNIN')!;
 };
 
 const getLockscreenThemeConfig = (theme: ExportTheme) => {
@@ -146,8 +167,8 @@ const getLockscreenThemeConfig = (theme: ExportTheme) => {
   }
 };
 
-const getPresetStyle = (preset: WallpaperPreset, detail: ContentDetail = 'DETAILS') => {
-  const base = {
+const getPresetStyle = (preset: WallpaperPreset, detail: ContentDetail = 'DETAILS'): WallpaperPresetStyle => {
+  const base: Record<WallpaperPreset, WallpaperPresetStyle> = {
     phone: {
       tableFontSize: 'text-[5.75px]',
       thPadding: 'p-0.5',
@@ -194,7 +215,7 @@ const getPresetStyle = (preset: WallpaperPreset, detail: ContentDetail = 'DETAIL
     },
   };
 
-  const detailTweaks = {
+  const detailTweaks: Record<ContentDetail, Partial<Record<WallpaperPreset, Partial<WallpaperPresetStyle>>>> = {
     CODE: {
       phone: { minH: 'min-h-[24px]', courseTitleSize: 'text-[7.2px] font-black leading-none text-center tracking-tight', durationSize: 'text-[4px] leading-none text-center font-semibold' },
       square: { minH: 'min-h-[32px]', courseTitleSize: 'text-[8.4px] font-black leading-none text-center tracking-tight', durationSize: 'text-[4.6px] leading-none text-center font-semibold' },
@@ -209,13 +230,30 @@ const getPresetStyle = (preset: WallpaperPreset, detail: ContentDetail = 'DETAIL
     },
   };
 
-  return {
-    ...base[preset],
-    ...(detailTweaks[detail]?.[preset] || {}),
-  };
+  const presetBase = getOwnRecordValue<WallpaperPresetStyle>(base, preset) ?? base.phone;
+  const detailConfig = getOwnRecordValue<Partial<Record<WallpaperPreset, Partial<WallpaperPresetStyle>>>>(detailTweaks, detail);
+  const presetTweaks = detailConfig && getOwnRecordValue<Partial<WallpaperPresetStyle>>(detailConfig, preset);
+  return { ...presetBase, ...(presetTweaks || {}) };
 };
 
-const WALLPAPER_HOUR_STARTS = [8, 9, 10, 11, 12, 13, 14, 15, 16];
+const WALLPAPER_PRESET_SIZES = new Map<WallpaperPreset, { width: number; height: number }>([
+  ['phone', { width: 360, height: 640 }],
+  ['tablet', { width: 520, height: 640 }],
+  ['square', { width: 480, height: 480 }],
+  ['desktop', { width: 780, height: 480 }],
+]);
+
+// Measures the real rendered width of bold text so the wallpaper can shrink the
+// course code to exactly fit a narrow (single-period) cell.
+let codeMeasureCanvas: HTMLCanvasElement | null = null;
+const measureBoldTextWidth = (text: string, fontSizePx: number): number | null => {
+  if (typeof document === 'undefined' || !text) return null;
+  if (!codeMeasureCanvas) codeMeasureCanvas = document.createElement('canvas');
+  const ctx = codeMeasureCanvas.getContext('2d');
+  if (!ctx) return null;
+  ctx.font = `900 ${fontSizePx}px Inter, Arial, sans-serif`;
+  return ctx.measureText(text).width || null;
+};
 
 const parseTimeToMinutes = (timeStr?: string) => {
   if (!timeStr) return null;
@@ -232,33 +270,21 @@ const parseTimeToMinutes = (timeStr?: string) => {
   return normalizedHour * 60 + minute;
 };
 
-const formatAmPmTime = (timeStr?: string) => {
-  if (!timeStr) return '';
-  const raw = String(timeStr).trim();
-  const match = raw.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-  if (!match) return timeStr;
-  
-  const hour = parseInt(match[1], 10);
-  const min = parseInt(match[2], 10);
-  const ampm = match[3].toLowerCase();
-  
-  const minStr = `:${String(min).padStart(2, '0')}`;
-  return `${hour}${minStr}${ampm}`;
-};
-
-const formatDurationRange = (startTime?: string, endTime?: string) => {
+const formatDurationRange = (startTime?: string, endTime?: string, timeFormat: '12h' | '24h' = '24h') => {
   if (!startTime && !endTime) return '-';
-  const start = formatAmPmTime(startTime);
-  const end = formatAmPmTime(endTime);
-  if (!start) return end;
-  if (!end) return start;
-  return `${start} - ${end}`;
+  return getShortTimeRange(startTime, endTime, timeFormat).replace('-', ' - ');
 };
 
-const formatWallpaperSlotLabel = (hour: number) => {
-  const start = String(hour).padStart(2, '0');
-  const end = String(hour + 1).padStart(2, '0');
-  return `${start}-${end}`;
+const formatWallpaperSlotLabel = (startMinutes: number, endMinutes: number, timeFormat: '12h' | '24h') => {
+  const format = (minutes: number) => {
+    if (timeFormat === '24h' && minutes % 60 === 0) return String(Math.floor(minutes / 60));
+    if (timeFormat === '12h') return String(Math.floor(minutes / 60) % 12 || 12);
+    return formatTimeFromMinutes(minutes, timeFormat).replace(/\s?(AM|PM)$/i, '');
+  };
+  if (endMinutes - startMinutes <= 30) return format(startMinutes);
+  const start = format(startMinutes);
+  const end = format(Math.min(24 * 60, endMinutes));
+  return timeFormat === '12h' ? `${start} - ${end}` : `${start}-${end}`;
 };
 
 const formatShortDurationLabel = (startTime?: string, endTime?: string) => {
@@ -270,21 +296,23 @@ const formatShortDurationLabel = (startTime?: string, endTime?: string) => {
 };
 
 export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps) {
-  const { timetableData, session } = useAuth();
+  const modalRef = useModalA11y(isOpen, onClose);
+  const { timetableData, session, timeFormat } = useAuth();
   const { lang, t } = useLanguage();
   const { theme } = useTheme();
-  
+
   const isLight = theme === 'light';
-  
+
   // Modes: 'FORMAL_A4' | 'WALLPAPER'
-  const [exportMode, setExportMode] = useState<ExportMode>('FORMAL_A4'); 
+  const [exportMode, setExportMode] = useState<ExportMode>('FORMAL_A4');
   const [exportFileType, setExportFileType] = useState<ExportFileType>('PDF');
-  
+
   // Device Wallpaper Presets: 'phone' (9:16) | 'tablet' (4:3) | 'desktop' (16:9) | 'square' (1:1)
   const [wallpaperPreset, setWallpaperPreset] = useState<WallpaperPreset>('phone');
 
   // Content Detail Customizer: 'CODE' | 'DETAILS'
   const [contentDetail, setContentDetail] = useState<ContentDetail>('DETAILS');
+  const [wallpaperDesign, setWallpaperDesign] = useState<WallpaperDesign>('GRID');
 
   const [ratioDropdownOpen, setRatioDropdownOpen] = useState(false);
   const [detailDropdownOpen, setDetailDropdownOpen] = useState(false);
@@ -299,14 +327,96 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
   const [userZoom, setUserZoom] = useState(1);
   const [exportTheme, setExportTheme] = useState<ExportTheme>('light');
   const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
-  const [wallpaperYOffset, setWallpaperYOffset] = useState(0);
+  const [wallpaperBackground, setWallpaperBackground] = useState('');
+  const [wallpaperBackgroundBlurred, setWallpaperBackgroundBlurred] = useState('');
+  const [useNativeGlassBlur, setUseNativeGlassBlur] = useState(false);
+  const [wallpaperBackgroundName, setWallpaperBackgroundName] = useState('');
+  const [wallpaperBackgroundError, setWallpaperBackgroundError] = useState('');
+  const [brightDayLabels, setBrightDayLabels] = useState<Set<number>>(() => new Set());
+  const wallpaperBackgroundInputRef = useRef<HTMLInputElement>(null);
+  const wallpaperBackgroundUrlsRef = useRef<string[]>([]);
+  const [wallpaperTopAdjustment, setWallpaperTopAdjustment] = useState(0);
+  const [wallpaperBottomAdjustment, setWallpaperBottomAdjustment] = useState(0);
+
+  useEffect(() => () => {
+    wallpaperBackgroundUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+  }, []);
+
+  const loadWallpaperBackground = async (file?: File) => {
+    setWallpaperBackgroundError('');
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setWallpaperBackgroundError('wallpaperImageLoadFailed');
+      return;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      setWallpaperBackgroundError('wallpaperImageTooLarge');
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    let blurredCanvas: HTMLCanvasElement | null = null;
+    let blurredUrl = '';
+    let retainedUrls = false;
+    let supportsCanvasBlur = false;
+    try {
+      const image = new Image();
+      image.src = objectUrl;
+      await image.decode();
+      const maxDimension = Math.max(image.naturalWidth, image.naturalHeight);
+      const blurScale = Math.min(1, 2048 / maxDimension);
+      const blurWidth = Math.max(1, Math.round(image.naturalWidth * blurScale));
+      const blurHeight = Math.max(1, Math.round(image.naturalHeight * blurScale));
+      const blurProbe = document.createElement('canvas');
+      blurProbe.width = blurProbe.height = 5;
+      const probeContext = blurProbe.getContext('2d');
+      if (probeContext) {
+        probeContext.filter = 'blur(1px)';
+        probeContext.fillStyle = '#000';
+        probeContext.fillRect(2, 2, 1, 1);
+        supportsCanvasBlur = probeContext.getImageData(1, 2, 1, 1).data[3] > 0;
+      }
+      blurProbe.width = blurProbe.height = 0;
+
+      blurredCanvas = document.createElement('canvas');
+      blurredCanvas.width = blurWidth;
+      blurredCanvas.height = blurHeight;
+      const blurredContext = blurredCanvas.getContext('2d');
+      if (!blurredContext) throw new Error('Canvas unavailable');
+      blurredContext.filter = 'blur(16px)';
+      blurredContext.drawImage(image, -16, -16, blurWidth + 32, blurHeight + 32);
+
+      const blurredBlob = await new Promise<Blob | null>((resolve) => blurredCanvas!.toBlob(resolve, 'image/png'));
+      if (!blurredBlob) throw new Error('Could not encode wallpaper background.');
+
+      blurredUrl = URL.createObjectURL(blurredBlob);
+      wallpaperBackgroundUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      wallpaperBackgroundUrlsRef.current = [objectUrl, blurredUrl];
+      retainedUrls = true;
+      setWallpaperBackground(objectUrl);
+      setWallpaperBackgroundBlurred(blurredUrl);
+      setWallpaperBackgroundName(file.name);
+      setUseNativeGlassBlur(!supportsCanvasBlur);
+    } catch {
+      setWallpaperBackgroundError('wallpaperImageLoadFailed');
+      if (!retainedUrls) {
+        URL.revokeObjectURL(objectUrl);
+        if (blurredUrl) URL.revokeObjectURL(blurredUrl);
+      }
+    } finally {
+      if (blurredCanvas) {
+        blurredCanvas.width = 0;
+        blurredCanvas.height = 0;
+      }
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
       setExportTheme(theme === 'light' ? 'light' : 'dark');
     }
   }, [theme, isOpen]);
-  
+
   useEffect(() => {
     setUserZoom(1);
   }, [exportMode]);
@@ -314,26 +424,23 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
   const finalScale = previewScale * userZoom;
 
   const renderFloatingZoomWidget = (isLightBg: boolean) => (
-    <div className={`absolute top-6 left-4 z-30 w-fit flex items-center gap-1.5 p-1 rounded-xl shadow-lg border backdrop-blur-xl transition-all pointer-events-auto ${
-      isLightBg 
-        ? 'bg-white/50 border-slate-200 text-slate-700 shadow-slate-900/5' 
-        : 'bg-[#0A1428]/50 border-white/10 text-white/95 shadow-black/20'
-    }`}>
+    <div className={`absolute top-6 left-4 z-30 w-fit flex items-center gap-1.5 p-1 rounded-xl shadow-lg border backdrop-blur-md transition-all pointer-events-auto ${isLightBg
+        ? 'bg-white/40 border-slate-200/50 text-slate-700 shadow-slate-900/5'
+        : 'bg-[#0A1428]/40 border-white/10 text-white/95 shadow-black/20'
+      }`}>
       <button
         onClick={(e) => { e.stopPropagation(); setUserZoom(prev => Math.max(0.5, prev - 0.1)); }}
-        className={`p-1.5 rounded-lg transition-all ${
-          isLightBg ? 'hover:bg-slate-100/80 text-slate-600' : 'hover:bg-white/[0.08] text-white/80'
-        }`}
+        className={`p-1.5 rounded-lg transition-all ${isLightBg ? 'hover:bg-slate-100/80 text-slate-600' : 'hover:bg-white/[0.08] text-white/80'
+          }`}
         title="Zoom Out"
       >
         <Minus className="w-3.5 h-3.5" />
       </button>
-      
+
       <button
         onClick={(e) => { e.stopPropagation(); setUserZoom(1); }}
-        className={`px-2 py-1 rounded-lg text-[10.5px] font-extrabold transition-all min-w-[42px] text-center ${
-          isLightBg ? 'hover:bg-slate-100/80 text-slate-700' : 'hover:bg-white/[0.08] text-white/90'
-        }`}
+        className={`px-2 py-1 rounded-lg text-[10.5px] font-extrabold transition-all min-w-[42px] text-center ${isLightBg ? 'hover:bg-slate-100/80 text-slate-700' : 'hover:bg-white/[0.08] text-white/90'
+          }`}
         title="Reset Zoom"
       >
         {Math.round(userZoom * 100)}%
@@ -341,31 +448,31 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
 
       <button
         onClick={(e) => { e.stopPropagation(); setUserZoom(prev => Math.min(2.5, prev + 0.1)); }}
-        className={`p-1.5 rounded-lg transition-all ${
-          isLightBg ? 'hover:bg-slate-100/80 text-slate-600' : 'hover:bg-white/[0.08] text-white/80'
-        }`}
+        className={`p-1.5 rounded-lg transition-all ${isLightBg ? 'hover:bg-slate-100/80 text-slate-600' : 'hover:bg-white/[0.08] text-white/80'
+          }`}
         title="Zoom In"
       >
         <Plus className="w-3.5 h-3.5" />
       </button>
     </div>
   );
-  
+
   const pdfRef = useRef<HTMLDivElement | null>(null);
   const previewShellRef = useRef<HTMLDivElement | null>(null);
   const wallpaperRef = useRef<HTMLDivElement | null>(null);
-  const exportIntervalRef = useRef<number | null>(null);
   const exportSettledTimeoutRef = useRef<number | null>(null);
   const isMountedRef = useRef(true);
 
+  const timetableDays = timetableData?.days;
   const allCourses = useMemo(() => timetableData?.timetable || [], [timetableData?.timetable]);
-  const studentName = timetableData?.studentName || session?.user_id || 'Pelajar USAS';
-  const matricNo = session?.user_id || 'AI210042';
-  const programName = timetableData?.program || 'FAKULTI TEKNOLOGI & SAINS MAKLUMAT';
-  const semesterStr = timetableData?.semester || 'Semester Semasa';
+  const courseColorMap = useMemo(() => buildCourseColorMap(allCourses), [allCourses]);
+  const studentName = timetableData?.studentName || session?.user_id || '';
+  const matricNo = session?.user_id || '';
+  const programName = timetableData?.program || '';
+  const semesterStr = timetableData?.semester || '';
 
   const normalizeGroup = (groupStr?: string) => {
-    if (!groupStr) return 'Group 1';
+    if (!groupStr) return '';
     const raw = String(groupStr).trim();
     const match = raw.match(/^(?:GRP|G)\s*0*(\d+)$/i);
     if (match) return `Group ${match[1]}`;
@@ -374,15 +481,91 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
   };
 
   const daysList = useMemo(() => {
-    if (timetableData?.days && timetableData.days.length > 0) {
-      return timetableData.days;
+    if (timetableDays && timetableDays.length > 0) {
+      return sortDayLabels(Array.from(new Set(timetableDays)));
     }
     const defaultOrder = ['ISNIN', 'SELASA', 'RABU', 'KHAMIS', 'JUMAAT', 'SABTU', 'AHAD'];
-    const daysInCourses = new Set(allCourses.map(c => c.day?.toUpperCase()).filter(Boolean));
+    const daysInCourses = new Set(allCourses.map(c => extractDayName(c.day)).filter(Boolean));
     const baseDays = ['ISNIN', 'SELASA', 'RABU', 'KHAMIS', 'JUMAAT'];
     const extraDays = defaultOrder.filter(d => daysInCourses.has(d) && !baseDays.includes(d));
     return [...baseDays, ...extraDays];
-  }, [timetableData?.days, allCourses]);
+  }, [timetableDays, allCourses]);
+
+  useEffect(() => {
+    setBrightDayLabels(new Set());
+    if (!wallpaperBackground || exportMode !== 'WALLPAPER') return;
+
+    let cancelled = false;
+    const frame = requestAnimationFrame(() => {
+      void (async () => {
+        const root = wallpaperRef.current;
+        if (!root) return;
+
+        const image = new Image();
+        image.src = wallpaperBackground;
+        try {
+          await image.decode();
+          if (cancelled) return;
+
+          const rootWidth = root.offsetWidth;
+          const rootHeight = root.offsetHeight;
+          const coverScale = Math.max(rootWidth / image.naturalWidth, rootHeight / image.naturalHeight);
+          const imageLeft = (rootWidth - image.naturalWidth * coverScale) / 2;
+          const imageTop = (rootHeight - image.naturalHeight * coverScale) / 2;
+          const canvas = document.createElement('canvas');
+          canvas.width = canvas.height = 1;
+          const context = canvas.getContext('2d', { willReadFrequently: true });
+          if (!context) return;
+
+          const rootRect = root.getBoundingClientRect();
+          const labels = [...root.querySelectorAll<HTMLElement>('[data-wallpaper-day-label]')];
+          const bright = new Set<number>();
+          const baseLuminosity = exportTheme === 'light' ? 248 : exportTheme === 'oled' ? 9 : exportTheme === 'emerald' ? 14 : exportTheme === 'warm' ? 34 : 10;
+          const glassLuminosity = exportTheme === 'light' ? 255 : 0;
+
+          labels.forEach((label) => {
+            const bounds = label.getBoundingClientRect();
+            const x = ((bounds.left + bounds.width / 2 - rootRect.left) / rootRect.width) * rootWidth;
+            const y = ((bounds.top + bounds.height / 2 - rootRect.top) / rootRect.height) * rootHeight;
+            const sourceX = Math.max(0, Math.min(image.naturalWidth - 1, Math.round((x - imageLeft) / coverScale) - 16));
+            const sourceY = Math.max(0, Math.min(image.naturalHeight - 1, Math.round((y - imageTop) / coverScale) - 16));
+            const sampleSize = Math.min(32, image.naturalWidth - sourceX, image.naturalHeight - sourceY);
+            context.clearRect(0, 0, 1, 1);
+            context.drawImage(image, sourceX, sourceY, sampleSize, sampleSize, 0, 0, 1, 1);
+            const [red, green, blue, alpha] = context.getImageData(0, 0, 1, 1).data;
+            const opacity = alpha / 255;
+            const imageLuminosity = (red * 0.2126 + green * 0.7152 + blue * 0.0722) * opacity + baseLuminosity * (1 - opacity);
+            const visibleLuminosity = imageLuminosity * 0.58 + glassLuminosity * 0.42;
+            if (visibleLuminosity >= 105) bright.add(Number(label.dataset.wallpaperDayLabel));
+          });
+
+          canvas.width = canvas.height = 0;
+          if (!cancelled) setBrightDayLabels(bright);
+        } catch {
+          if (!cancelled) setBrightDayLabels(new Set());
+        }
+      })();
+    });
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+    };
+  }, [wallpaperBackground, exportMode, exportTheme, wallpaperPreset, wallpaperTopAdjustment, wallpaperBottomAdjustment, daysList]);
+
+  // Courses sorted by weekday then start time, so the formal table can merge
+  // consecutive rows of the same day into a single day cell (rowSpan).
+  // Stable unique colour per course (shared with the card and grid views).
+
+  const pdfCourses = useMemo(() => {
+    const order = ['ISNIN', 'SELASA', 'RABU', 'KHAMIS', 'JUMAAT', 'SABTU', 'AHAD'];
+    return [...allCourses].sort((a, b) => {
+      const da = order.indexOf(extractDayName(a.day));
+      const db = order.indexOf(extractDayName(b.day));
+      if (da !== db) return da - db;
+      return (parseTimeToMinutes(a.start_time || a.jadual) ?? 0) - (parseTimeToMinutes(b.start_time || b.jadual) ?? 0);
+    });
+  }, [allCourses]);
 
   useEffect(() => {
     if (isOpen) {
@@ -408,10 +591,6 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
-      if (exportIntervalRef.current !== null) {
-        clearInterval(exportIntervalRef.current);
-        exportIntervalRef.current = null;
-      }
       if (exportSettledTimeoutRef.current !== null) {
         clearTimeout(exportSettledTimeoutRef.current);
         exportSettledTimeoutRef.current = null;
@@ -459,87 +638,40 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
     };
   }, [shouldRender, exportMode, contentDetail, wallpaperPreset, daysList, allCourses.length]);
 
-  const getWallpaperCourseForHour = (dayName: string, hourStart: number): TimetableItem | null => {
-    return allCourses.find(c => {
-      const isDay = c.day?.toUpperCase() === dayName.toUpperCase();
-      if (!isDay) return false;
-      const startMinutes = parseTimeToMinutes(c.start_time || c.jadual || '');
-      if (startMinutes == null) return false;
-      const courseStartHour = Math.floor(startMinutes / 60);
-      return courseStartHour === hourStart;
-    }) || null;
-  };
-
-  const getWallpaperCourseSpan = (course: TimetableItem): number => {
-    const startMinutes = parseTimeToMinutes(course.start_time || course.jadual || '');
-    const endMinutes = parseTimeToMinutes(course.end_time || '');
-    if (startMinutes == null) return 1;
-    const safeEnd = endMinutes != null && endMinutes > startMinutes ? endMinutes : startMinutes + 60;
-    return Math.max(1, Math.ceil((safeEnd - startMinutes) / 60));
-  };
-
-  const isWallpaperSlotCovered = (dayName: string, hourStart: number): boolean => {
-    return allCourses.some(c => {
-      if ((c.day?.toUpperCase() || '') !== dayName.toUpperCase()) return false;
-      const startMinutes = parseTimeToMinutes(c.start_time || c.jadual || '');
-      const endMinutes = parseTimeToMinutes(c.end_time || '');
-      if (startMinutes == null) return false;
-      const courseStartHour = Math.floor(startMinutes / 60);
-      const safeEnd = endMinutes != null && endMinutes > startMinutes ? endMinutes : startMinutes + 60;
-      const span = Math.max(1, Math.ceil((safeEnd - startMinutes) / 60));
-      const courseEndHour = courseStartHour + span;
-      return hourStart > courseStartHour && hourStart < courseEndHour;
-    });
-  };
-
   if (!shouldRender) return null;
 
   const handleDownload = async () => {
     setExporting(true);
-    setProgress(15);
+    setProgress(10);
     setProgressStatus(lang === 'en' ? 'Initializing render engine...' : 'Memulakan enjin jana...');
-    
-    if (exportIntervalRef.current !== null) {
-      clearInterval(exportIntervalRef.current);
-      exportIntervalRef.current = null;
-    }
+
     if (exportSettledTimeoutRef.current !== null) {
       clearTimeout(exportSettledTimeoutRef.current);
       exportSettledTimeoutRef.current = null;
     }
 
-    try {
-      exportIntervalRef.current = window.setInterval(() => {
-        setProgress((prev) => {
-          const next = prev < 45 ? prev + 10 : prev < 80 ? prev + 5 : Math.min(92, prev + 2);
-          if (next < 35) {
-            setProgressStatus(lang === 'en' ? 'Initializing render engine...' : 'Memulakan enjin jana...');
-          } else if (next < 75) {
-            setProgressStatus(lang === 'en' ? 'Rendering high-resolution elements...' : 'Menjana grafik resolusi tinggi...');
-          } else {
-            setProgressStatus(lang === 'en' ? 'Compiling download package...' : 'Menyusun fail muat turun...');
-          }
-          return next;
-        });
-      }, 150);
+    const updateExportProgress = (next: number) => {
+      if (!isMountedRef.current) return;
+      setProgress(next);
+      setProgressStatus(next < 30
+        ? lang === 'en' ? 'Initializing render engine...' : 'Memulakan enjin jana...'
+        : next < 85
+          ? lang === 'en' ? 'Rendering high-resolution elements...' : 'Menjana grafik resolusi tinggi...'
+          : lang === 'en' ? 'Compiling download package...' : 'Menyusun fail muat turun...');
+    };
 
-      // Yield control to browser
-      await new Promise((resolve) => setTimeout(resolve, 80));
+    try {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
 
       if (exportMode === 'WALLPAPER') {
-        const filename = `USAS_Lockscreen_${wallpaperPreset.toUpperCase()}_${exportTheme.toUpperCase()}_${matricNo}.png`;
-        await generateLockscreenImage(wallpaperRef.current, filename);
+        const filename = `USAS_Lockscreen_${wallpaperPreset.toUpperCase()}_${exportTheme.toUpperCase()}_${matricNo || 'USAS'}.png`;
+        await generateLockscreenImage(wallpaperRef.current, filename, updateExportProgress);
       } else if (exportFileType === 'PNG') {
-        const filename = `Jadual_USAS_Formal_${matricNo}_LANDSCAPE.png`;
-        await generateElementPng(pdfRef.current, filename, 4, '#FFFFFF');
+        const filename = `Jadual_USAS_Formal_${matricNo || 'USAS'}_LANDSCAPE.png`;
+        await generateElementPng(pdfRef.current, filename, 5, '#FFFFFF', updateExportProgress);
       } else {
-        const filename = `Jadual_USAS_Formal_${matricNo}_LANDSCAPE.pdf`;
-        await generateTimetablePdf(pdfRef.current, 'landscape', filename);
-      }
-
-      if (exportIntervalRef.current !== null) {
-        clearInterval(exportIntervalRef.current);
-        exportIntervalRef.current = null;
+        const filename = `Jadual_USAS_Formal_${matricNo || 'USAS'}_LANDSCAPE.pdf`;
+        await generateTimetablePdf(pdfRef.current, 'landscape', filename, updateExportProgress);
       }
 
       if (!isMountedRef.current) return;
@@ -554,18 +686,10 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
         }, 350);
       });
     } catch (err) {
-      if (exportIntervalRef.current !== null) {
-        clearInterval(exportIntervalRef.current);
-        exportIntervalRef.current = null;
-      }
       console.error('Export Error:', err);
       if (!isMountedRef.current) return;
       alert(lang === 'ms' ? 'Gagal menjana fail. Sila cuba lagi.' : 'Failed to generate file. Please try again.');
     } finally {
-      if (exportIntervalRef.current !== null) {
-        clearInterval(exportIntervalRef.current);
-        exportIntervalRef.current = null;
-      }
       if (exportSettledTimeoutRef.current !== null) {
         clearTimeout(exportSettledTimeoutRef.current);
         exportSettledTimeoutRef.current = null;
@@ -604,8 +728,7 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
 
   const renderWallpaperCourseContent = (
     course: TimetableItem,
-    _span: number,
-    badgeHeightPx: number,
+    cellWidthPx: number,
     isLightMode: boolean,
     style: {
       tableFontSize: string;
@@ -620,9 +743,24 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
     }
   ) => {
     const code = course.course_id || course.kod_kursus || '';
-    const loc = course.location || 'Dewan USAS';
-    const duration = formatDurationRange(course.start_time || course.jadual, course.end_time);
+    const loc = course.location || '';
+    const duration = formatDurationRange(course.start_time || course.jadual, course.end_time, timeFormat);
+    const timeRange = getShortTimeRange(course.start_time || course.jadual, course.end_time, timeFormat)
+      .replace(/\s?(AM|PM)/gi, '');
+    const [startTimeLabel, endTimeLabel] = timeRange.split('-');
     const shortDuration = formatShortDurationLabel(course.start_time || course.jadual, course.end_time);
+    const timeInfoFontSize = Math.max(3.6, Math.min(5, (cellWidthPx - 8) / (Math.max(startTimeLabel.length, endTimeLabel?.length || 0) * 0.58)));
+    const timeInfo = (
+      <>
+        {startTimeLabel && <span data-export-course-time="start" title={duration} className={`absolute left-0.5 top-0.5 z-20 whitespace-nowrap font-semibold leading-none ${isLightMode ? 'text-slate-600' : 'text-white/70'}`} style={{ fontSize: `${timeInfoFontSize}px` }}>{startTimeLabel}</span>}
+        {endTimeLabel && <span data-export-course-time="end" title={duration} className={`absolute right-0.5 bottom-0.5 z-20 whitespace-nowrap font-semibold leading-none ${isLightMode ? 'text-slate-600' : 'text-white/70'}`} style={{ fontSize: `${timeInfoFontSize}px` }}>{endTimeLabel}</span>}
+      </>
+    );
+    const durationInfo = shortDuration && (
+      <div data-export-course-duration className={`w-full text-center ${style.durationSize} leading-normal font-bold ${isLightMode ? 'text-slate-500' : 'text-white/60'}`}>
+        {shortDuration}
+      </div>
+    );
     const codeOnlyFontSize = (() => {
       const baseSize = (() => {
         if (wallpaperPreset === 'phone') {
@@ -651,36 +789,50 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
       if (contentDetail === 'CODE') return baseSize * 1.25;
       return baseSize;
     })();
+
+    // Shrink the course code so it always fits the cell width — critical for
+    // narrow single-period columns — using the measured glyph width.
+    const fitFontSize = (() => {
+      if (!cellWidthPx || cellWidthPx <= 0 || !code) return codeOnlyFontSize;
+      const availableWidth = Math.max(6, cellWidthPx - 6);
+      const measured = measureBoldTextWidth(code, codeOnlyFontSize);
+      const scaled = measured
+        ? (availableWidth / measured) * codeOnlyFontSize
+        : availableWidth / (code.length * 0.72);
+      return Math.max(5, Math.min(codeOnlyFontSize, scaled));
+    })();
+
     return (
       <div
-        className="w-full flex flex-col justify-center items-center text-center p-0.5 overflow-hidden"
-        style={{ height: `${badgeHeightPx - 2}px` }}
+        data-export-course-content
+        className="absolute inset-0 w-full flex flex-col justify-center items-center text-center p-0.5"
       >
+        {timeInfo}
         {contentDetail === 'DETAILS' ? (
-          <div className="w-full flex flex-col justify-center items-center text-center gap-0.5">
-            <div className={`w-full text-center ${style.durationSize} leading-normal font-bold ${isLightMode ? 'text-slate-500' : 'text-white/60'}`}>
-              <span className="break-words text-center leading-tight">{shortDuration || duration}</span>
-            </div>
+          <div className="w-full flex flex-col justify-center items-center text-center gap-0">
+            {durationInfo}
             <div className="w-full text-center">
               <span
-                className={`block w-full break-words font-black leading-normal tracking-tight text-center ${
-                  isLightMode ? 'text-slate-800' : 'text-white'
-                }`}
-                style={{ fontSize: `${codeOnlyFontSize}px` }}
+                data-export-course-code
+                className={`block w-full whitespace-nowrap font-black leading-normal tracking-tight text-center ${isLightMode ? 'text-slate-800' : 'text-white'
+                  }`}
+                style={{ fontSize: `${fitFontSize}px` }}
                 title={code}
               >
                 {code}
               </span>
             </div>
             <div className={`w-full text-center ${style.courseLocSize} leading-normal font-semibold ${isLightMode ? 'text-slate-500' : 'text-white/60'}`}>
-              <span className="break-words whitespace-normal text-center" title={loc}>{loc}</span>
+              <span data-export-course-location className="break-words whitespace-normal text-center" title={loc}>{loc}</span>
             </div>
           </div>
         ) : (
-          <div className="w-full flex items-center justify-center text-center">
+          <div className="w-full flex flex-col items-center justify-center text-center gap-0">
+            {durationInfo}
             <span
-              className={`inline-block break-words leading-normal tracking-tight text-center font-black ${isLightMode ? 'text-slate-800' : 'text-white'}`}
-              style={{ fontSize: `${codeOnlyFontSize}px`, letterSpacing: '-0.03em' }}
+              data-export-course-code
+              className={`inline-block max-w-full whitespace-nowrap leading-normal tracking-tight text-center font-black ${isLightMode ? 'text-slate-800' : 'text-white'}`}
+              style={{ fontSize: `${fitFontSize}px`, letterSpacing: '-0.03em' }}
               title={code}
             >
               {code}
@@ -691,40 +843,40 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
     );
   };
 
-  const getSpacerHeights = (preset: WallpaperPreset, offset = 0) => {
+  const getSpacerHeights = (preset: WallpaperPreset, topAdjustment = 0, bottomAdjustment = 0) => {
     const top = preset === 'desktop' ? 56 : preset === 'square' ? 64 : preset === 'tablet' ? 104 : 96;
     const bottom = preset === 'desktop' ? 28 : preset === 'square' ? 24 : preset === 'tablet' ? 22 : 18;
-    const clampedOffset = Math.max(-48, Math.min(48, offset));
+    const topOffset = Math.max(12 - top, Math.min(120, topAdjustment));
+    const bottomOffset = Math.max(-bottom, Math.min(120, bottomAdjustment));
     return {
-      top: Math.max(12, top + clampedOffset),
-      bottom: Math.max(8, bottom - clampedOffset),
-      offset: clampedOffset,
+      top: top + topOffset,
+      bottom: bottom + bottomOffset,
+      topBase: top,
+      bottomBase: bottom,
+      topMax: top + 120,
+      bottomMax: bottom + 120,
     };
   };
 
-  const currentSpacers = getSpacerHeights(wallpaperPreset, wallpaperYOffset);
+  const currentSpacers = getSpacerHeights(wallpaperPreset, wallpaperTopAdjustment, wallpaperBottomAdjustment);
   const lockscreenConfig = getLockscreenThemeConfig(exportTheme);
 
   return (
-    <div data-lenis-prevent className={`fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 backdrop-blur-md transition-all duration-200 touch-pan-y overscroll-contain ${
-      animate ? 'bg-slate-900/30 opacity-100' : 'bg-slate-900/0 opacity-0 pointer-events-none'
-    }`}>
-      
-      {/* Spacious Modal Frame */}
-      <div className={`rounded-xl w-[96vw] max-w-6xl h-[92dvh] max-h-[92dvh] border flex flex-col min-h-0 overflow-hidden my-auto transition-all duration-200 transform ${
-        animate ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
-      } ${
-        isLight 
-          ? 'bg-white border-slate-200 shadow-2xl text-slate-800' 
-          : 'bg-[#0A1428]/95 border-white/10 text-white shadow-2xl'
+    <div ref={modalRef} data-lenis-prevent role="dialog" aria-modal="true" aria-label="Eksport Jadual" className={`fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 backdrop-blur-md transition-all duration-200 touch-pan-y overscroll-contain ${animate ? 'bg-slate-900/30 opacity-100' : 'bg-slate-900/0 opacity-0 pointer-events-none'
       }`}>
-        
-        {/* Header */}
-        <div className={`p-3 sm:p-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 flex-shrink-0 ${
-          isLight ? 'border-slate-200 bg-slate-50/50' : 'border-white/[0.06] bg-[#0A1428]/95'
+
+      {/* Spacious Modal Frame */}
+      <div className={`rounded-xl w-[96vw] max-w-6xl h-[92dvh] max-h-[92dvh] border flex flex-col min-h-0 overflow-hidden my-auto transition-all duration-200 transform ${animate ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
+        } ${isLight
+          ? 'bg-white border-slate-200 shadow-2xl text-slate-800'
+          : 'bg-[#0A1428]/95 border-white/10 text-white shadow-2xl'
         }`}>
+
+        {/* Header */}
+        <div className={`p-3 sm:p-4 border-b flex items-start sm:items-center justify-between gap-3 flex-shrink-0 ${isLight ? 'border-slate-200 bg-slate-50/50' : 'border-white/[0.06] bg-[#0A1428]/95'
+          }`}>
           <div className="flex items-start sm:items-center gap-3 min-w-0">
-            <img src="/usas-logo.png" alt="USAS Logo" className="w-6 h-6 sm:w-7 sm:h-7 object-contain flex-shrink-0 mt-0.5 sm:mt-0" />
+            <img src={isLight ? '/usas-logo-light.png' : '/usas-logo-dark.png'} alt="USAS Logo" className="w-6 h-6 sm:w-7 sm:h-7 object-contain flex-shrink-0 mt-0.5 sm:mt-0" />
             <div className="min-w-0">
               <h3 className={`text-xs font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>{t('exportPdfTitle')}</h3>
               <p className={`text-[10px] sm:text-xs mt-1 transition-colors ${isLight ? 'text-slate-500' : 'text-white/50'}`}>
@@ -734,9 +886,8 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
           </div>
           <button
             onClick={onClose}
-            className={`self-end sm:self-auto p-2 sm:p-1.5 rounded-md transition-colors ${
-              isLight ? 'text-slate-400 hover:text-slate-600 hover:bg-slate-100' : 'text-white/30 hover:text-white hover:bg-white/[0.06]'
-            }`}
+            className={`flex-shrink-0 p-1.5 rounded-md transition-colors ${isLight ? 'text-slate-400 hover:text-slate-600 hover:bg-slate-100' : 'text-white/30 hover:text-white hover:bg-white/[0.06]'
+              }`}
           >
             <X className="w-4 h-4" />
           </button>
@@ -744,53 +895,49 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
 
         {/* Scrollable Body */}
         <div data-lenis-prevent className="p-3 sm:p-4 flex-1 min-h-0 overflow-y-auto space-y-3.5 sm:space-y-4 touch-pan-y overscroll-contain">
-          
+
           {/* Main Mode Tabs */}
-          <div className={`grid grid-cols-1 sm:grid-cols-2 gap-2 p-1 rounded-xl border ${
-            isLight ? 'bg-slate-100 border-slate-200' : 'bg-white/[0.03] border-white/[0.04]'
-          }`}>
+          <div className={`grid grid-cols-2 gap-2 p-1 rounded-xl border ${isLight ? 'bg-slate-100 border-slate-200' : 'bg-white/[0.03] border-white/[0.04]'
+            }`}>
             <button
               onClick={() => setExportMode('FORMAL_A4')}
-              className={`py-2 px-3 rounded-lg text-[10px] sm:text-[11px] font-bold flex items-center justify-center gap-2 transition-all min-w-0 ${
-                exportMode === 'FORMAL_A4'
+              aria-label={lang === 'en' ? 'Formal document' : 'Dokumen rasmi'}
+              className={`py-2 px-3 rounded-lg text-[10px] sm:text-[11px] font-bold flex items-center justify-center gap-2 transition-all min-w-0 ${exportMode === 'FORMAL_A4'
                   ? (isLight ? 'bg-[#0B1E43] text-white shadow-md' : 'bg-amber-400 text-slate-950 shadow-md')
                   : (isLight ? 'text-slate-500 hover:text-slate-800' : 'text-white/40 hover:text-white')
-              }`}
+                }`}
             >
-              <Award className="w-3.5 h-3.5" />
-              <span className="truncate">Dokumen Rasmi (Formal A4)</span>
+              <FileBadge className="w-4 h-4 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
+              <span className="hidden sm:inline truncate">Formal</span>
             </button>
 
             <button
               onClick={() => setExportMode('WALLPAPER')}
-              className={`py-2 px-3 rounded-lg text-[10px] sm:text-[11px] font-bold flex items-center justify-center gap-2 transition-all min-w-0 ${
-                exportMode === 'WALLPAPER'
+              aria-label={lang === 'en' ? 'Wallpaper lockscreen' : 'Wallpaper skrin kunci'}
+              className={`py-2 px-3 rounded-lg text-[10px] sm:text-[11px] font-bold flex items-center justify-center gap-2 transition-all min-w-0 ${exportMode === 'WALLPAPER'
                   ? (isLight ? 'bg-[#0B1E43] text-white shadow-md' : 'bg-amber-400 text-slate-950 shadow-md')
                   : (isLight ? 'text-slate-500 hover:text-slate-800' : 'text-white/40 hover:text-white')
-              }`}
+                }`}
             >
-              <Smartphone className="w-3.5 h-3.5" />
-              <span className="truncate">Wallpaper Lockscreen (Custom)</span>
+              <Smartphone className="w-4 h-4 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
+              <span className="hidden sm:inline truncate">Wallpaper Lockscreen</span>
             </button>
           </div>
 
           {exportMode !== 'WALLPAPER' && (
-            <div className={`p-2.5 rounded-xl border flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-[11px] font-medium transition-colors ${
-              isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-white/[0.02] border-white/[0.04] text-white/70'
-            }`}>
-              <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${
-                isLight ? 'text-amber-800' : 'text-amber-400/90'
-              }`}>Format Muat Turun:</span>
+            <div className={`p-2.5 rounded-xl border flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-[11px] font-medium transition-colors ${isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-white/[0.02] border-white/[0.04] text-white/70'
+              }`}>
+              <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${isLight ? 'text-amber-800' : 'text-amber-400/90'
+                }`}>Format Muat Turun:</span>
               <div className="flex flex-wrap items-center gap-1">
                 {fileTypeOptions.map((item) => (
                   <button
                     key={item.id}
                     onClick={() => setExportFileType(item.id)}
-                    className={`px-2.5 py-1 rounded text-[10px] font-semibold border transition-all min-w-0 ${
-                      exportFileType === item.id
+                    className={`px-2.5 py-1 rounded text-[10px] font-semibold border transition-all min-w-0 ${exportFileType === item.id
                         ? (isLight ? 'bg-[#0B1E43] text-white border-slate-800 shadow-sm' : 'bg-amber-400 text-slate-950 border-amber-400')
                         : (isLight ? 'bg-white border-slate-200 text-slate-500 hover:bg-slate-100/50' : 'bg-white/[0.02] border-white/10 text-white/50')
-                    }`}
+                      }`}
                   >
                     {item.label}
                   </button>
@@ -801,14 +948,13 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
 
           {/* MINIMALIST CUSTOMIZERS (Horizontal Segmented Controls for Height Reduction) */}
           {exportMode !== 'FORMAL_A4' && (
-            <div className={`p-2.5 rounded-xl border flex flex-col sm:flex-row gap-2.5 sm:gap-3 items-stretch sm:items-center justify-between text-[11px] font-medium transition-colors relative ${
-              isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-white/[0.02] border-white/[0.04] text-white/70'
-            }`}>
-              
+            <div className={`p-2.5 rounded-xl border flex flex-col sm:flex-row gap-2.5 sm:gap-3 items-stretch sm:items-center justify-between text-[11px] font-medium transition-colors relative ${isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-white/[0.02] border-white/[0.04] text-white/70'
+              }`}>
+
               {/* Invisible overlay to close dropdowns on clicking outside */}
               {(ratioDropdownOpen || detailDropdownOpen || themeDropdownOpen) && (
-                <div 
-                  className="fixed inset-0 z-10 cursor-default" 
+                <div
+                  className="fixed inset-0 z-10 cursor-default"
                   onClick={(e) => {
                     e.stopPropagation();
                     setRatioDropdownOpen(false);
@@ -818,13 +964,12 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                 />
               )}
 
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center w-full justify-between sm:justify-start relative z-40">
+              <div data-wallpaper-controls className={`grid grid-cols-1 sm:grid-cols-2 ${exportMode === 'WALLPAPER' ? 'xl:grid-cols-[minmax(0,0.85fr)_minmax(0,0.85fr)_minmax(0,0.85fr)_minmax(0,1fr)_minmax(0,1.8fr)]' : 'xl:grid-cols-2'} items-center gap-3 xl:gap-4 w-full relative z-40`}>
                 {/* 1. Device Ratio Selector (WALLPAPER only) */}
                 {exportMode === 'WALLPAPER' && (
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-start relative z-40 min-w-0">
-                    <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${
-                      isLight ? 'text-amber-800' : 'text-amber-400/90'
-                    }`}>{t('deviceRatio')}:</span>
+                  <div className="flex flex-col items-stretch gap-1.5 w-full min-w-0 xl:max-w-[230px] relative z-40">
+                    <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${isLight ? 'text-amber-800' : 'text-amber-400/90'
+                      }`}>{t('deviceRatio')}:</span>
                     <div className="relative w-full sm:w-auto">
                       <button
                         onClick={(e) => {
@@ -833,11 +978,10 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                           setDetailDropdownOpen(false);
                           setThemeDropdownOpen(false);
                         }}
-                        className={`flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-semibold transition-all shadow-sm w-full sm:w-auto ${
-                          isLight 
-                            ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50' 
+                        className={`flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-semibold transition-all shadow-sm w-full ${isLight
+                            ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
                             : 'bg-white/[0.04] border-white/10 text-white/90 hover:bg-white/[0.08]'
-                        }`}
+                          }`}
                       >
                         <span>
                           {wallpaperPreset === 'phone' && `${t('phonePreset')} (9:16)`}
@@ -849,9 +993,8 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                       </button>
 
                       {ratioDropdownOpen && (
-                      <div className={`static sm:absolute mt-2 sm:mt-1 left-0 right-0 sm:right-auto w-full sm:w-44 rounded-xl border shadow-xl py-1 z-[60] transition-all ${
-                          isLight ? 'bg-white border-slate-200 text-slate-700' : 'bg-[#0A1428] border-white/10 text-white'
-                        }`}>
+                        <div className={`static sm:absolute mt-2 sm:mt-1 left-0 right-0 sm:right-auto w-full sm:w-44 rounded-xl border shadow-xl py-1 z-[60] transition-all ${isLight ? 'bg-white border-slate-200 text-slate-700' : 'bg-[#0A1428] border-white/10 text-white'
+                          }`}>
                           {ratioOptions.map((item) => (
                             <button
                               key={item.id}
@@ -860,11 +1003,10 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                                 setWallpaperPreset(item.id);
                                 setRatioDropdownOpen(false);
                               }}
-                              className={`w-full text-left px-3 py-1.5 text-[11px] font-semibold hover:bg-slate-100/50 dark:hover:bg-white/[0.04] transition-colors flex items-center justify-between ${
-                                wallpaperPreset === item.id 
-                                  ? (isLight ? 'text-amber-800 bg-amber-50/50' : 'text-amber-400 bg-amber-400/5') 
+                              className={`w-full text-left px-3 py-1.5 text-[11px] font-semibold hover:bg-slate-100/50 dark:hover:bg-white/[0.04] transition-colors flex items-center justify-between ${wallpaperPreset === item.id
+                                  ? (isLight ? 'text-amber-800 bg-amber-50/50' : 'text-amber-400 bg-amber-400/5')
                                   : ''
-                              }`}
+                                }`}
                             >
                               <span>{item.label}</span>
                               {wallpaperPreset === item.id && <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />}
@@ -877,10 +1019,9 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                 )}
 
                 {/* 2. Content Detail Selector */}
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-start relative z-20 min-w-0">
-                  <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${
-                    isLight ? 'text-amber-800' : 'text-amber-400/90'
-                  }`}>{t('cardContent')}:</span>
+                <div className="flex flex-col items-stretch gap-1.5 w-full min-w-0 xl:max-w-[230px] relative z-20">
+                  <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${isLight ? 'text-amber-800' : 'text-amber-400/90'
+                    }`}>{t('cardContent')}:</span>
                   <div className="relative w-full sm:w-auto">
                     <button
                       onClick={(e) => {
@@ -889,11 +1030,10 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                         setRatioDropdownOpen(false);
                         setThemeDropdownOpen(false);
                       }}
-                      className={`flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-semibold transition-all shadow-sm w-full sm:w-auto ${
-                        isLight 
-                          ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50' 
+                      className={`flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-semibold transition-all shadow-sm w-full ${isLight
+                          ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
                           : 'bg-white/[0.04] border-white/10 text-white/90 hover:bg-white/[0.08]'
-                      }`}
+                        }`}
                     >
                       <span>
                         {contentDetail === 'CODE' && t('codeOnly')}
@@ -903,9 +1043,8 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                     </button>
 
                     {detailDropdownOpen && (
-                      <div className={`static sm:absolute mt-2 sm:mt-1 right-0 left-0 sm:left-auto w-full sm:w-36 rounded-xl border shadow-xl py-1 z-[60] transition-all ${
-                        isLight ? 'bg-white border-slate-200 text-slate-700' : 'bg-[#0A1428] border-white/10 text-white'
-                      }`}>
+                      <div className={`static sm:absolute mt-2 sm:mt-1 right-0 left-0 sm:left-auto w-full sm:w-36 rounded-xl border shadow-xl py-1 z-[60] transition-all ${isLight ? 'bg-white border-slate-200 text-slate-700' : 'bg-[#0A1428] border-white/10 text-white'
+                        }`}>
                         {detailOptions.map((item) => (
                           <button
                             key={item.id}
@@ -914,11 +1053,10 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                               setContentDetail(item.id);
                               setDetailDropdownOpen(false);
                             }}
-                            className={`w-full text-left px-3 py-1.5 text-[11px] font-semibold hover:bg-slate-100/50 dark:hover:bg-white/[0.04] transition-colors flex items-center justify-between ${
-                              contentDetail === item.id 
-                                ? (isLight ? 'text-amber-800 bg-amber-50/50' : 'text-amber-400 bg-amber-400/5') 
+                            className={`w-full text-left px-3 py-1.5 text-[11px] font-semibold hover:bg-slate-100/50 dark:hover:bg-white/[0.04] transition-colors flex items-center justify-between ${contentDetail === item.id
+                                ? (isLight ? 'text-amber-800 bg-amber-50/50' : 'text-amber-400 bg-amber-400/5')
                                 : ''
-                            }`}
+                              }`}
                           >
                             <span>{item.label}</span>
                             {contentDetail === item.id && <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />}
@@ -929,11 +1067,10 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                   </div>
                 </div>
 
-                {/* 3. Tema Jadual Selector */}
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-start relative z-20 min-w-0">
-                  <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${
-                    isLight ? 'text-amber-800' : 'text-amber-400/90'
-                  }`}>{t('tableTheme')}:</span>
+                {/* 3. Timetable Theme Selector */}
+                <div className="flex flex-col items-stretch gap-1.5 w-full min-w-0 xl:max-w-[230px] relative z-20">
+                  <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${isLight ? 'text-amber-800' : 'text-amber-400/90'
+                    }`}>{t('tableTheme')}:</span>
                   <div className="relative w-full sm:w-auto">
                     <button
                       onClick={(e) => {
@@ -942,26 +1079,24 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                         setRatioDropdownOpen(false);
                         setDetailDropdownOpen(false);
                       }}
-                      className={`flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-semibold transition-all shadow-sm w-full sm:w-auto ${
-                        isLight 
-                          ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50' 
+                      className={`flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-semibold transition-all shadow-sm w-full ${isLight
+                          ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
                           : 'bg-white/[0.04] border-white/10 text-white/90 hover:bg-white/[0.08]'
-                      }`}
+                        }`}
                     >
                       <span>
                         {exportTheme === 'light' ? t('themeLight') :
-                         exportTheme === 'emerald' ? t('themeEmerald') :
-                         exportTheme === 'oled' ? t('themeOled') :
-                         exportTheme === 'warm' ? t('themeWarm') :
-                         t('themeDark')}
+                          exportTheme === 'emerald' ? t('themeEmerald') :
+                            exportTheme === 'oled' ? t('themeOled') :
+                              exportTheme === 'warm' ? t('themeWarm') :
+                                t('themeDark')}
                       </span>
                       <ChevronDown className={`w-3 h-3 opacity-60 transition-transform duration-200 ${themeDropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
 
                     {themeDropdownOpen && (
-                      <div className={`static sm:absolute mt-2 sm:mt-1 right-0 left-0 sm:left-auto w-full sm:w-36 rounded-xl border shadow-xl py-1 z-[60] transition-all ${
-                        isLight ? 'bg-white border-slate-200 text-slate-700' : 'bg-[#0A1428] border-white/10 text-white'
-                      }`}>
+                      <div className={`static sm:absolute mt-2 sm:mt-1 right-0 left-0 sm:left-auto w-full sm:w-36 rounded-xl border shadow-xl py-1 z-[60] transition-all ${isLight ? 'bg-white border-slate-200 text-slate-700' : 'bg-[#0A1428] border-white/10 text-white'
+                        }`}>
                         {themeOptions.map((item) => (
                           <button
                             key={item.id}
@@ -970,11 +1105,10 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                               setExportTheme(item.id);
                               setThemeDropdownOpen(false);
                             }}
-                            className={`w-full text-left px-3 py-1.5 text-[11px] font-semibold hover:bg-slate-100/50 dark:hover:bg-white/[0.04] transition-colors flex items-center justify-between ${
-                              exportTheme === item.id 
-                                ? (isLight ? 'text-amber-800 bg-amber-50/50' : 'text-amber-400 bg-amber-400/5') 
+                            className={`w-full text-left px-3 py-1.5 text-[11px] font-semibold hover:bg-slate-100/50 dark:hover:bg-white/[0.04] transition-colors flex items-center justify-between ${exportTheme === item.id
+                                ? (isLight ? 'text-amber-800 bg-amber-50/50' : 'text-amber-400 bg-amber-400/5')
                                 : ''
-                            }`}
+                              }`}
                           >
                             <span>{item.label}</span>
                             {exportTheme === item.id && <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />}
@@ -986,45 +1120,119 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                 </div>
 
                 {exportMode === 'WALLPAPER' && (
-                  <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start relative z-20">
-                    <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${
-                      isLight ? 'text-amber-800' : 'text-amber-400/90'
-                    }`}>Posisi:</span>
-                    <div className={`flex items-center gap-2 rounded-lg border px-2 py-1 ${
-                      isLight
-                        ? 'bg-white border-slate-200'
-                        : 'bg-white/[0.04] border-white/10'
-                    }`}>
-                      <input
-                        type="range"
-                        min={-48}
-                        max={48}
-                        step={1}
-                        value={wallpaperYOffset}
-                        onChange={(e) => setWallpaperYOffset(Number(e.target.value))}
-                        className={`usas-range w-24 cursor-pointer ${isLight ? '' : 'usas-range-dark'}`}
-                        aria-label="Laraskan posisi jadual pada lockscreen"
-                      />
-                      <span className={`w-9 text-right text-[10px] font-semibold tabular-nums ${
-                        isLight ? 'text-slate-500' : 'text-white/55'
-                      }`}>
-                        {currentSpacers.offset > 0 ? '+' : ''}{currentSpacers.offset}
-                      </span>
-                      {wallpaperYOffset !== 0 && (
+                  <div className="flex flex-col items-stretch gap-1.5 w-full min-w-0 relative z-20">
+                    <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${isLight ? 'text-amber-800' : 'text-amber-400/90'}`}>{t('wallpaperBackground')}:</span>
+                    <input
+                      ref={wallpaperBackgroundInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="sr-only"
+                      aria-label={t('chooseWallpaperBackground')}
+                      onChange={(event) => {
+                        const file = event.currentTarget.files?.[0];
+                        event.currentTarget.value = '';
+                        void loadWallpaperBackground(file);
+                      }}
+                    />
+                    <div className="flex gap-1.5 min-w-0">
+                      <button
+                        type="button"
+                        onClick={() => wallpaperBackgroundInputRef.current?.click()}
+                        title={wallpaperBackgroundName || t('chooseWallpaperBackground')}
+                        className={`flex min-w-0 flex-1 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-left text-[11px] font-semibold ${isLight
+                          ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                          : 'bg-white/[0.04] border-white/10 text-white/80 hover:bg-white/[0.08]'
+                        }`}
+                      >
+                        <ImagePlus className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{wallpaperBackgroundName || t('chooseWallpaperBackground')}</span>
+                      </button>
+                      {wallpaperBackground && (
                         <button
                           type="button"
-                          onClick={() => setWallpaperYOffset(0)}
-                          className={`rounded p-0.5 transition-colors ${
-                            isLight
-                              ? 'text-slate-400 hover:bg-slate-100 hover:text-slate-700'
-                              : 'text-white/40 hover:bg-white/[0.08] hover:text-white/80'
+                          onClick={() => {
+                            wallpaperBackgroundUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+                            wallpaperBackgroundUrlsRef.current = [];
+                            setWallpaperBackground('');
+                            setWallpaperBackgroundBlurred('');
+                            setWallpaperBackgroundName('');
+                            setWallpaperBackgroundError('');
+                          }}
+                          aria-label={t('removeWallpaperBackground')}
+                          title={t('removeWallpaperBackground')}
+                          className={`self-stretch rounded-lg border px-2 ${isLight
+                            ? 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                            : 'bg-white/[0.04] border-white/10 text-white/60 hover:bg-white/[0.08]'
                           }`}
-                          aria-label="Reset posisi lockscreen"
-                          title="Reset posisi"
                         >
-                          <RotateCw className="h-3 w-3" />
+                          <X className="h-3 w-3" />
                         </button>
                       )}
+                    </div>
+                    {wallpaperBackgroundError && <span role="alert" className="text-[9px] text-rose-400">{t(wallpaperBackgroundError)}</span>}
+                  </div>
+                )}
+
+                {exportMode === 'WALLPAPER' && (
+                  <div className="flex flex-col gap-1.5 w-full min-w-0 relative z-20">
+                    <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${isLight ? 'text-amber-800' : 'text-amber-400/90'
+                      }`}>{t('tablePosition')}:</span>
+                    <div className="flex items-center gap-2">
+                      <div className="grid grid-cols-2 gap-2 flex-1 min-w-0">
+                      <label className={`min-w-0 rounded-lg border px-2 py-1 ${isLight
+                          ? 'bg-white border-slate-200'
+                          : 'bg-white/[0.04] border-white/10'
+                        }`}>
+                          <span className={`flex justify-between gap-1 text-[9px] font-semibold ${isLight ? 'text-slate-500' : 'text-white/55'}`}>
+                          <span>{t('positionTop')}</span><span>{currentSpacers.top}px</span>
+                        </span>
+                        <input
+                          type="range"
+                          min={12}
+                          max={currentSpacers.topMax}
+                          step={1}
+                          value={currentSpacers.top}
+                          onChange={(e) => setWallpaperTopAdjustment(Number(e.target.value) - currentSpacers.topBase)}
+                          className={`usas-range w-full cursor-pointer ${isLight ? '' : 'usas-range-dark'}`}
+                          aria-label={t('adjustWallpaperTopAria')}
+                        />
+                      </label>
+                      <label className={`min-w-0 rounded-lg border px-2 py-1 ${isLight
+                          ? 'bg-white border-slate-200'
+                          : 'bg-white/[0.04] border-white/10'
+                        }`}>
+                          <span className={`flex justify-between gap-1 text-[9px] font-semibold ${isLight ? 'text-slate-500' : 'text-white/55'}`}>
+                          <span>{t('positionBottom')}</span><span>{currentSpacers.bottom}px</span>
+                        </span>
+                        <input
+                          type="range"
+                          min={0}
+                          max={currentSpacers.bottomMax}
+                          step={1}
+                          value={currentSpacers.bottom}
+                          onChange={(e) => setWallpaperBottomAdjustment(Number(e.target.value) - currentSpacers.bottomBase)}
+                          className={`usas-range w-full cursor-pointer ${isLight ? '' : 'usas-range-dark'}`}
+                          aria-label={t('adjustWallpaperBottomAria')}
+                        />
+                      </label>
+                      </div>
+                    {(wallpaperTopAdjustment !== 0 || wallpaperBottomAdjustment !== 0) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setWallpaperTopAdjustment(0);
+                          setWallpaperBottomAdjustment(0);
+                        }}
+                        className={`self-center rounded p-1 transition-colors ${isLight
+                            ? 'text-slate-400 hover:bg-slate-100 hover:text-slate-700'
+                            : 'text-white/40 hover:bg-white/[0.08] hover:text-white/80'
+                          }`}
+                        aria-label={t('resetWallpaperPositionAria')}
+                        title={t('resetPosition')}
+                      >
+                        <RotateCw className="h-3 w-3" />
+                      </button>
+                    )}
                     </div>
                   </div>
                 )}
@@ -1039,7 +1247,7 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
               ref={previewShellRef}
               data-lenis-prevent
               className={`border rounded-xl p-2 sm:p-3 bg-white overflow-x-auto overflow-y-hidden relative ${isLight ? 'border-slate-200 shadow-sm' : 'border-white/10 shadow-inner'}`}
-              style={{ 
+              style={{
                 height: previewHeight ? `${Math.ceil(previewHeight * finalScale) + 48}px` : 'auto',
                 maxHeight: 'none'
               }}
@@ -1047,9 +1255,9 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
               <div className="absolute inset-0 pointer-events-none z-30">
                 {renderFloatingZoomWidget(true)}
               </div>
-              <div 
-                style={{ 
-                  width: `${840 * finalScale}px`, 
+              <div
+                style={{
+                  width: `${840 * finalScale}px`,
                   height: `${previewHeight * finalScale}px`,
                   position: 'relative',
                   overflow: 'hidden',
@@ -1069,16 +1277,16 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                   {/* Official Branding Header */}
                   <div className="border-b-2 border-slate-900 pb-2 mb-3 flex justify-between items-end">
                     <div className="flex items-center gap-3">
-                      <img src="/usas-logo.png" alt="USAS Crest" className="w-10 h-10 object-contain" />
+                      <img src={exportTheme === 'light' ? '/usas-logo-light.png' : '/usas-logo-dark.png'} alt="USAS Crest" className="w-10 h-10 object-contain" />
                       <div>
-                        <h1 className="text-xs font-black tracking-tight text-slate-900 uppercase leading-none">
+                        <h1 className="text-xs font-black tracking-tight text-slate-900 uppercase leading-tight whitespace-nowrap">
                           UNIVERSITI SULTAN AZLAN SHAH (USAS)
                         </h1>
-                        <h2 className="text-[10px] font-bold text-amber-805 uppercase mt-1 leading-none">
+                        <h2 className="text-[10px] font-bold text-amber-800 uppercase mt-1 leading-tight whitespace-nowrap">
                           JADUAL WAKTU KULIAH PELAJAR
                         </h2>
-                        <p className="text-[9px] text-slate-500 font-semibold mt-1 leading-none">
-                          {semesterStr}
+                        <p className="text-[9px] text-slate-500 font-semibold mt-1 leading-tight whitespace-nowrap">
+                          {semesterStr || '—'}
                         </p>
                       </div>
                     </div>
@@ -1091,62 +1299,75 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                   {/* Student Identity Block */}
                   <div className="bg-slate-50 p-2 rounded border border-slate-200 mb-3 flex flex-wrap items-center gap-x-6 gap-y-1.5 text-[9.5px]">
                     <div>
-                      <span className="font-bold text-slate-600">NAMA PELAJAR:</span> <span className="font-extrabold text-slate-900">{studentName}</span>
+                      <span className="font-bold text-slate-600">NAMA PELAJAR:</span> <span className="font-extrabold text-slate-900">{studentName || '—'}</span>
                     </div>
                     <div>
-                      <span className="font-bold text-slate-600">NO. MATRIK:</span> <span className="font-extrabold text-slate-900">{matricNo}</span>
+                      <span className="font-bold text-slate-600">NO. MATRIK:</span> <span className="font-extrabold text-slate-900">{matricNo || '—'}</span>
                     </div>
                     <div>
-                      <span className="font-bold text-slate-600">PROGRAM:</span> <span className="font-extrabold text-slate-900">{programName}</span>
+                      <span className="font-bold text-slate-600">PROGRAM:</span> <span className="font-extrabold text-slate-900">{programName || '—'}</span>
                     </div>
                   </div>
 
-                  <table className="w-full table-fixed border-collapse border border-slate-400 text-[10px]">
+                  <table className="w-full table-fixed border-separate border-spacing-0 border-l border-t border-slate-400 text-[10px]">
                     <thead>
                       <tr className="bg-slate-900 text-white font-bold" style={{ height: '32px' }}>
-                        <th className="border border-slate-400 px-2 py-1.5 text-center align-middle w-20">
+                        <th className="border-r border-b border-slate-400 px-2 py-1.5 text-center align-middle w-20">
                           <span>{lang === 'en' ? 'DAY' : 'HARI'}</span>
                         </th>
-                        <th className="border border-slate-400 px-2 py-1.5 text-center align-middle w-28">
+                        <th className="border-r border-b border-slate-400 px-2 py-1.5 text-center align-middle w-28">
                           <span>{lang === 'en' ? 'TIME' : 'WAKTU'}</span>
                         </th>
-                        <th className="border border-slate-400 px-2.5 py-1.5 text-left align-middle w-24">
+                        <th className="border-r border-b border-slate-400 px-2.5 py-1.5 text-left align-middle w-24">
                           <span>{lang === 'en' ? 'CODE' : 'KOD'}</span>
                         </th>
-                        <th className="border border-slate-400 px-2.5 py-1.5 text-left align-middle">
+                        <th className="border-r border-b border-slate-400 px-2.5 py-1.5 text-left align-middle">
                           <span>{lang === 'en' ? 'COURSE NAME' : 'NAMA KURSUS'}</span>
                         </th>
-                        <th className="border border-slate-400 px-2.5 py-1.5 text-center align-middle w-16">
+                        <th className="border-r border-b border-slate-400 px-2.5 py-1.5 text-center align-middle w-16">
                           <span>{lang === 'en' ? 'GROUP' : 'GROUP'}</span>
                         </th>
-                        <th className="border border-slate-400 px-2.5 py-1.5 text-left align-middle w-36">
+                        <th className="border-r border-b border-slate-400 px-2.5 py-1.5 text-left align-middle w-36">
                           <span>{lang === 'en' ? 'LOCATION' : 'LOKASI'}</span>
                         </th>
                       </tr>
                     </thead>
                     <tbody>
-                      {allCourses.map((c, i) => (
-                        <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'} style={{ height: '30px' }}>
-                          <td className="border border-slate-300 px-2 py-1 text-center align-middle font-bold text-amber-805">
-                            <span>{t(`days.${c.day?.toUpperCase()}`) || c.day}</span>
-                          </td>
-                          <td className="border border-slate-300 px-2 py-1 text-center align-middle font-medium">
-                            <span>{formatDurationRange(c.start_time || c.jadual, c.end_time)}</span>
-                          </td>
-                          <td className="border border-slate-300 px-2.5 py-1 text-left align-middle font-bold text-blue-900">
-                            <span>{c.course_id || c.kod_kursus}</span>
-                          </td>
-                          <td className="border border-slate-300 px-2.5 py-1 text-left align-middle font-semibold text-slate-900">
-                            <span>{c.course_name || c.kursus}</span>
-                          </td>
-                          <td className="border border-slate-300 px-2.5 py-1 text-center align-middle font-bold">
-                            <span>{normalizeGroup(c.group || c.kumpulan || 'A')}</span>
-                          </td>
-                          <td className="border border-slate-300 px-2.5 py-1 text-left align-middle text-slate-800">
-                            <span>{c.location || 'Dewan USAS'}</span>
-                          </td>
-                        </tr>
-                      ))}
+                      {pdfCourses.map((c, i) => {
+                        const dayName = extractDayName(c.day);
+                        const prevName = i > 0 ? extractDayName(pdfCourses[i - 1].day) : '';
+                        const isFirstOfDay = dayName !== prevName;
+                        let span = 1;
+                        if (isFirstOfDay) {
+                          for (let j = i + 1; j < pdfCourses.length && extractDayName(pdfCourses.at(j)?.day) === dayName; j += 1) {
+                            span += 1;
+                          }
+                        }
+                        return (
+                          <tr key={i} style={{ height: '30px' }}>
+                            {isFirstOfDay && (
+                              <td data-export-formal-day-cell rowSpan={span} className="border-r border-b border-slate-300 bg-white px-2 py-1 text-center align-middle font-bold text-amber-800">
+                                <span>{formatDayDisplay(c.day, t)}</span>
+                              </td>
+                            )}
+                            <td className={`border-r border-b border-slate-300 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50'} px-2 py-1 text-center align-middle font-medium`}>
+                              <span>{formatDurationRange(c.start_time || c.jadual, c.end_time, timeFormat)}</span>
+                            </td>
+                            <td className={`border-r border-b border-slate-300 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50'} px-2.5 py-1 text-left align-middle font-bold text-blue-900`}>
+                              <span>{c.course_id || c.kod_kursus}</span>
+                            </td>
+                            <td className={`border-r border-b border-slate-300 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50'} px-2.5 py-1 text-left align-middle font-semibold text-slate-900`}>
+                              <span>{c.course_name || c.kursus}</span>
+                            </td>
+                            <td className={`border-r border-b border-slate-300 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50'} px-2.5 py-1 text-center align-middle font-bold`}>
+                              <span>{normalizeGroup(c.group || c.kumpulan) || '—'}</span>
+                            </td>
+                            <td className={`border-r border-b border-slate-300 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50'} px-2.5 py-1 text-left align-middle text-slate-800`}>
+                              <span>{c.location || ''}</span>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
 
@@ -1163,25 +1384,41 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
           {/* ── MODE 2: DEVICE LOCK SCREEN WALLPAPER (Custom Presets & Content Controls) ── */}
           {exportMode === 'WALLPAPER' && (
             <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className={`text-[10px] font-bold uppercase tracking-wider ${isLight ? 'text-amber-800' : 'text-amber-400/90'}`}>{t('wallpaperDesign')}:</span>
+                <div role="group" aria-label={t('wallpaperDesign')} className={`flex items-center gap-0.5 border rounded-lg p-0.5 ${isLight ? 'bg-slate-100/80 border-slate-200/80' : 'bg-white/[0.04] border-white/10'}`}>
+                  {([['GRID', t('wallpaperDesignGrid')], ['MINIMAL', t('wallpaperDesignMinimal')], ['GLASS', t('wallpaperDesignGlass')]] as const).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      aria-pressed={wallpaperDesign === id}
+                      onClick={() => setWallpaperDesign(id)}
+                      className={`px-3 py-1 rounded-md text-[11px] font-semibold transition-colors ${
+                        wallpaperDesign === id
+                          ? (isLight ? 'bg-white text-slate-800 shadow-sm' : 'bg-amber-400/20 text-amber-300')
+                          : (isLight ? 'text-slate-500 hover:text-slate-800' : 'text-white/50 hover:text-white/80')
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div
                 data-lenis-prevent
-                className={`flex py-3 rounded-xl border overflow-x-auto overflow-y-hidden relative ${
-                  isLight ? 'border-slate-200' : 'border-white/[0.04]'
-                }`}
+                className={`flex py-3 rounded-xl border overflow-x-auto overflow-y-hidden relative ${isLight ? 'border-slate-200' : 'border-white/[0.04]'
+                  }`}
                 style={{ backgroundColor: lockscreenConfig.bg }}
               >
                 <div className="absolute inset-0 pointer-events-none z-30">
                   {renderFloatingZoomWidget(lockscreenConfig.isLight)}
                 </div>
                 {(() => {
-                  const widthMap = { phone: 360, tablet: 520, square: 480, desktop: 780 };
-                  const heightMap = { phone: 640, tablet: 640, square: 480, desktop: 480 };
-                  const w = widthMap[wallpaperPreset];
-                  const h = heightMap[wallpaperPreset];
+                  const { width: w, height: h } = WALLPAPER_PRESET_SIZES.get(wallpaperPreset) ?? WALLPAPER_PRESET_SIZES.get('phone')!;
                   return (
-                    <div 
-                      style={{ 
-                        width: `${w * userZoom}px`, 
+                    <div
+                      style={{
+                        width: `${w * userZoom}px`,
                         height: `${h * userZoom}px`,
                         position: 'relative',
                         overflow: 'hidden',
@@ -1192,7 +1429,7 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                       <div
                         ref={wallpaperRef}
                         data-export-root="wallpaper-export-root"
-                        className="font-sans flex flex-col justify-start gap-2 select-none border absolute top-0 left-0 origin-top-left"
+                        className="font-sans flex flex-col justify-start gap-2 select-none border absolute top-0 left-0 origin-top-left overflow-hidden"
                         style={{
                           width: `${w}px`,
                           height: `${h}px`,
@@ -1204,96 +1441,198 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                           color: lockscreenConfig.textColor
                         }}
                       >
+                        {wallpaperDesign === 'GLASS' && !wallpaperBackground && (
+                          // Glass needs something colourful behind it to read as glass.
+                          <div
+                            data-wallpaper-glass-backdrop
+                            aria-hidden="true"
+                            className="absolute inset-0 z-0"
+                            style={{ backgroundImage: 'linear-gradient(160deg, #0F2A6B 0%, #3B2A8F 38%, #8E2C82 70%, #D2546B 100%)' }}
+                          />
+                        )}
+                        {wallpaperBackground && (
+                          <img
+                            data-wallpaper-background-layer
+                            aria-hidden="true"
+                            draggable={false}
+                            src={wallpaperBackground}
+                            className="absolute inset-0 z-0 h-full w-full object-cover"
+                          />
+                        )}
+                        {wallpaperDesign === 'MINIMAL' || wallpaperDesign === 'GLASS' ? (
+                          <>
+                            {/* Clock and photo stay visible above a compact week card */}
+                            <div className="relative z-10 flex-1 min-h-0" />
+                            <MinimalWeekCard
+                              courses={allCourses}
+                              courseColorMap={courseColorMap}
+                              isLight={lockscreenConfig.isLight}
+                              showTimes={contentDetail === 'DETAILS'}
+                              timeFormat={timeFormat}
+                              title={t('minimalWeekTitle')}
+                              t={t}
+                              glass={wallpaperDesign === 'GLASS'}
+                              width={w - 2 * (wallpaperPreset === 'phone' ? 12 : wallpaperPreset === 'square' ? 14 : 16)}
+                              background={wallpaperBackgroundBlurred ? {
+                                url: wallpaperBackgroundBlurred,
+                                nativeBlur: useNativeGlassBlur,
+                                rootWidth: w,
+                                rootHeight: h,
+                                left: (wallpaperPreset === 'phone' ? 12 : wallpaperPreset === 'square' ? 14 : 16) + 1,
+                                bottom: (wallpaperPreset === 'phone' ? 12 : wallpaperPreset === 'square' ? 14 : 16) + currentSpacers.bottom + 1,
+                              } : undefined}
+                            />
+                          </>
+                        ) : (
+                        <>
                         {/* Top Reserved Clock Area */}
-                        <div style={{ height: `${currentSpacers.top}px` }} className="flex-shrink-0" />
+                        <div style={{ height: `${currentSpacers.top}px` }} className="relative z-10 flex-shrink-0" />
 
                         {/* Lock Screen Matrix Grid */}
-                        <div className={`border p-0 flex-1 min-h-0 flex flex-col justify-start overflow-hidden ${lockscreenConfig.gridBg}`}>
+                        <div
+                          data-wallpaper-grid
+                          data-wallpaper-grid-radius="12px"
+                          className={`relative z-10 border border-x-0 p-0 flex-1 min-h-0 flex flex-col justify-start overflow-hidden ${lockscreenConfig.gridBg}`}
+                          style={{
+                            borderRadius: '12px',
+                            isolation: 'isolate',
+                            backgroundColor: wallpaperBackground
+                              ? lockscreenConfig.isLight ? 'rgba(248,250,252,0.24)' : exportTheme === 'oled' ? 'rgba(0,0,0,0.24)' : 'rgba(10,20,40,0.24)'
+                              : undefined,
+                          }}
+                        >
+                          {wallpaperBackgroundBlurred && (
+                            <>
+                              <div
+                                data-wallpaper-background-blur
+                                data-wallpaper-native-blur={useNativeGlassBlur ? 'true' : undefined}
+                                aria-hidden="true"
+                                className="absolute inset-0 z-0"
+                                style={{
+                                  backgroundImage: `url(${wallpaperBackgroundBlurred})`,
+                                  backgroundPosition: 'center',
+                                  backgroundSize: 'cover',
+                                  ...(useNativeGlassBlur ? { WebkitFilter: 'blur(16px)', filter: 'blur(16px)' } : {}),
+                                }}
+                              />
+                              <div
+                                data-wallpaper-glass-overlay
+                                aria-hidden="true"
+                                className="absolute inset-0 z-[1]"
+                                style={{
+                                  backgroundColor: lockscreenConfig.isLight ? 'rgba(255,255,255,0.42)' : 'rgba(0,0,0,0.42)',
+                                  pointerEvents: 'none',
+                                }}
+                              />
+                            </>
+                          )}
                           {/* DYNAMIC SCALING WALLPAPER GRID VIEW TABLE */}
                           {(() => {
                             const style = getPresetStyle(wallpaperPreset, contentDetail);
-                            const rowHeightPx = wallpaperPreset === 'phone'
-                              ? 46
-                              : wallpaperPreset === 'square'
-                                ? 42
-                                : wallpaperPreset === 'tablet'
-                                  ? 54
-                                  : 44;
-
                             const wallpaperPadding = wallpaperPreset === 'phone' ? 12 : wallpaperPreset === 'square' ? 14 : 16;
+                            const headerHeightPx = wallpaperPreset === 'phone' ? 14 : wallpaperPreset === 'square' ? 16 : wallpaperPreset === 'tablet' ? 20 : 18;
+                            const gridHeightPx = h - (wallpaperPadding * 2) - 20 - currentSpacers.top - currentSpacers.bottom;
+                            const rowHeightPx = Math.max(1, (gridHeightPx - 4 - headerHeightPx) / daysList.length);
                             const gridInnerWidth = w - (wallpaperPadding * 2) - 2;
-                            const colWidth = (gridInnerWidth - 48) / 9;
+
+                            // Skip hours with no classes. Dense schedules group active hours into wider periods.
+                            const maxColumns = wallpaperPreset === 'phone' ? 8 : wallpaperPreset === 'square' ? 9 : wallpaperPreset === 'tablet' ? 10 : 12;
+                            const slots = buildWallpaperGridSlots(allCourses.flatMap((course) => {
+                              const start = parseTimeToMinutes(course.start_time || course.jadual || '');
+                              if (start == null) return [];
+                              const end = parseTimeToMinutes(course.end_time || '');
+                              return [{ start, end: end != null && end > start ? end : start + 60 }];
+                            }), maxColumns);
+                            const slotLabels = slots.map((slot) => ({ slot, label: formatWallpaperSlotLabel(slot.start, slot.end, timeFormat) }));
+                            const maxSlotLabelLength = Math.max(...slotLabels.map(({ label }) => label.length));
+                            const axisStart = slots[0].start;
+                            const axisEnd = slots[slots.length - 1].end;
+                            const axisDuration = slots.length;
+                            const gridContentWidth = gridInnerWidth - 38;
+                            const widthPerSlot = () => gridContentWidth / axisDuration;
+                            const periodHeaderFontSize = Math.max(3.5, Math.min(8, widthPerSlot() / (maxSlotLabelLength * 0.9)));
 
                             return (
-                              <table className={`w-full h-full table-fixed border-collapse ${style.tableFontSize}`}>
-                                <colgroup>
-                                  <col style={{ width: '48px' }} />
-                                  {WALLPAPER_HOUR_STARTS.map((hourStart) => (
-                                    <col key={hourStart} style={{ width: `${colWidth}px` }} />
-                                  ))}
-                                </colgroup>
+                              <table className={`relative z-10 w-full h-full table-fixed border-collapse ${style.tableFontSize}`}>
                                 <thead>
-                                  {(() => {
-                                    const headerHeightPx = wallpaperPreset === 'phone' ? 14 : wallpaperPreset === 'square' ? 16 : wallpaperPreset === 'tablet' ? 20 : 18;
-                                    return (
                                       <tr style={{ height: `${headerHeightPx}px` }}>
-                                        <th 
-                                          className={`p-0 font-black uppercase tracking-wider border-r ${lockscreenConfig.headerBorder} ${lockscreenConfig.headerText}`}
-                                          style={{ height: `${headerHeightPx}px` }}
+                                        <th
+                                          className={`p-0 font-black uppercase tracking-wider align-middle border-r ${lockscreenConfig.headerBorder} ${lockscreenConfig.headerText}`}
+                                          style={{ height: `${headerHeightPx}px`, width: '38px' }}
                                         >
-                                          <div className="w-full flex items-center justify-center text-center" style={{ height: `${headerHeightPx}px` }}>
-                                            <span>&nbsp;</span>
+                                          <div className="w-full h-full flex items-center justify-center text-center leading-none" style={{ height: `${headerHeightPx}px` }}>
+                                            <span className="leading-none">&nbsp;</span>
                                           </div>
                                         </th>
-                                        {WALLPAPER_HOUR_STARTS.map((hourStart) => (
-                                          <th 
-                                            key={hourStart} 
-                                            className={`p-0 font-black uppercase tracking-wider border-r ${lockscreenConfig.headerBorder} ${lockscreenConfig.headerText}`}
-                                            style={{ height: `${headerHeightPx}px` }}
+                                        {slotLabels.map(({ slot, label }) => (
+                                          <th
+                                            key={slot.start}
+                                            data-export-time-duration={slot.end - slot.start}
+                                            className={`p-0 font-black uppercase tracking-wider align-middle border-r ${lockscreenConfig.headerBorder} ${lockscreenConfig.headerText}`}
+                                            style={{ height: `${headerHeightPx}px`, width: `${widthPerSlot()}px` }}
                                           >
-                                            <div className="w-full flex items-center justify-center text-center" style={{ height: `${headerHeightPx}px` }}>
-                                              <span>{formatWallpaperSlotLabel(hourStart)}</span>
+                                            <div className="w-full h-full flex items-center justify-center text-center leading-none" style={{ height: `${headerHeightPx}px` }}>
+                                              <span data-export-time-label className="leading-none whitespace-nowrap" style={{ fontSize: `${periodHeaderFontSize}px` }}>{label}</span>
                                             </div>
                                           </th>
                                         ))}
                                       </tr>
-                                    );
-                                  })()}
                                 </thead>
                                 <tbody>
-                                  {daysList.map((d) => {
-                                    const dayColor = getModalDayColors(d, exportTheme);
+                                  {daysList.map((d, dayIndex) => {
+                                    const brightenDayLabel = brightDayLabels.has(dayIndex);
                                     return (
-                                      <tr key={d} style={{ height: `${rowHeightPx}px` }} className={`border-t ${lockscreenConfig.cellBorder}`}>
-                                        <td 
-                                          className={`p-0 font-bold border-r ${lockscreenConfig.cellBorder} ${lockscreenConfig.dayText} ${dayColor.text}`}
-                                          style={{ height: `${rowHeightPx}px` }}
+                                      <tr key={d} style={{ height: `${rowHeightPx}px`, minHeight: `${rowHeightPx}px` }} className={`border-t ${lockscreenConfig.cellBorder}`}>
+                                        <td
+                                          className={`p-0 font-bold border-r ${lockscreenConfig.cellBorder} ${lockscreenConfig.dayText}`}
+                                          style={{ height: `${rowHeightPx}px`, width: '38px' }}
                                         >
-                                          <div className="w-full flex items-center justify-center text-center" style={{ height: `${rowHeightPx}px` }}>
-                                            <span>{t(`shortDays.${d?.toUpperCase()}`) || d}</span>
+                                          <div className="w-full px-1 flex items-center justify-center text-center" style={{ height: `${rowHeightPx}px` }}>
+                                            <span
+                                              data-wallpaper-day-label={dayIndex}
+                                              className="text-[10px] break-words whitespace-pre-wrap"
+                                              style={brightenDayLabel ? {
+                                                color: lockscreenConfig.isLight ? '#334155' : exportTheme === 'warm' ? '#FEF3C7' : exportTheme === 'emerald' ? '#ECFDF5' : '#FFFFFF',
+                                              } : undefined}
+                                            >
+                                              {extractDayName(d) ? t(`shortDays.${extractDayName(d)}`) : formatDayDisplay(d, t, { short: true })}
+                                            </span>
                                           </div>
                                         </td>
-                                        {WALLPAPER_HOUR_STARTS.map((hourStart) => {
-                                          const course = getWallpaperCourseForHour(d, hourStart);
-                                          const covered = isWallpaperSlotCovered(d, hourStart);
-                                          if (covered) return null;
-                                          if (course) {
-                                            const courseSpan = getWallpaperCourseSpan(course);
-                                            return (
-                                              <td 
-                                                key={hourStart} 
-                                                colSpan={courseSpan} 
-                                                className={`border-r align-middle p-0.5 overflow-visible ${lockscreenConfig.cellBorder} ${dayColor.bg} ${dayColor.border}`}
-                                                style={{ height: `${rowHeightPx}px` }}
-                                              >
-                                                {renderWallpaperCourseContent(course, courseSpan, rowHeightPx, lockscreenConfig.isLight, style)}
-                                              </td>
+                                        <td colSpan={slots.length} className="relative p-0 overflow-hidden" style={{ height: `${rowHeightPx}px`, minHeight: `${rowHeightPx}px` }}>
+                                          <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${slots.length}, minmax(0, 1fr))` }} aria-hidden="true">
+                                            {slots.map((slot) => (
+                                              <div key={slot.start} className={`border-r last:border-r-0 ${lockscreenConfig.cellBorder}`} />
+                                            ))}
+                                          </div>
+                                          {allCourses.map((course) => {
+                                            if (extractDayName(course.day) !== extractDayName(d)) return null;
+                                            const start = parseTimeToMinutes(course.start_time || course.jadual || '');
+                                            if (start == null || start < axisStart || start >= axisEnd) return null;
+                                            const rawEnd = parseTimeToMinutes(course.end_time || '');
+                                            const end = Math.min(axisEnd, rawEnd != null && rawEnd > start ? rawEnd : start + 60);
+                                            if (end <= start) return null;
+                                            const courseStart = getWallpaperAxisPosition(start, slots);
+                                            const courseEnd = getWallpaperAxisPosition(end, slots);
+                                            const left = (courseStart / axisDuration) * 100;
+                                            const width = ((courseEnd - courseStart) / axisDuration) * 100;
+                                            const courseWidth = gridContentWidth * (courseEnd - courseStart) / axisDuration;
+                                            const courseColor = getModalDayColors(
+                                              getCourseColorSlot(courseColorMap, course.course_id || course.kod_kursus),
+                                              exportTheme,
                                             );
-                                          }
-                                          return (
-                                            <td key={hourStart} className={`border-r align-middle p-0 ${lockscreenConfig.cellBorder}`} />
-                                          );
-                                        })}
+                                            return (
+                                              <div
+                                                key={`${course.course_id || course.kod_kursus}-${start}`}
+                                                data-export-course-color-code={course.course_id || course.kod_kursus || ''}
+                                                className={`absolute inset-0 border-r align-middle p-0.5 overflow-hidden ${lockscreenConfig.cellBorder} ${courseColor.bg} ${courseColor.border}`}
+                                                style={{ left: `${left}%`, width: `${width}%`, top: '-0.5px', bottom: '-0.5px' }}
+                                              >
+                                                {renderWallpaperCourseContent(course, courseWidth, lockscreenConfig.isLight, style)}
+                                              </div>
+                                            );
+                                          })}
+                                        </td>
                                       </tr>
                                     );
                                   })}
@@ -1302,6 +1641,8 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                             );
                           })()}
                         </div>
+                        </>
+                        )}
 
                         <div style={{ height: `${currentSpacers.bottom}px` }} className="flex-shrink-0" />
                       </div>
@@ -1315,23 +1656,21 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
         </div>
 
         {/* Footer */}
-        <div className={`p-3 sm:p-4 border-t flex flex-col sm:flex-row items-center justify-between gap-3 flex-shrink-0 ${
-          isLight ? 'border-slate-200 bg-slate-50/50' : 'border-white/[0.06] bg-[#0A1428]/95'
-        }`}>
+        <div className={`p-3 sm:p-4 border-t flex flex-col sm:flex-row items-center justify-between gap-3 flex-shrink-0 ${isLight ? 'border-slate-200 bg-slate-50/50' : 'border-white/[0.06] bg-[#0A1428]/95'
+          }`}>
           <div className="text-[10px] italic text-center sm:text-left order-2 sm:order-1 flex-1">
             <span className={isLight ? 'text-slate-500' : 'text-slate-400'}>
               {lang === 'en' ? '* For best quality, download via Chrome on a laptop/desktop.' : '* Untuk kualiti terbaik, muat turun melalui Chrome di komputer.'}
             </span>
           </div>
 
-          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 w-full sm:w-auto order-1 sm:order-2">
+          <div className="flex flex-row items-center justify-end gap-2 w-full sm:w-auto order-1 sm:order-2">
             <button
               onClick={onClose}
-              className={`px-3.5 py-2 rounded-xl border text-xs font-semibold transition-all w-full sm:w-auto ${
-                isLight 
-                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200' 
+              className={`px-3.5 py-2 rounded-xl border text-xs font-semibold transition-all flex-1 sm:flex-none text-center ${isLight
+                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
                   : 'bg-white/[0.04] hover:bg-white/[0.08] text-white/80 hover:text-white border-white/10'
-              }`}
+                }`}
             >
               {t('cancel')}
             </button>
@@ -1339,21 +1678,23 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
             <button
               onClick={handleDownload}
               disabled={exporting}
-              className={`px-4 py-2 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 transition-all w-full sm:w-auto ${
-                isLight 
-                  ? 'bg-[#0B1E43] hover:bg-[#152e63] text-white shadow-slate-900/10' 
+              aria-label={exporting
+                ? (lang === 'en' ? 'Generating download' : 'Menjana muat turun')
+                : (lang === 'en' ? 'Download' : 'Muat Turun')}
+              className={`px-4 sm:px-4 py-2 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 transition-all flex-1 sm:flex-none ${isLight
+                  ? 'bg-[#0B1E43] hover:bg-[#152e63] text-white shadow-slate-900/10'
                   : 'bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-amber-400/10'
-              }`}
+                }`}
             >
               {exporting ? (
                 <>
-                  <RotateCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>{lang === 'en' ? 'Generating...' : 'Menjana...'}</span>
+                  <RotateCw className="w-4 h-4 sm:w-3.5 sm:h-3.5 animate-spin flex-shrink-0" />
+                  <span className="hidden sm:inline truncate">{lang === 'en' ? 'Generating...' : 'Menjana...'}</span>
                 </>
               ) : (
                 <>
-                  <Download className="w-3.5 h-3.5" />
-                  <span>{lang === 'en' ? 'Download' : 'Muat Turun'}</span>
+                  <Download className="w-4 h-4 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
+                  <span className="hidden sm:inline truncate">{lang === 'en' ? 'Download' : 'Muat Turun'}</span>
                 </>
               )}
             </button>
@@ -1364,11 +1705,10 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
 
       {exporting && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-md rounded-xl overflow-hidden">
-          <div className={`p-6 rounded-2xl border flex flex-col items-center justify-center gap-4 text-center max-w-xs w-full shadow-2xl transition-all duration-300 ${
-            isLight 
-              ? 'bg-white/95 border-slate-200 text-slate-900 shadow-slate-900/10' 
+          <div className={`p-6 rounded-2xl border flex flex-col items-center justify-center gap-4 text-center max-w-xs w-full shadow-2xl transition-all duration-300 ${isLight
+              ? 'bg-white/95 border-slate-200 text-slate-900 shadow-slate-900/10'
               : 'bg-[#0A1428]/95 border-white/10 text-white shadow-black/40'
-          }`}>
+            }`}>
             {/* Circular Gauge Meter */}
             <div className="relative w-24 h-24 flex items-center justify-center">
               {/* Circular SVG Gauge */}
@@ -1395,7 +1735,7 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
               </svg>
               {/* Center percentage counter */}
               <div className="absolute flex flex-col items-center justify-center">
-                <span className="text-lg font-black tracking-tight">{progress}%</span>
+                <span data-export-progress-value className="text-lg font-black tracking-tight">{progress}%</span>
               </div>
             </div>
 
@@ -1408,10 +1748,9 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                 {progressStatus}
               </p>
             </div>
-            
-            {/* Simulated bar loader for secondary visual hint */}
-            <div className={`w-full h-1 rounded-full overflow-hidden ${isLight ? 'bg-slate-100' : 'bg-white/[0.04]'}`}>
-              <div 
+
+            <div className={`relative w-full h-1 rounded-full overflow-hidden ${isLight ? 'bg-slate-100' : 'bg-white/[0.04]'}`}>
+              <div
                 className="h-full bg-gradient-to-r from-amber-500 to-amber-400 transition-all duration-300 ease-out rounded-full"
                 style={{ width: `${progress}%` }}
               />

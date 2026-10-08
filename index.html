@@ -2,14 +2,16 @@
 <html lang="ms" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/usas-logo.png" />
+    <link rel="icon" type="image/png" href="/usas-logo-light.png" media="(prefers-color-scheme: light)" />
+    <link rel="icon" type="image/png" href="/usas-logo-dark.png" media="(prefers-color-scheme: dark)" />
+    <link rel="apple-touch-icon" href="/usas-logo-dark.png" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="description" content="Official and independent student schedule portal for Universiti Sultan Azlan Shah (USAS) to preview, format, and export class timetables into calendar feeds (.ICS), printable A4 PDFs, and lockscreen wallpapers." />
     <meta property="og:title" content="USAS Class Timetable" />
     <meta property="og:description" content="Official and independent student class timetable portal for Universiti Sultan Azlan Shah students." />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="/" />
+    <meta property="og:url" content="https://jadualkelas.zis3c.dev/" />
     <meta property="og:image" content="/seo-preview.svg" />
     <meta property="og:image:alt" content="USAS Class Timetable preview image" />
     <meta property="og:site_name" content="USAS Class Timetable" />
@@ -19,9 +21,10 @@
     <meta name="twitter:image" content="/seo-preview.svg" />
     <meta name="twitter:image:alt" content="USAS Class Timetable preview image" />
     <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+    <link rel="canonical" href="https://jadualkelas.zis3c.dev/" />
     <meta name="keywords" content="USAS, Universiti Sultan Azlan Shah, timetable, class schedule, student portal, PDF export, wallpaper export" />
     <meta name="theme-color" content="#070F22" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; img-src 'self' data: blob: https:; font-src 'self' https://fonts.gstatic.com data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://static.cloudflareinsights.com; frame-src 'self' https://challenges.cloudflare.com; worker-src 'self' blob:; connect-src 'self' https://mobile.usas.edu.my https://challenges.cloudflare.com https://static.cloudflareinsights.com https://cloudflareinsights.com https://fonts.googleapis.com https://fonts.gstatic.com; upgrade-insecure-requests" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; img-src 'self' data: blob: https:; font-src 'self' https://fonts.gstatic.com data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://static.cloudflareinsights.com; frame-src 'self' https://challenges.cloudflare.com; worker-src 'self' blob:; connect-src 'self' https://mobile.usas.edu.my https://api.waktusolat.app https://challenges.cloudflare.com https://static.cloudflareinsights.com https://cloudflareinsights.com https://fonts.googleapis.com https://fonts.gstatic.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io; upgrade-insecure-requests" />
     <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
     <meta http-equiv="Permissions-Policy" content="camera=(self), microphone=(), geolocation=(), payment=(), usb=()" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -46,16 +49,15 @@
     </script>
   </head>
   <body class="bg-[#070F22] text-slate-100 font-sans antialiased selection:bg-amber-400 selection:text-slate-950 overflow-x-hidden">
-    <div id="root" class="min-h-screen w-full overflow-x-hidden"></div>
+    <div id="root" class="min-h-screen w-full overflow-x-hidden">
+      <noscript>
+        <main>
+          <h1>Jadual Kelas USAS</h1>
+          <p>Portal jadual kelas Universiti Sultan Azlan Shah untuk pelajar USAS.</p>
+          <p>Semak, format, dan eksport jadual kelas kepada PDF, wallpaper, atau kalendar ICS.</p>
+        </main>
+      </noscript>
+    </div>
     <script type="module" src="/src/app/main.tsx"></script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch(err => {
-            console.log('ServiceWorker registration failed: ', err);
-          });
-        });
-      }
-    </script>
   </body>
 </html>

@@ -1,10 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '@/app/providers/LanguageProvider';
 import { useTheme } from '@/app/providers/ThemeProvider';
+
 import { playClassChime, sendPushNotification } from '@/shared/lib/audioNotifier';
-import { buildDayScopedNotificationKey, getLocalDateStamp, pruneDayScopedNotificationKeys } from '@/shared/lib/notificationKeys';
+import {
+  buildDayScopedNotificationKey,
+  getLocalDateStamp,
+  persistDayScopedNotificationKeys,
+  pruneDayScopedNotificationKeys,
+  readDayScopedNotificationKeys,
+} from '@/shared/lib/notificationKeys';
 import { Clock, CheckCircle2, Bell, BellOff } from 'lucide-react';
 import type { TimetableItem } from '@/shared/types/usas';
+import { extractDayName } from '@/shared/lib/dayFormat';
 
 type LiveNextClassWidgetProps = {
   timetable?: TimetableItem[];
@@ -16,6 +24,8 @@ type NextClassItem = TimetableItem & {
   endMin?: number;
 };
 
+const NOTIFIED_CLASSES_KEY = 'usas_auto_notified_classes';
+
 export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWidgetProps) {
   const { t } = useLanguage();
   const { theme } = useTheme();
@@ -23,9 +33,8 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
   const [autoNotifyEnabled, setAutoNotifyEnabled] = useState(() => {
     try { return localStorage.getItem('usas_auto_notify') === 'true'; } catch (e) { return false; }
   });
-  const notifiedRef = useRef<Record<string, boolean>>({});
+  const notifiedRef = useRef(readDayScopedNotificationKeys(NOTIFIED_CLASSES_KEY, new Date()));
   const activeDayStampRef = useRef('');
-
   const isLight = theme === 'light';
 
   useEffect(() => {
@@ -38,12 +47,19 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
     if (activeDayStampRef.current === dayStamp) return;
     activeDayStampRef.current = dayStamp;
     notifiedRef.current = pruneDayScopedNotificationKeys(notifiedRef.current, now);
+    persistDayScopedNotificationKeys(NOTIFIED_CLASSES_KEY, notifiedRef.current);
   }, [now]);
 
   const toggleAutoNotify = () => {
     const nextState = !autoNotifyEnabled;
     setAutoNotifyEnabled(nextState);
-    try { localStorage.setItem('usas_auto_notify', String(nextState)); } catch (e) {}
+    try { 
+      localStorage.setItem('usas_auto_notify', String(nextState)); 
+      localStorage.setItem('usas_prayer_auto_notify', String(nextState));
+    } catch (e) {}
+    
+    // Dispatch event so PrayerTimesNotifier picks it up
+    window.dispatchEvent(new Event('usas-prayer-auto-notify-changed'));
     
     if (nextState) {
       playClassChime();
@@ -95,9 +111,9 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
   let minDiff = Infinity;
 
   if (Array.isArray(timetable) && timetable.length > 0) {
-    timetable.forEach((item) => {
-      const isToday = item.day?.toUpperCase() === currentDayName;
-      if (!isToday) return;
+    for (const item of timetable) {
+      const isToday = extractDayName(item.day) === currentDayName || item.day?.toUpperCase() === currentDayName;
+      if (!isToday) continue;
 
       const startMin = parseTimeToMinutes(item.start_time);
       const endMin = item.end_time ? parseTimeToMinutes(item.end_time) : startMin + 120;
@@ -113,14 +129,15 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
           nextClass = { ...item, diffSeconds: diff };
         }
       }
-    });
+    }
   }
 
   useEffect(() => {
     if (autoNotifyEnabled && nextClass && nextClass.diffSeconds !== undefined && nextClass.diffSeconds <= 600 && nextClass.diffSeconds > 0) {
       const key = buildDayScopedNotificationKey(now, nextClass.course_id, nextClass.day, nextClass.start_time);
-      if (!notifiedRef.current[key]) {
-        notifiedRef.current[key] = true;
+      if (!notifiedRef.current.has(key)) {
+        notifiedRef.current.add(key);
+        persistDayScopedNotificationKeys(NOTIFIED_CLASSES_KEY, notifiedRef.current);
         playClassChime();
         sendPushNotification(
           `Peringatan Kuliah USAS: ${nextClass.course_id}`,
@@ -135,18 +152,19 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
   /* ── No more classes today ─────────────────────────────────────────── */
   if (!ongoingClass && !nextClass) {
     return (
-      <div className={`py-2 px-3 rounded-xl border text-[10px] flex items-center gap-2 transition-all shadow-sm ${
-        isLight
-          ? 'bg-gradient-to-r from-emerald-50/70 to-teal-50/70 border-emerald-100/80 text-emerald-900 shadow-emerald-500/5'
-          : 'bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-emerald-500/20 text-emerald-300 shadow-black/10'
-      }`}>
+      <>
+        <div className={`py-2 px-3 rounded-xl border text-[10px] flex items-center gap-2 transition-all shadow-sm ${
+          isLight
+            ? 'bg-gradient-to-r from-emerald-50/70 to-teal-50/70 border-emerald-100/80 text-emerald-900 shadow-emerald-500/5'
+            : 'bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-emerald-500/20 text-emerald-300 shadow-black/10'
+        }`}>
         <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
           isLight ? 'bg-emerald-100 text-emerald-700' : 'bg-emerald-500/20 text-emerald-400'
         }`}>
           <CheckCircle2 className="w-3 h-3" />
         </div>
         <span className="font-semibold tracking-wide truncate flex-1 min-w-0">
-          {t('noClassRemaining')} ({t(`days.${currentDayName}`) || currentDayName}) — {t('restWell')}
+          {t('noClassRemaining')} ({t(`days.${currentDayName}`) || currentDayName})
         </span>
         <button
           onClick={toggleAutoNotify}
@@ -166,6 +184,7 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
             : <BellOff className="w-3 h-3" />}
         </button>
       </div>
+      </>
     );
   }
 
@@ -191,7 +210,7 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
 
       {/* Course info — all inline, truncated */}
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-x-1.5 flex-wrap">
+        <div className="flex items-center gap-x-1.5 flex-wrap leading-none">
           <span className={`text-[9px] font-bold uppercase tracking-wider flex-shrink-0 ${
             ongoingClass
               ? (isLight ? 'text-emerald-600' : 'text-emerald-400')
@@ -204,12 +223,14 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
               {formatCountdown(nextClass.diffSeconds || 0)}
             </span>
           )}
-          <span className={`text-[9.5px] font-semibold truncate ${isLight ? 'text-slate-800' : 'text-white/90'}`}>
+        </div>
+        <div className="flex items-center gap-1.5 mt-0.5 leading-none">
+          <span className={`text-[9.5px] font-bold truncate ${isLight ? 'text-slate-800' : 'text-white/90'}`}>
             {activeCourse!.course_id}: {activeCourse!.course_name}
           </span>
-        </div>
-        <div className={`text-[9px] truncate mt-0.5 ${isLight ? 'text-slate-400' : 'text-white/30'}`}>
-          {activeCourse!.location}
+          <div className={`text-[9px] truncate flex-shrink-0 ${isLight ? 'text-slate-500' : 'text-white/50'}`}>
+            {activeCourse!.location}
+          </div>
         </div>
       </div>
 

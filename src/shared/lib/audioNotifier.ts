@@ -1,14 +1,27 @@
 /**
- * Audio Chime Notifier, Mobile Web Push & PWA Notification App Badge System for USAS Students
- * Generates a clean 3-tone campus chime (C5 -> E5 -> G5) using Web Audio API
- * Manages Mobile App Badge bubble numbers (navigator.setAppBadge)
+ * Class-chime notifier and PWA app-badge helper for USAS students.
+ * Plays a three-tone campus chime (C5 -> E5 -> G5) through the Web Audio API
+ * and manages the mobile app badge count (navigator.setAppBadge).
  */
+
+let notificationAudioContext: AudioContext | undefined;
+
+function getNotificationAudioContext(): AudioContext | undefined {
+  try {
+    const AudioCtx = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtx) return undefined;
+    notificationAudioContext ??= new AudioCtx();
+    void notificationAudioContext.resume().catch(() => {});
+    return notificationAudioContext;
+  } catch {
+    return undefined;
+  }
+}
 
 export function playClassChime(): void {
   try {
-    const AudioCtx = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
+    const ctx = getNotificationAudioContext();
+    if (!ctx) return;
 
     // 3-tone campus chime sequence: C5 (523.25 Hz) -> E5 (659.25 Hz) -> G5 (783.99 Hz)
     const tones = [523.25, 659.25, 783.99];
@@ -34,6 +47,35 @@ export function playClassChime(): void {
   } catch (e) {}
 }
 
+export function playPrayerChime(): void {
+  try {
+    const ctx = getNotificationAudioContext();
+    if (!ctx) return;
+
+    // Deep, softer echoing tone for prayer: A3 -> D4 -> A4
+    const tones = [220.00, 293.66, 440.00];
+
+    tones.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.4);
+
+      // Slower attack and longer decay for a more spiritual, calming sound
+      gain.gain.setValueAtTime(0, ctx.currentTime + idx * 0.4);
+      gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + idx * 0.4 + 0.1);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.4 + 1.2);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(ctx.currentTime + idx * 0.4);
+      osc.stop(ctx.currentTime + idx * 0.4 + 1.5);
+    });
+  } catch (e) {}
+}
+
 export function updateAppBadge(count = 1): void {
   try {
     const badgeNavigator = navigator as Navigator & {
@@ -50,17 +92,6 @@ export function updateAppBadge(count = 1): void {
   } catch (e) {}
 }
 
-export function clearAppBadge(): void {
-  try {
-    const badgeNavigator = navigator as Navigator & {
-      clearAppBadge?: () => Promise<void>;
-    };
-    if ('clearAppBadge' in navigator) {
-      badgeNavigator.clearAppBadge?.().catch(() => {});
-    }
-  } catch (e) {}
-}
-
 export function sendPushNotification(title: string, body: string): void {
   // Trigger mobile badge count bubble on device
   updateAppBadge(1);
@@ -71,8 +102,8 @@ export function sendPushNotification(title: string, body: string): void {
     try {
       new Notification(title, {
         body,
-        icon: '/usas-logo.png',
-        badge: '/usas-logo.png',
+        icon: '/usas-logo-dark.png',
+        badge: '/usas-logo-dark.png',
       } satisfies NotificationOptions);
     } catch (e) {}
   } else if (Notification.permission !== 'denied') {
@@ -81,8 +112,8 @@ export function sendPushNotification(title: string, body: string): void {
         try {
           new Notification(title, {
             body,
-            icon: '/usas-logo.png',
-            badge: '/usas-logo.png',
+            icon: '/usas-logo-dark.png',
+            badge: '/usas-logo-dark.png',
           } satisfies NotificationOptions);
         } catch (e) {}
       }

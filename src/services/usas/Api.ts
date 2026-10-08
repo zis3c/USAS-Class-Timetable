@@ -1,9 +1,6 @@
 import type {
-  AcademicCalendarItem,
   ApiResponse,
   AttendanceHistoryItem,
-  CampusNewsItem,
-  PrayerTimeItem,
   StudentProfile,
   StudentSession,
   TimetableData,
@@ -15,7 +12,9 @@ import {
   sanitizeSingleLine,
   sanitizeTimetableItem,
   sanitizeTextForShare,
+  getOwnRecordValue,
 } from '@/shared/lib/security';
+import { normalizeDayLabel, parseDisplayDate, sortDayLabels } from '@/shared/lib/dayFormat';
 
 // USAS API Service Layer
 // Dual JSON & Form-UrlEncoded transport layer with multi-endpoint fallback
@@ -39,115 +38,102 @@ export const MOCK_STUDENT_DATA: {
   timetable: TimetableItem[];
 } = {
   user_id: 'AI210042',
-  name: 'AHMAD AMIRUL BIN ROSLI',
+  name: 'DEMO STUDENT',
   program: 'BACHELOR OF COMPUTER SCIENCE (HONS)',
-  semester: 'Semester 1 2024/2025',
+  semester: 'Demo Semester',
   financialBalance: 'RM 0.00 (Lunas)',
-  timetableDays: ['ISNIN', 'SELASA', 'RABU', 'KHAMIS', 'JUMAAT'],
+  timetableDays: ['ISNIN', 'SELASA', 'RABU', 'KHAMIS'],
   timetable: [
     {
       id: '1',
       day: 'ISNIN',
-      course_id: 'CSC2103',
-      course_name: 'DATA STRUCTURES AND ALGORITHMS',
+      course_id: 'DKF6013',
+      course_name: 'TEORI REKABENTUK',
       group: 'GRP01',
-      start_time: '08:30 AM',
-      end_time: '10:30 AM',
-      location: 'Makmal Komputer 3 (MK3)',
-      lecturer: 'DR. NORAZLINA BINTI ABDUL RAHMAN',
+      start_time: '08:00 PM',
+      end_time: '11:00 PM',
+      location: 'BKG/MSTEAMS09',
+      lecturer: 'DEMO LECTURER',
       kehadiran: '88%',
-      catatan: 'Dewan Kuliah Blok B'
+      catatan: 'Demo class'
     },
     {
       id: '2',
-      day: 'ISNIN',
-      course_id: 'SEC3303',
-      course_name: 'CYBERSECURITY FUNDAMENTALS',
+      day: 'SELASA',
+      course_id: 'RKS6083',
+      course_name: 'COMPUTER FORENSIC',
       group: 'GRP01',
       start_time: '11:00 AM',
       end_time: '01:00 PM',
-      location: 'Dewan Kuliah 2 (DK2)',
-      lecturer: 'PM DR. MOHD FAIZAL BIN KASIM',
-      kehadiran: '95%',
-      catatan: 'Bring your laptop'
+      location: 'BK B4',
+      lecturer: 'DEMO LECTURER',
+      kehadiran: '88%',
+      catatan: 'Demo class'
     },
     {
       id: '3',
       day: 'SELASA',
-      course_id: 'BIT2043',
-      course_name: 'WEB APPLICATION DEVELOPMENT',
-      group: 'GRP02',
-      start_time: '09:00 AM',
-      end_time: '12:00 PM',
-      location: 'Makmal Software Engineering',
-      lecturer: 'EN. MUHAMMAD HAZIM BIN ISMAIL',
-      kehadiran: '100%',
-      catatan: 'Lab session & assessment'
+      course_id: 'CSE6013',
+      course_name: 'SOFTWARE DESIGN AND ARCHITECTURE',
+      group: 'GRP01',
+      start_time: '04:00 PM',
+      end_time: '05:00 PM',
+      location: 'BKB/MSTEAMS02',
+      lecturer: 'DEMO LECTURER',
+      kehadiran: '90%',
+      catatan: 'Demo class'
     },
     {
       id: '4',
-      day: 'SELASA',
-      course_id: 'MPU3113',
-      course_name: 'HUBUNGAN ETNIK',
+      day: 'RABU',
+      course_id: 'RKS6083',
+      course_name: 'COMPUTER FORENSIC',
       group: 'GRP01',
-      start_time: '02:30 PM',
-      end_time: '04:30 PM',
-      location: 'Dewan Besar USAS',
-      lecturer: 'USTAZ AHMAD SHAFIQ BIN ZAINAL',
-      kehadiran: '92%',
-      catatan: 'Lecture'
+      start_time: '02:00 PM',
+      end_time: '03:00 PM',
+      location: 'BKB/MSTEAMS05',
+      lecturer: 'DEMO LECTURER',
+      kehadiran: '88%',
+      catatan: 'Demo class'
     },
     {
       id: '5',
       day: 'RABU',
-      course_id: 'CSC3203',
-      course_name: 'DATABASE SYSTEMS & BIG DATA',
+      course_id: 'KOM6363',
+      course_name: 'RESEARCH METHODOLOGY / FINAL YEAR PROJECT I',
       group: 'GRP01',
-      start_time: '08:30 AM',
-      end_time: '11:30 AM',
-      location: 'Makmal Komputer 1 (MK1)',
-      lecturer: 'PN. SITI NURHALIZA BINTI OTHMAN',
+      start_time: '08:30 PM',
+      end_time: '11:30 PM',
+      location: 'BK G11',
+      lecturer: 'DEMO LECTURER',
       kehadiran: '90%',
-      catatan: 'Practical SQL exercise'
+      catatan: 'Demo class'
     },
     {
       id: '6',
-      day: 'RABU',
-      course_id: 'SEC3403',
-      course_name: 'ETHICAL HACKING & PENETRATION TESTING',
+      day: 'KHAMIS',
+      course_id: 'CSE6013',
+      course_name: 'SOFTWARE DESIGN AND ARCHITECTURE',
       group: 'GRP01',
-      start_time: '02:00 PM',
-      end_time: '05:00 PM',
-      location: 'Cyber Security Lab (CSL)',
-      lecturer: 'PM DR. MOHD FAIZAL BIN KASIM',
-      kehadiran: '96%',
-      catatan: 'Hands-on lab setup'
+      start_time: '10:00 AM',
+      end_time: '12:00 PM',
+      location: 'BK G3',
+      lecturer: 'DEMO LECTURER',
+      kehadiran: '90%',
+      catatan: 'Demo class'
     },
     {
       id: '7',
       day: 'KHAMIS',
-      course_id: 'CSC2103',
-      course_name: 'DATA STRUCTURES AND ALGORITHMS',
+      course_id: 'KSC6433',
+      course_name: 'FINANCIAL TECHNOLOGY',
       group: 'GRP01',
-      start_time: '10:00 AM',
-      end_time: '12:00 PM',
-      location: 'Dewan Kuliah 1 (DK1)',
-      lecturer: 'DR. NORAZLINA BINTI ABDUL RAHMAN',
-      kehadiran: '88%',
-      catatan: 'Tutorial & Q&A'
-    },
-    {
-      id: '8',
-      day: 'JUMAAT',
-      course_id: 'BIT3903',
-      course_name: 'FINAL YEAR PROJECT 1',
-      group: 'GRP01',
-      start_time: '09:00 AM',
-      end_time: '11:30 AM',
-      location: 'Bilik Mesyuarat FTMK',
-      lecturer: 'DR. KHALID BIN HASSAN',
-      kehadiran: '100%',
-      catatan: 'Progress presentation with supervisor'
+      start_time: '02:00 PM',
+      end_time: '05:00 PM',
+      location: 'BKB/MSTEAMS10',
+      lecturer: 'DEMO LECTURER',
+      kehadiran: '90%',
+      catatan: 'Demo class'
     }
   ]
 };
@@ -166,7 +152,7 @@ function isSafeJsonValue(value: unknown): boolean {
 
   for (const key of Object.keys(value as Record<string, unknown>)) {
     if (POISON_KEYS.has(key)) return false;
-    if (!isSafeJsonValue((value as Record<string, unknown>)[key])) return false;
+    if (!isSafeJsonValue(getOwnRecordValue(value, key))) return false;
   }
 
   return true;
@@ -181,7 +167,24 @@ export function parseSafeJsonResponse(text: string): unknown | null {
   }
 }
 
-async function postUSAS(endpoint: string, payload: UsasPayload): Promise<unknown> {
+export class UsasUnavailableError extends Error {
+  constructor() {
+    super('USAS service unavailable');
+    this.name = 'UsasUnavailableError';
+  }
+}
+
+type UsasFetchOutcome = {
+  ok: boolean;
+  data?: unknown;
+  reason?: 'network' | 'invalid';
+};
+
+async function postUSASOutcome(
+  endpoint: string,
+  payload: UsasPayload,
+  extraHeaders: Record<string, string> = {},
+): Promise<UsasFetchOutcome> {
   const fetchWithTimeout = async (input: RequestInfo | URL, init: RequestInit) => {
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -195,27 +198,31 @@ async function postUSAS(endpoint: string, payload: UsasPayload): Promise<unknown
     }
   };
 
+  let networkError = false;
+
   // 1. Try application/json
   try {
     const jsonRes = await fetchWithTimeout(`${BASE_URL}${endpoint}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...extraHeaders },
       body: JSON.stringify(payload)
     });
-    if (jsonRes.ok) {
+    if (jsonRes.ok || jsonRes.status === 403) {
       const text = await jsonRes.text();
       if (text && !text.startsWith('Access Denied') && text.includes('{')) {
         const data = parseSafeJsonResponse(text);
-        if (data) return data;
+        if (data) return { ok: true, data };
       }
     }
-  } catch (err) {}
+  } catch {
+    networkError = true;
+  }
 
   // 2. Fallback to application/x-www-form-urlencoded
   try {
     const formParams = new URLSearchParams();
     Object.keys(payload).forEach(key => {
-      const value = payload[key];
+      const value = getOwnRecordValue(payload, key);
       if (value !== undefined && value !== null) {
         formParams.append(key, String(value));
       }
@@ -223,25 +230,37 @@ async function postUSAS(endpoint: string, payload: UsasPayload): Promise<unknown
 
     const formRes = await fetchWithTimeout(`${BASE_URL}${endpoint}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', ...extraHeaders },
       body: formParams.toString()
     });
     if (formRes.ok) {
       const formText = await formRes.text();
       if (formText && !formText.startsWith('Access Denied') && formText.includes('{')) {
         const data = parseSafeJsonResponse(formText);
-        if (data) return data;
+        if (data) return { ok: true, data };
       }
     }
-  } catch (err) {}
+  } catch {
+    networkError = true;
+  }
 
-  return null;
+  return { ok: false, reason: networkError ? 'network' : 'invalid' };
+}
+
+async function postUSAS(
+  endpoint: string,
+  payload: UsasPayload,
+  extraHeaders: Record<string, string> = {},
+): Promise<unknown> {
+  const outcome = await postUSASOutcome(endpoint, payload, extraHeaders);
+  return outcome.ok ? outcome.data : null;
 }
 
 export async function loginStudentAPI(
   userId: string,
   password: string,
   isDemo = false,
+  captchaToken?: string,
 ): Promise<ApiResponse<StudentSession>> {
   if (isDemo || userId.toLowerCase() === 'demo') {
     return {
@@ -274,7 +293,30 @@ export async function loginStudentAPI(
     platform: PLATFORM
   };
 
-  const result = await postUSAS('/student/login_student.php', payload);
+  const outcome = await postUSASOutcome(
+    '/student/login_student.php',
+    payload,
+    captchaToken ? { 'x-turnstile-token': captchaToken } : {},
+  );
+
+  if (!outcome.ok) {
+    return {
+      success: false,
+      error: outcome.reason === 'network'
+        ? 'Tidak dapat hubungi pelayan USAS. Sila semak sambungan anda dan cuba lagi.'
+        : 'Pelayan USAS tidak memberi respons yang sah. Sila cuba lagi sebentar.',
+    };
+  }
+
+  const result = outcome.data;
+
+  const gateResult = result as { success?: boolean; error?: string } | null;
+  if (gateResult && gateResult.success === false && typeof gateResult.error === 'string' && gateResult.error.trim()) {
+    return {
+      success: false,
+      error: sanitizeSingleLine(gateResult.error, 160),
+    };
+  }
 
   const loginResult = result as {
     server_response?: Array<{ status?: number | string; message?: string; sid_1?: string; sid_2?: string; sid_3?: string }>;
@@ -374,7 +416,7 @@ export async function fetchStudentProfileAPI(session: StudentSession): Promise<S
 
 export async function fetchAttendanceHistoryAPI(
   session: StudentSession | null,
-  groupId = 'GRP01',
+  groupId = '',
 ): Promise<AttendanceHistoryItem[]> {
   if (session?.isDemo) {
     return [
@@ -387,6 +429,8 @@ export async function fetchAttendanceHistoryAPI(
       { minggu: 'Minggu 7', tarikh: '21-Nov-2024', status_hadir: 'Present', catatan: 'Scan QR App' }
     ];
   }
+
+  if (!session || !groupId) return [];
 
   const payload = {
     apiKey: API_KEY,
@@ -412,6 +456,43 @@ export async function fetchAttendanceHistoryAPI(
     }));
   }
   return [];
+}
+
+// Resolves the numeric group_id for a course code via `senarai_kursus`.
+// Used as a fallback when a cached timetable item is missing group_id.
+export async function resolveGroupIdForCourseAPI(
+  session: StudentSession | null,
+  courseCode: string,
+): Promise<string | null> {
+  if (!session || session.isDemo) return null;
+
+  const code = sanitizeSingleLine(courseCode, 64).trim().toUpperCase();
+  if (!code) return null;
+
+  const payload = {
+    apiKey: API_KEY,
+    request_type: 'senarai_kursus',
+    user_id: session.user_id,
+    token: DUMMY_TOKEN,
+    sid_1: session.sid_1,
+    sid_2: session.sid_2,
+    sid_3: session.sid_3,
+    umc_platform: PLATFORM,
+    umc_version: UMC_VERSION,
+  };
+
+  try {
+    const res = await postUSAS('/student/get_kehadiran_kuliah.php', payload);
+    const rows = (res as { server_response?: Array<Record<string, unknown>> } | null)?.server_response;
+    if (!Array.isArray(rows)) return null;
+
+    const match = rows.find((row) => String(row.kod_kursus ?? '').trim().toUpperCase() === code);
+    const groupId = match?.group_id;
+    if (groupId === undefined || groupId === null) return null;
+    return String(groupId).trim() || null;
+  } catch {
+    return null;
+  }
 }
 
 export type AttendanceScanResponse = {
@@ -484,6 +565,85 @@ export async function scanAttendanceQrAPI(
   };
 }
 
+// Computes the attendance percentage from real `laporan_kehadiran` rows.
+// Only sessions that have actually taken place count toward the total:
+// a row is "held" when it has a recorded status or its date is in the past.
+export function computeAttendancePercent(rows: AttendanceHistoryItem[] | null | undefined): number | null {
+  if (!rows || rows.length === 0) return null;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  let held = 0;
+  let present = 0;
+
+  for (const row of rows) {
+    const status = String(row.status_hadir ?? '').trim();
+    const date = parseDisplayDate(row.tarikh);
+    const isHeld = status.length > 0 || (date !== null && date.getTime() < today.getTime());
+    if (!isHeld) continue;
+
+    held += 1;
+    if (/hadir|present/i.test(status) && !/tidak/i.test(status)) present += 1;
+  }
+
+  if (held === 0) return null;
+  return Math.round((present / held) * 100);
+}
+
+export type LecturerDirectoryEntry = {
+  id: string;
+  name: string;
+  position: string;
+  email: string;
+  ext: string;
+  staffNo: string;
+};
+
+function stripHtmlTags(value: unknown): string {
+  return sanitizeSingleLine(String(value ?? '').replace(/<[^>]*>/g, ' '), 160);
+}
+
+export async function searchLecturerDirectoryAPI(
+  session: StudentSession | null,
+  keyword: string,
+): Promise<LecturerDirectoryEntry[]> {
+  if (!session || session.isDemo) return [];
+
+  const cleanKeyword = sanitizeSingleLine(keyword, 120);
+  if (!cleanKeyword) return [];
+
+  const payload = {
+    apiKey: API_KEY,
+    request_type: 'search_dir',
+    keyword: cleanKeyword,
+    user_id: session.user_id,
+    token: DUMMY_TOKEN,
+    sid_1: session.sid_1,
+    sid_2: session.sid_2,
+    sid_3: session.sid_3,
+    umc_platform: PLATFORM,
+    umc_version: UMC_VERSION,
+  };
+
+  const result = await postUSAS('/student/get_directory_staff_v2.php', payload);
+  const typed = result as { server_response_directory?: Array<Record<string, unknown>> } | null;
+  const rows = typed?.server_response_directory;
+  if (!Array.isArray(rows)) return [];
+
+  return rows
+    .filter((row) => Number(row.id) !== 0)
+    .map((row, index) => ({
+      id: sanitizeSingleLine(row.id ?? String(index + 1), 32),
+      name: stripHtmlTags(row.nama),
+      position: stripHtmlTags(row.jawatan),
+      email: sanitizeSingleLine(row.email, 160).toLowerCase(),
+      ext: stripHtmlTags(row.ext),
+      staffNo: sanitizeSingleLine(row.no_staff, 32),
+    }))
+    .filter((entry) => entry.name.length > 0);
+}
+
 export async function fetchTimetableAPI(session: StudentSession): Promise<TimetableData> {
   if (session.isDemo) {
     return {
@@ -510,10 +670,42 @@ export async function fetchTimetableAPI(session: StudentSession): Promise<Timeta
   };
 
   const timetablePayload = { ...basePayload, request_type: "jadual_kuliah" };
-  const timetableRes = await postUSAS('/student/get_timetable_stud.php', timetablePayload);
+  const kehadiranCoursePayload = { ...basePayload, request_type: "senarai_kursus" };
+
+  const [timetableOutcome, kehadiranCourseOutcome] = await Promise.all([
+    postUSASOutcome('/student/get_timetable_stud.php', timetablePayload),
+    postUSASOutcome('/student/get_kehadiran_kuliah.php', kehadiranCoursePayload),
+  ]);
+
+  // If neither endpoint returns usable data, the USAS API is unreachable/broken.
+  if (!timetableOutcome.ok && !kehadiranCourseOutcome.ok) {
+    throw new UsasUnavailableError();
+  }
+
+  const timetableRes = timetableOutcome.ok ? timetableOutcome.data : null;
+  const kehadiranCourseRes = kehadiranCourseOutcome.ok ? kehadiranCourseOutcome.data : null;
 
   let rawItems: TimetableItem[] = [];
   let rawDays: string[] = [];
+
+  // Build course -> group_id map from senarai_kursus so attendance logs wire to real database group IDs
+  const courseGroupMap = new Map<string, { group_id: string; kumpulan?: string; semester?: string }>();
+  const kehadiranPayloadTyped = kehadiranCourseRes as {
+    server_response?: Array<Record<string, string | undefined>>;
+  } | null;
+
+  if (kehadiranPayloadTyped?.server_response && Array.isArray(kehadiranPayloadTyped.server_response)) {
+    for (const k of kehadiranPayloadTyped.server_response) {
+      const code = String(k.kod_kursus || '').trim().toUpperCase();
+      if (code && k.group_id) {
+        courseGroupMap.set(code, {
+          group_id: String(k.group_id).trim(),
+          kumpulan: k.kumpulan ? String(k.kumpulan).trim() : undefined,
+          semester: k.semester ? String(k.semester).trim() : undefined,
+        });
+      }
+    }
+  }
 
   const timetablePayloadRes = timetableRes as {
     server_response?: TimetableItem[];
@@ -521,36 +713,99 @@ export async function fetchTimetableAPI(session: StudentSession): Promise<Timeta
   } | null;
 
   if (timetablePayloadRes?.server_response && timetablePayloadRes.server_response.length > 0) {
-    rawItems = timetablePayloadRes.server_response.map(sanitizeTimetableItem);
-    rawDays = (timetablePayloadRes.server_response_day || []).map((day) => sanitizeSingleLine(day, 16).toUpperCase());
-  } else {
-    const kehadiranPayload = { ...basePayload, request_type: "senarai_kursus" };
-    const kehadiranRes = await postUSAS('/student/get_kehadiran_kuliah.php', kehadiranPayload);
-    
-    const kehadiranPayloadRes = kehadiranRes as { server_response?: Array<Partial<TimetableItem> & Record<string, string | number | undefined>> } | null;
+    rawItems = timetablePayloadRes.server_response.map((item) => {
+      const sanitized = sanitizeTimetableItem(item);
+      const code = String(sanitized.course_id || sanitized.kod_kursus || '').trim().toUpperCase();
+      const matched = courseGroupMap.get(code);
+      if (matched?.group_id) {
+        sanitized.group_id = matched.group_id;
+      }
+      if (matched?.kumpulan && !sanitized.group) {
+        sanitized.group = matched.kumpulan;
+      }
+      if (matched?.semester && !sanitized.semester) {
+        sanitized.semester = matched.semester;
+      }
+      return sanitized;
+    });
+    // Keep the formatted date + weekday label (e.g. "05-10-2026 (ISNIN)") so the
+    // UI can render the real date beside the translated weekday, while still
+    // de-duplicating repeated weekdays.
+    rawDays = sortDayLabels(Array.from(new Set(
+      (timetablePayloadRes.server_response_day || [])
+        .map((day) => normalizeDayLabel(sanitizeSingleLine(day, 64)))
+        .filter(Boolean)
+    )));
+  } else if (kehadiranPayloadTyped?.server_response && kehadiranPayloadTyped.server_response.length > 0) {
+    rawItems = kehadiranPayloadTyped.server_response.map((item, i) => {
+      const parsed = parseFallbackJadual(item.jadual);
 
-    if (kehadiranPayloadRes?.server_response && kehadiranPayloadRes.server_response.length > 0) {
-      rawItems = kehadiranPayloadRes.server_response.map((item, i) => {
-        const parsed = parseFallbackJadual(item.jadual);
+      return {
+        id: sanitizeSingleLine(item.id || String(i + 1), 32),
+        day: parsed.day,
+        course_id: sanitizeSingleLine(item.kod_kursus || '', 64),
+        course_name: sanitizeTextForShare(item.kursus || '', 160),
+        group: sanitizeSingleLine(item.kumpulan || item.group_id || '', 32),
+        group_id: sanitizeSingleLine(item.group_id || '', 32),
+        start_time: parsed.time,
+        end_time: '',
+        location: sanitizeSingleLine(item.tempat || item.lokasi || item.location || '', 160),
+        lecturer: sanitizeTextForShare(item.pensyarah || '', 160),
+        pelajar: sanitizeTextForShare(item.pelajar, 160),
+        semester: sanitizeSingleLine(item.semester, 64),
+        kehadiran: item.kehadiran ? sanitizeSingleLine(item.kehadiran, 16) : '',
+        catatan: sanitizeSingleLine(item.catatan || '', 64)
+      };
+    });
+    rawDays = [];
+  }
 
-        return {
-          id: sanitizeSingleLine(item.id || String(i + 1), 32),
-          day: parsed.day,
-          course_id: sanitizeSingleLine(item.kod_kursus || `SUBJ${i + 1}`, 64),
-          course_name: sanitizeTextForShare(item.kursus || 'Kursus USAS', 160),
-          group: sanitizeSingleLine(item.kumpulan || item.group_id || 'GRP01', 32),
-          start_time: parsed.time,
-          end_time: '',
-          location: 'Dewan / Makmal USAS',
-          lecturer: sanitizeTextForShare(item.pensyarah || 'Pensyarah USAS', 160),
-          pelajar: sanitizeTextForShare(item.pelajar, 160),
-          semester: sanitizeSingleLine(item.semester, 64),
-          kehadiran: '85%',
-          catatan: sanitizeSingleLine(item.semester || '', 64)
+  // If the backend did not return a day list, derive it from the timetable
+  // items themselves, preserving any embedded date labels.
+  if (rawDays.length === 0 && rawItems.length > 0) {
+    rawDays = sortDayLabels(Array.from(new Set(
+      rawItems
+        .map((item) => normalizeDayLabel(sanitizeSingleLine(item.day, 64)))
+        .filter(Boolean)
+    )));
+  }
+
+  // Resolve the real lecture-attendance percentage per course from the official
+  // `laporan_kehadiran` report, keyed by the group_id from `senarai_kursus`.
+  // The timetable `kehadiran` field is only a human status string, so it can't
+  // be parsed as a percentage.
+  const uniqueGroupIds = Array.from(new Set(
+    rawItems
+      .map((item) => sanitizeSingleLine(item.group_id, 32))
+      .filter((group): group is string => Boolean(group))
+  ));
+
+  if (uniqueGroupIds.length > 0) {
+    const percentByGroup = new Map<string, number | null>();
+
+    await Promise.all(uniqueGroupIds.map(async (groupId) => {
+      try {
+        const reportPayload = {
+          ...basePayload,
+          request_type: 'laporan_kehadiran',
+          group_id: groupId,
         };
-      });
-      rawDays = ['ISNIN', 'SELASA', 'RABU', 'KHAMIS', 'JUMAAT'];
-    }
+        const reportRes = await postUSAS('/student/get_kehadiran_kuliah.php', reportPayload);
+        const rows = (reportRes as { server_response?: AttendanceHistoryItem[] } | null)?.server_response;
+        percentByGroup.set(groupId, computeAttendancePercent(rows));
+      } catch {
+        percentByGroup.set(groupId, null);
+      }
+    }));
+
+    rawItems = rawItems.map((item) => {
+      const groupId = sanitizeSingleLine(item.group_id, 32);
+      const percent = groupId ? percentByGroup.get(groupId) : null;
+      return {
+        ...item,
+        kehadiran: percent === null || percent === undefined ? '' : `${percent}%`,
+      };
+    });
   }
 
   const profile = await profilePromise;
@@ -569,35 +824,18 @@ export async function fetchTimetableAPI(session: StudentSession): Promise<Timeta
   }
 
   const resultName = finalName || `Pelajar USAS (${sanitizeLoginUserId(session.user_id)})`;
-  const resultProgram = finalProgram || 'Program Pengajian USAS';
-  const resultSemester = rawItems[0]?.semester || 'Semester Semasa';
+  const resultProgram = finalProgram || '';
+  const resultSemester = rawItems[0]?.semester || '';
 
   return {
     success: true,
-    days: rawDays.length > 0 ? rawDays : ['ISNIN', 'SELASA', 'RABU', 'KHAMIS', 'JUMAAT'],
+    days: rawDays,
     timetable: rawItems
       .map(sanitizeTimetableItem)
       .filter((item) => (item.course_name?.trim() || item.course_id?.trim()) && item.day?.trim()),
     studentName: resultName,
     program: resultProgram,
     semester: resultSemester
-  };
-}
-
-export const MOCK_PRAYER_TIMES: PrayerTimeItem[] = [
-  { label: 'Subuh', content: '05:56' },
-  { label: 'Syuruk', content: '07:09' },
-  { label: 'Zohor', content: '01:19' },
-  { label: 'Asar', content: '04:43' },
-  { label: 'Maghrib', content: '07:24' },
-  { label: 'Isyak', content: '08:36' },
-];
-
-export async function fetchPrayerTimesAPI(_session: StudentSession | null): Promise<{ success: true; times: PrayerTimeItem[]; location: string }> {
-  return {
-    success: true,
-    times: MOCK_PRAYER_TIMES,
-    location: 'Kuala Kangsar (PRK02)',
   };
 }
 
@@ -611,8 +849,8 @@ export function selectProfileText(value: unknown, maxLength: number): string | n
 }
 
 export function parseFallbackJadual(jadual: unknown): { day: string; time: string } {
-  const jadualText = sanitizeSingleLine(jadual || 'Waktu ditetapkan', 64);
-  let day = 'ISNIN';
+  const jadualText = sanitizeSingleLine(jadual || '', 64);
+  let day = '';
   let time = jadualText;
 
   if (jadualText) {
@@ -630,44 +868,6 @@ export function parseFallbackJadual(jadual: unknown): { day: string; time: strin
   }
 
   return { day, time };
-}
-
-export async function fetchAcademicCalendarAPI(_session: StudentSession | null): Promise<AcademicCalendarItem[]> {
-  return [
-    { acara: 'Pendaftaran Pelajar Baharu', tarikh: '01-Sep-2026', status: 'Akan Datang' },
-    { acara: 'Minggu Kuliah Pertama', tarikh: '08-Sep-2026', status: 'Akan Datang' },
-    { acara: 'Peperiksaan Pertengahan Semester', tarikh: '20-Oct-2026', status: 'Akan Datang' },
-    { acara: 'Peperiksaan Akhir Semester', tarikh: '10-Dec-2026', status: 'Akan Datang' },
-  ];
-}
-
-export async function fetchCampusNewsAPI(_session: StudentSession | null): Promise<CampusNewsItem[]> {
-  return [
-    { tajuk: 'Taklimat keselamatan makmal', tarikh: '02-Aug-2026', ringkasan: 'Semua pelajar diminta hadir ke taklimat keselamatan makmal minggu ini.' },
-    { tajuk: 'Permohonan kolej kediaman', tarikh: '03-Aug-2026', ringkasan: 'Permohonan kolej dibuka semula untuk semester baharu.' },
-  ];
-}
-
-export async function submitFacilityComplaintAPI(
-  _session: StudentSession | null,
-  _payload: unknown,
-): Promise<{ success: true; ticketNo: string }> {
-  const makeTicketSuffix = () => {
-    const cryptoObj = globalThis.crypto;
-    if (cryptoObj?.getRandomValues) {
-      const bytes = new Uint8Array(2);
-      cryptoObj.getRandomValues(bytes);
-      const value = (bytes[0] << 8) | bytes[1];
-      return String(1000 + (value % 9000));
-    }
-
-    return String(1000 + (Date.now() % 9000));
-  };
-
-  return {
-    success: true,
-    ticketNo: `USAS-${makeTicketSuffix()}`,
-  };
 }
 
 

@@ -4,6 +4,7 @@ import html2canvas from 'html2canvas';
 type ExportElement = HTMLElement & {
   getAttribute?: (name: string) => string | null;
 };
+type ExportProgress = (progress: number) => void;
 
 export function sanitizeDownloadFileName(value: unknown, fallback: string): string {
   const raw = String(value ?? '').trim();
@@ -37,29 +38,38 @@ export function sanitizeDownloadFileName(value: unknown, fallback: string): stri
   return safeName;
 }
 
-async function captureElement(elementRef: ExportElement | null, scale = 2, backgroundColor = '#FFFFFF') {
+async function captureElement(
+  elementRef: ExportElement | null,
+  scale = 2,
+  backgroundColor: string | null = '#FFFFFF',
+  onProgress?: ExportProgress,
+) {
   if (!elementRef) {
     throw new Error('Element template not found for export.');
   }
 
-  // Ensure all fonts are fully loaded before capturing so metrics match the browser preview
-  // Use a 2-second timeout race to prevent hanging in headless or offline environments
+  const yieldToPaint = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  onProgress?.(15);
+  await yieldToPaint();
+
+  // Ensure all fonts are loaded before capturing so metrics match the browser preview.
   if (typeof document !== 'undefined' && document.fonts && document.fonts.ready) {
-    await Promise.race([
-      document.fonts.ready,
-      new Promise((resolve) => setTimeout(resolve, 2000))
-    ]);
+    await document.fonts.ready;
   }
+  onProgress?.(30);
+  await yieldToPaint();
 
   const exportRootId = elementRef.getAttribute?.('data-export-root');
+  const isWallpaper = exportRootId === 'wallpaper-export-root';
 
   // Measure the element layout width and height before cloning
   const width = elementRef.scrollWidth || elementRef.offsetWidth || undefined;
   const height = elementRef.scrollHeight || elementRef.offsetHeight || undefined;
-  const exportWidth = exportRootId === 'wallpaper-export-root' && width ? width + 2 : width;
-  const exportHeight = exportRootId === 'wallpaper-export-root' && height ? height + 2 : height;
+  const exportWidth = isWallpaper && width ? width + 2 : width;
+  const exportHeight = isWallpaper && height ? height + 2 : height;
+  const temporaryUrls: string[] = [];
 
-  return html2canvas(elementRef, {
+  const captureOptions: Parameters<typeof html2canvas>[1] = {
     scale,
     useCORS: true,
     logging: false,
@@ -70,7 +80,12 @@ async function captureElement(elementRef: ExportElement | null, scale = 2, backg
     height: exportHeight,
     windowWidth: exportWidth || window.innerWidth,
     windowHeight: exportHeight || window.innerHeight,
-    onclone: (clonedDoc) => {
+    ignoreElements: (element) => {
+      const head = element.ownerDocument.head;
+      if (element === head || head.contains(element)) return false;
+      return element !== elementRef && !element.contains(elementRef) && !elementRef.contains(element);
+    },
+    onclone: async (clonedDoc) => {
       // Sync all style and link tags from document.head to clonedDoc.head
       // so html2canvas uses the exact same web fonts and font metrics as the live preview
       const styles = document.head.querySelectorAll('style, link[rel="stylesheet"]');
@@ -82,20 +97,101 @@ async function captureElement(elementRef: ExportElement | null, scale = 2, backg
       const clonedRoot = clonedDoc.querySelector(`[data-export-root="${exportRootId}"]`) as HTMLElement | null;
       if (!clonedRoot) return;
 
+      const nativeBlurLayer = clonedRoot.querySelector<HTMLElement>('[data-wallpaper-native-blur="true"]');
+      const wallpaperImage = clonedRoot.querySelector<HTMLImageElement>('[data-wallpaper-background-layer]');
+      if (nativeBlurLayer && wallpaperImage) {
+        await wallpaperImage.decode().catch(() => undefined);
+      }
+      if (nativeBlurLayer && wallpaperImage?.naturalWidth && wallpaperImage.naturalHeight) {
+        const blurCanvas = clonedDoc.createElement('canvas');
+        // ponytail: cap fallback blur at 1024px (~4MB RGBA); raise only if mobile exports still look soft.
+        const downscale = Math.min(1, 1024 / Math.max(wallpaperImage.naturalWidth, wallpaperImage.naturalHeight));
+        blurCanvas.width = Math.max(1, Math.round(wallpaperImage.naturalWidth * downscale));
+        blurCanvas.height = Math.max(1, Math.round(wallpaperImage.naturalHeight * downscale));
+        const blurContext = blurCanvas.getContext('2d');
+        if (blurContext) {
+          blurContext.imageSmoothingEnabled = true;
+          blurContext.imageSmoothingQuality = 'high';
+          blurContext.drawImage(wallpaperImage, 0, 0, blurCanvas.width, blurCanvas.height);
+          const sourceScale = Math.max(nativeBlurLayer.offsetWidth / wallpaperImage.naturalWidth, nativeBlurLayer.offsetHeight / wallpaperImage.naturalHeight);
+          const blurRadius = Math.max(1, Math.min(64, 16 / sourceScale * downscale));
+          const imageData = blurCanvas.toDataURL('image/png');
+          const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${blurCanvas.width}" height="${blurCanvas.height}" viewBox="0 0 ${blurCanvas.width} ${blurCanvas.height}"><defs><filter id="blur" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="${blurRadius}"/></filter></defs><image href="${imageData}" width="100%" height="100%" filter="url(#blur)"/></svg>`;
+          const blurUrl = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+          temporaryUrls.push(blurUrl);
+          nativeBlurLayer.style.backgroundImage = `url("${blurUrl}")`;
+          nativeBlurLayer.style.filter = 'none';
+          nativeBlurLayer.style.webkitFilter = 'none';
+        }
+        blurCanvas.width = 0;
+        blurCanvas.height = 0;
+      }
+
+      // html2canvas cannot parse modern OKLCH/OKLab colors emitted by Tailwind 4.
+      // Convert only affected computed declarations in the export clone.
+      const colorContext = clonedDoc.createElement('canvas').getContext('2d', { willReadFrequently: true });
+      const view = clonedDoc.defaultView || window;
+      if (colorContext) {
+        const modernColorPattern = /(?:oklch|oklab)\([^)]*\)/gi;
+        const colorProperties = [
+          'color', 'background-color', 'background-image', 'outline-color', 'text-decoration-color',
+          'text-emphasis-color', 'column-rule-color', 'caret-color', 'accent-color', 'fill', 'stroke',
+          'box-shadow', 'text-shadow', '--tw-gradient-from', '--tw-gradient-via', '--tw-gradient-to',
+          '--tw-gradient-stops', 'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color',
+        ];
+        const colorCache = new Map<string, string>();
+        [clonedRoot, ...clonedRoot.querySelectorAll<HTMLElement>('*')].forEach((el) => {
+          const computed = view.getComputedStyle(el);
+          colorProperties.forEach((property) => {
+            const value = computed.getPropertyValue(property);
+            if (!value.includes('oklch(') && !value.includes('oklab(')) return;
+            const compatibleValue = value.replace(modernColorPattern, (color) => {
+              const cached = colorCache.get(color);
+              if (cached) return cached;
+              colorContext.clearRect(0, 0, 1, 1);
+              colorContext.fillStyle = color;
+              colorContext.fillRect(0, 0, 1, 1);
+              const [red, green, blue, alpha] = colorContext.getImageData(0, 0, 1, 1).data;
+              const converted = `rgba(${red}, ${green}, ${blue}, ${alpha / 255})`;
+              colorCache.set(color, converted);
+              return converted;
+            });
+            el.style.setProperty(property, compatibleValue, 'important');
+          });
+        });
+      }
+
       // Reset transform, transitions, animations, and filters on the cloned root
       clonedRoot.style.transform = 'none';
       clonedRoot.style.transition = 'none';
       clonedRoot.style.animation = 'none';
       clonedRoot.style.filter = 'none';
 
-      // Compensate for html2canvas internal font baseline calculation bug on Windows/Chrome:
-      // We apply translateY(-4px) and display: inline-block directly to the text spans, h1, h2, and p elements
-      // so only the text shifts up, leaving background cards and borders in their exact grid positions.
-      // NOTE: We skip this on Apple devices as iOS Safari handles baselines differently and this hack breaks text kerning/alignment.
+      // Compensate for html2canvas's font-baseline offset. Wallpaper only needs it on time labels.
       const isApple = typeof navigator !== 'undefined' && (/Mac|iPod|iPhone|iPad/.test(navigator.platform) || (/MacIntel/.test(navigator.platform) && navigator.maxTouchPoints > 1) || /iPhone|iPad|iPod/i.test(navigator.userAgent));
-      
-      if (!isApple) {
-        const textNodes = clonedRoot.querySelectorAll('span, h1, h2, p');
+      const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
+
+      if (isApple && isWallpaper) {
+        clonedRoot.querySelectorAll('[data-export-time-label], [data-export-course-code]').forEach((node) => {
+          (node as HTMLElement).style.letterSpacing = 'normal';
+        });
+      }
+
+      if (isWallpaper) {
+        clonedRoot.querySelectorAll<HTMLElement>('[data-export-course-content]').forEach((el) => {
+          el.style.transform = 'translateY(-6px)';
+        });
+      }
+
+      if (isWallpaper) {
+        const courseTimeOffset = isAndroid || isApple ? 2 : 1;
+        clonedRoot.querySelectorAll<HTMLElement>('[data-export-course-time]').forEach((el) => {
+          el.style.transform = `translateY(${courseTimeOffset}px)`;
+        });
+      }
+
+      if (!isApple || isWallpaper) {
+        const textNodes = clonedRoot.querySelectorAll(isWallpaper ? '[data-export-time-label]' : 'span, h1, h2, p');
         textNodes.forEach((node) => {
           const el = node as HTMLElement;
           if (el.tagName.toLowerCase() === 'span') {
@@ -105,11 +201,20 @@ async function captureElement(elementRef: ExportElement | null, scale = 2, backg
               el.style.verticalAlign = 'middle';
             }
           }
-          el.style.transform = 'translateY(-4px)';
+          const fontSize = parseFloat(view.getComputedStyle(el).fontSize) || 12;
+          const shift = Math.max(1, Math.round(fontSize * (isWallpaper ? (isAndroid ? 0.25 : isApple ? 0.55 : 0.62) : 0.36))) + (isAndroid && isWallpaper ? 2.5 : 0);
+          el.style.transform = `translateY(-${shift}px)`;
         });
       }
 
       if (exportRootId === 'wallpaper-export-root') {
+        const wallpaperGrid = clonedRoot.querySelector<HTMLElement>('[data-wallpaper-grid]');
+        const wallpaperGridRadius = wallpaperGrid?.dataset.wallpaperGridRadius;
+        if (wallpaperGrid && wallpaperGridRadius) {
+          wallpaperGrid.style.borderRadius = wallpaperGridRadius;
+          wallpaperGrid.style.overflow = 'hidden';
+        }
+
         // Keep fixed width and height for wallpaper to preserve correct ratio
         clonedRoot.style.overflow = 'hidden';
         clonedRoot.style.width = elementRef.style.width || `${exportWidth || elementRef.offsetWidth}px`;
@@ -133,8 +238,20 @@ async function captureElement(elementRef: ExportElement | null, scale = 2, backg
         current.style.overflow = 'visible';
         current = current.parentElement;
       }
+
+      onProgress?.(55);
+      await yieldToPaint();
     }
-  });
+  };
+
+  let canvas: HTMLCanvasElement;
+  try {
+    canvas = await html2canvas(elementRef, captureOptions);
+  } finally {
+    temporaryUrls.forEach((url) => URL.revokeObjectURL(url));
+  }
+  onProgress?.(82);
+  return canvas;
 }
 
 /**
@@ -144,10 +261,12 @@ export async function generateTimetablePdf(
   elementRef: ExportElement | null,
   orientation: 'portrait' | 'landscape' = 'portrait',
   fileName = 'Jadual_Kuliah_USAS.pdf',
+  onProgress?: ExportProgress,
 ) {
-  const canvas = await captureElement(elementRef, 4, '#FFFFFF');
+  const canvas = await captureElement(elementRef, 4, '#FFFFFF', onProgress);
 
   const imgData = canvas.toDataURL('image/png');
+  onProgress?.(90);
   const isLandscape = orientation === 'landscape';
 
   const pdf = new jsPDF({
@@ -158,10 +277,13 @@ export async function generateTimetablePdf(
 
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
-  const imgWidth = pageWidth;
-  const imgHeight = (canvas.height * imgWidth) / canvas.width;
+  const imageScale = Math.min(pageWidth / canvas.width, pageHeight / canvas.height);
+  const imgWidth = canvas.width * imageScale;
+  const imgHeight = canvas.height * imageScale;
+  const imgX = (pageWidth - imgWidth) / 2;
+  const imgY = (pageHeight - imgHeight) / 2;
 
-  pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, Math.min(imgHeight, pageHeight));
+  pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth, imgHeight);
   pdf.save(sanitizeDownloadFileName(fileName, 'Jadual_Kuliah_USAS.pdf'));
 }
 
@@ -172,26 +294,29 @@ export async function generateElementPng(
   elementRef: ExportElement | null,
   fileName = 'Jadual_Kuliah_USAS.png',
   scale = 3,
-  backgroundColor = '#FFFFFF',
+  backgroundColor: string | null = '#FFFFFF',
+  onProgress?: ExportProgress,
 ) {
-  const canvas = await captureElement(elementRef, scale, backgroundColor);
+  const canvas = await captureElement(elementRef, scale, backgroundColor, onProgress);
   const safeFileName = sanitizeDownloadFileName(fileName, 'Jadual_Kuliah_USAS.png');
+  onProgress?.(88);
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+  canvas.width = 0;
+  canvas.height = 0;
+  if (!blob) throw new Error('Could not encode exported image.');
   
-  // Mobile in-app browsers (Google, FB) block <a> downloads. Use native iOS/Android Share Sheet instead.
-  const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  // iOS browsers need the share sheet; Android Chrome should save through its Downloads flow.
+  const isIOS = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent);
   
-  if (isMobile && navigator.share && navigator.canShare) {
+  if (isIOS && navigator.share && navigator.canShare) {
     try {
-      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
-      if (blob) {
-        const file = new File([blob], safeFileName, { type: 'image/png' });
-        if (navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            files: [file],
-            title: 'Jadual Kuliah USAS'
-          });
-          return; // Successfully opened native share sheet (Save Image)
-        }
+      const file = new File([blob], safeFileName, { type: 'image/png' });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: 'Jadual Kuliah USAS'
+        });
+        return; // Successfully opened native share sheet (Save Image)
       }
     } catch (err: unknown) {
       console.warn('Share API failed or cancelled:', err);
@@ -201,20 +326,27 @@ export async function generateElementPng(
 
   // Fallback for Desktop, standard browsers, or if Share API fails
   const link = document.createElement('a');
+  const objectUrl = URL.createObjectURL(blob);
+  onProgress?.(96);
   link.download = safeFileName;
-  link.href = canvas.toDataURL('image/png');
+  link.href = objectUrl;
   document.body.appendChild(link);
   try {
     link.click();
   } finally {
     document.body.removeChild(link);
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
   }
 }
 
 /**
  * Generates a high-resolution PNG image for Device Lock Screen / Phone Wallpaper
  */
-export async function generateLockscreenImage(elementRef: ExportElement | null, fileName = 'Jadual_USAS_Lockscreen.png') {
-  await generateElementPng(elementRef, fileName, 3, null);
+export async function generateLockscreenImage(
+  elementRef: ExportElement | null,
+  fileName = 'Jadual_USAS_Lockscreen.png',
+  onProgress?: ExportProgress,
+) {
+  await generateElementPng(elementRef, fileName, 5, null, onProgress);
 }
 

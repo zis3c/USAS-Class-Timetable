@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/app/providers/LanguageProvider';
 import { useTheme } from '@/app/providers/ThemeProvider';
+import { useModalA11y } from '@/shared/lib/useModalA11y';
 import { X, Calculator, Award, ChevronDown, ExternalLink, BadgeInfo } from 'lucide-react';
 import type { TimetableItem } from '@/shared/types/usas';
 
@@ -95,7 +96,8 @@ function GpaCustomDropdown<T extends string | number>({
 }
 
 export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: GpaCalculatorModalProps) {
-  const { lang, t } = useLanguage();
+  const modalRef = useModalA11y(isOpen, onClose);
+  const { t } = useLanguage();
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
@@ -115,15 +117,15 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: Gp
   }, []);
 
   // State mapping course id to { credits, grade }
-  const [courseTargets, setCourseTargets] = useState<Record<string, CourseTarget>>({});
+  const [courseTargets, setCourseTargets] = useState<Map<string, CourseTarget>>(() => new Map());
 
   // Reset/Initialize state when courses list changes or modal opens
   useEffect(() => {
     if (isOpen) {
-      const initial: Record<string, CourseTarget> = {};
+      const initial = new Map<string, CourseTarget>();
       uniqueCourses.forEach((c) => {
         const id = c.course_id || c.kod_kursus || c.course_name || 'course';
-        initial[id] = { credits: 3, grade: 'A' };
+        initial.set(id, { credits: 3, grade: 'A' });
       });
       setCourseTargets(initial);
     }
@@ -154,20 +156,18 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: Gp
   if (!shouldRender) return null;
 
   const handleTargetChange = (courseId: string, field: keyof CourseTarget, value: string | number) => {
-    setCourseTargets(prev => ({
-      ...prev,
-      [courseId]: {
-        ...prev[courseId],
-        [field]: value
-      }
-    }));
+    setCourseTargets((prev) => {
+      const next = new Map(prev);
+      next.set(courseId, { ...next.get(courseId), [field]: value } as CourseTarget);
+      return next;
+    });
   };
 
   // Calculate GPA
   let totalPoints = 0;
   let totalCredits = 0;
 
-  Object.values(courseTargets).forEach((item) => {
+  courseTargets.values().forEach((item) => {
     const cred = Number(item.credits) || 0;
     const pts = gradePoints[item.grade as keyof typeof gradePoints] || 4.0;
     totalPoints += pts * cred;
@@ -177,7 +177,7 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: Gp
   const estGpa = totalCredits > 0 ? (totalPoints / totalCredits).toFixed(2) : '4.00';
 
   return (
-    <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md transition-all duration-200 ${
+    <div ref={modalRef} role="dialog" aria-modal="true" aria-label="Kalkulator GPA" className={`fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md transition-all duration-200 ${
       animate ? 'bg-slate-900/30 opacity-100' : 'bg-slate-900/0 opacity-0 pointer-events-none'
     }`}>
       
@@ -190,25 +190,25 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: Gp
       }`}>
 
         {/* Modal Header */}
-        <div className={`p-4 sm:p-5 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3 flex-shrink-0 ${
+        <div className={`p-4 sm:p-5 border-b flex items-start sm:items-center justify-between gap-3 flex-shrink-0 ${
           isLight ? 'border-slate-200 bg-slate-50/50' : 'border-white/[0.06] bg-[#0A1428]/95'
         }`}>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex items-start sm:items-center gap-3 min-w-0">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border ${
               isLight ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-amber-400/10 border-amber-400/20 text-amber-400'
             }`}>
               <Calculator className="w-5 h-5" />
             </div>
-            <div className="text-left min-w-0">
-              <h3 className={`text-base font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>{t('gpaBtn')}</h3>
-              <p className={`text-xs font-semibold truncate ${isLight ? 'text-amber-750' : 'text-amber-400/90'}`}>
-                {lang === 'ms' ? 'Kira anggaran GPA semester berdasarkan sasaran gred subjek anda' : 'Estimate your semester GPA based on target subject grades'}
+            <div className="text-left min-w-0 flex-1">
+              <h3 className={`text-sm sm:text-base font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>{t('gpaBtn')}</h3>
+              <p className={`text-[11px] sm:text-xs font-semibold truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>
+                {t('gpaSubtitle')}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className={`self-end sm:self-auto p-2 sm:p-1.5 rounded-md transition-colors ${
+            className={`flex-shrink-0 p-1.5 rounded-md transition-colors ${
               isLight ? 'text-slate-400 hover:bg-slate-100 hover:text-slate-600' : 'text-white/30 hover:bg-white/[0.06] hover:text-white'
             }`}
           >
@@ -237,7 +237,7 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: Gp
                     ? 'bg-amber-100 border-amber-300 text-amber-850' 
                     : 'bg-amber-400/10 border-amber-400/30 text-amber-300'
                 }`}>
-                  <Award className="w-3.5 h-3.5 text-amber-500" /> Target Anugerah Dekan
+                  <Award className="w-3.5 h-3.5 text-amber-500" /> {t('gpaDeanList')}
                 </span>
               ) : parseFloat(estGpa) >= 3.0 ? (
                 <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border inline-flex items-center ${
@@ -245,7 +245,7 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: Gp
                     ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
                     : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
                 }`}>
-                  {lang === 'ms' ? 'Kepujian Baik' : 'Good Standing'}
+                  {t('gpaGoodStanding')}
                 </span>
               ) : (
                 <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border inline-flex items-center ${
@@ -253,11 +253,11 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: Gp
                     ? 'bg-slate-100 border-slate-200 text-slate-700' 
                     : 'bg-slate-800 border-slate-700 text-slate-300'
                 }`}>
-                  {lang === 'ms' ? 'Status Memuaskan' : 'Satisfactory Status'}
+                  {t('gpaSatisfactory')}
                 </span>
               )}
               <div className={`text-[10px] font-semibold mt-1.5 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                {lang === 'ms' ? 'Jumlah Kredit:' : 'Total Credits:'} {totalCredits}
+                {t('gpaTotalCredits')} {totalCredits}
               </div>
             </div>
           </div>
@@ -265,7 +265,7 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: Gp
           <div className={`flex items-center gap-2 text-[10px] px-1 ${isLight ? 'text-slate-500' : 'text-white/45'}`}>
             <BadgeInfo className={`w-3.5 h-3.5 flex-shrink-0 ${isLight ? 'text-sky-600' : 'text-sky-400'}`} />
             <span className="font-medium">
-              {lang === 'ms' ? 'Rujukan gred:' : 'Grade source:'}
+              {t('gpaGradeSource')}
             </span>
             <a
               href="https://www.instagram.com/p/DAcy0xzSUqG/"
@@ -284,7 +284,7 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: Gp
           <div className="space-y-2 pr-1">
             {uniqueCourses.map((c, i) => {
               const id = c.course_id || c.kod_kursus || c.course_name || `course-${i}`;
-              const target = courseTargets[id] || { credits: 3, grade: 'A' };
+              const target = courseTargets.get(id) || { credits: 3, grade: 'A' };
               return (
                 <div key={i} className={`p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs transition-colors ${
                   isLight 
@@ -296,12 +296,12 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: Gp
                     <div className="font-bold leading-snug mt-0.5 truncate">{c.course_name || c.kursus}</div>
                   </div>
 
-                  {/* Custom Styled Select wrappers using Chevron and absolute overlays */}
+                  {/* Custom Dropdown Controls */}
                   <div className="flex flex-wrap items-center gap-2.5 sm:justify-end">
                     {/* Credit Selector */}
                     <div className="flex items-center gap-1.5">
                       <span className={`text-[10px] font-medium break-words ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                        {lang === 'ms' ? 'Kredit:' : 'Credits:'}
+                        {t('gpaCredits')}
                       </span>
                       <GpaCustomDropdown
                         value={target.credits}
@@ -321,7 +321,7 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: Gp
                     {/* Target Grade Selector */}
                     <div className="flex items-center gap-1.5">
                       <span className={`text-[10px] font-medium break-words ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                        {lang === 'ms' ? 'Sasaran:' : 'Target:'}
+                        {t('gpaTarget')}
                       </span>
                       <GpaCustomDropdown
                         value={target.grade}
@@ -341,20 +341,6 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: Gp
             })}
           </div>
 
-        </div>
-
-        {/* Modal Footer */}
-        <div className={`p-4 border-t flex items-center justify-end ${isLight ? 'border-slate-200' : 'border-white/10'}`}>
-          <button
-            onClick={onClose}
-            className={`px-5 py-2.5 rounded-xl font-black text-xs shadow-md transition-all active:scale-95 ${
-              isLight 
-                ? 'bg-[#0B1E43] hover:bg-[#152e63] text-white shadow-slate-900/10' 
-                : 'bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-amber-400/10'
-            }`}
-          >
-            {lang === 'ms' ? 'Tutup' : 'Close'}
-          </button>
         </div>
 
       </div>

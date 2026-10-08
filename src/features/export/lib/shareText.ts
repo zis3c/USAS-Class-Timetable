@@ -1,5 +1,8 @@
 import type { TimetableItem } from '@/shared/types/usas';
+import type { TimeFormat } from '@/shared/types/usas';
+import { getShortTimeRange } from '@/shared/lib/timetableTime';
 import { sanitizeSingleLine, sanitizeTextForShare } from '@/shared/lib/security';
+import { extractDayName } from '@/shared/lib/dayFormat';
 
 function parseTimeToMinutes(timeStr: string | undefined): number {
   if (!timeStr) return 0;
@@ -14,32 +17,33 @@ function parseTimeToMinutes(timeStr: string | undefined): number {
 }
 
 function normalizeGroup(groupStr: string | undefined): string {
-  if (!groupStr) return 'G1';
+  if (!groupStr) return '';
   return sanitizeSingleLine(groupStr, 32).replace(/^GRP/i, 'G');
 }
 
-function buildDayGroups(timetable: TimetableItem[] = []): Record<string, TimetableItem[]> {
-  const dayGroups: Record<string, TimetableItem[]> = {};
+function buildDayGroups(timetable: TimetableItem[] = []): Map<string, TimetableItem[]> {
+  const dayGroups = new Map<string, TimetableItem[]>();
 
   timetable.forEach((item: TimetableItem) => {
-    const day = item.day?.toUpperCase() || 'LAIN';
-    if (!dayGroups[day]) dayGroups[day] = [];
-    dayGroups[day].push(item);
+    const day = extractDayName(item.day) || 'LAIN';
+    const classes = dayGroups.get(day) ?? [];
+    classes.push(item);
+    dayGroups.set(day, classes);
   });
 
-  Object.values(dayGroups).forEach((classes) => {
+  dayGroups.forEach((classes) => {
     classes.sort((a, b) => parseTimeToMinutes(a.start_time) - parseTimeToMinutes(b.start_time));
   });
 
   return dayGroups;
 }
 
-function formatTimeRange(startTime: string | undefined, endTime: string | undefined): string {
+function formatTimeRange(startTime: string | undefined, endTime: string | undefined, timeFormat: TimeFormat): string {
   if (!startTime) return 'TBA';
-  return endTime ? `${startTime}-${endTime}` : startTime;
+  return getShortTimeRange(startTime, endTime, timeFormat);
 }
 
-function buildFullShareText(timetable: TimetableItem[] = [], studentName = '', matricNo = '') {
+function buildFullShareText(timetable: TimetableItem[] = [], studentName = '', matricNo = '', timeFormat: TimeFormat = '24h') {
   if (!timetable || timetable.length === 0) return '';
 
   const dayOrder = ['ISNIN', 'SELASA', 'RABU', 'KHAMIS', 'JUMAAT', 'SABTU', 'AHAD'];
@@ -50,15 +54,16 @@ function buildFullShareText(timetable: TimetableItem[] = [], studentName = '', m
   text += '----------------------------------------\n\n';
 
   dayOrder.forEach(day => {
-    if (!dayGroups[day]) return;
+    const classes = dayGroups.get(day);
+    if (!classes) return;
     text += `${day}\n`;
-    dayGroups[day].forEach(c => {
-      const time = c.start_time ? `${sanitizeSingleLine(c.start_time, 32)}${c.end_time ? ' - ' + sanitizeSingleLine(c.end_time, 32) : ''}` : 'TBA';
+    classes.forEach(c => {
+      const time = sanitizeSingleLine(formatTimeRange(c.start_time || c.jadual, c.end_time, timeFormat).replace('-', ' - '), 64);
       const code = sanitizeSingleLine(c.course_id || c.kod_kursus || '', 64);
       const name = sanitizeTextForShare(c.course_name || c.kursus || '', 160);
-      const group = normalizeGroup(c.group || c.kumpulan || 'A');
+      const group = normalizeGroup(c.group || c.kumpulan);
       const loc = sanitizeTextForShare(c.location || '', 160);
-      text += `  ${code} (${group}): ${name}\n`;
+      text += `  ${code}${group ? ` (${group})` : ''}: ${name}\n`;
       text += `  Time: ${time}\n`;
       if (loc) text += `  Location: ${loc}\n`;
       text += '\n';
@@ -70,23 +75,25 @@ function buildFullShareText(timetable: TimetableItem[] = [], studentName = '', m
   return text;
 }
 
-function buildCompactShareText(timetable: TimetableItem[] = [], matricNo = '') {
+function buildCompactShareText(timetable: TimetableItem[] = [], matricNo = '', timeFormat: TimeFormat = '24h') {
   if (!timetable || timetable.length === 0) return '';
 
   const dayOrder = ['ISNIN', 'SELASA', 'RABU', 'KHAMIS', 'JUMAAT', 'SABTU', 'AHAD'];
   const dayGroups = buildDayGroups(timetable);
 
-  const parts = [];
+  const parts: string[] = [];
   dayOrder.forEach(day => {
-    if (!dayGroups[day]) return;
-    const items = dayGroups[day].map(c => {
+    const classes = dayGroups.get(day);
+    if (!classes) return;
+    const items = classes.map(c => {
       const time = formatTimeRange(
         sanitizeSingleLine(c.start_time, 32),
         sanitizeSingleLine(c.end_time, 32),
+        timeFormat,
       );
       const code = sanitizeSingleLine(c.course_id || '', 64);
-      const group = normalizeGroup(c.group || c.kumpulan || 'A');
-      return `${code}-${group} ${time}`;
+      const group = normalizeGroup(c.group || c.kumpulan);
+      return group ? `${code}-${group} ${time}` : `${code} ${time}`;
     }).join(', ');
     parts.push(`${day}: ${items}`);
   });
