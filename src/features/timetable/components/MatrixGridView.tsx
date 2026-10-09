@@ -196,11 +196,11 @@ export default function MatrixGridView({
                     } ${isDimmedRow ? 'opacity-30 blur-[1px]' : ''}`}
                     style={{ fontSize: `${autoScale * 10}px` }}
                   >
-                    <span className="flex items-center justify-center gap-1.5 min-h-[56px] whitespace-nowrap">
+                    <span className="flex items-center justify-center gap-1.5 min-h-[38px] whitespace-nowrap">
                       <span className={isLight ? 'text-slate-600' : 'text-white/70'}>{formatDayDisplay(d, t)}</span>
                     </span>
                   </td>
-                  <td colSpan={activeTimeSlots.length} className="relative p-0 min-h-[64px]">
+                  <td colSpan={activeTimeSlots.length} className="relative p-0 min-h-[44px]">
                     <div
                       className={`absolute inset-0 grid ${isLight ? 'divide-x divide-slate-100' : 'divide-x divide-white/[0.03]'}`}
                       style={{ gridTemplateColumns: `repeat(${activeTimeSlots.length}, minmax(0, 1fr))` }}
@@ -261,8 +261,15 @@ export default function MatrixGridView({
                             </div>
                             {durationText && <span className={`matrix-course-duration shrink-0 whitespace-nowrap rounded px-0.5 py-px font-extrabold uppercase leading-none ${isLight ? 'bg-slate-100 text-slate-600 border border-slate-200/50' : 'bg-white/10 text-white/80 border border-white/5'}`}>{durationText}</span>}
                           </div>
-                          <div data-matrix-course-title className={`matrix-course-title font-bold ${isLight ? 'text-slate-700' : 'text-white/80'}`}>
-                            {course.course_name || course.kursus}
+                          <div className="matrix-course-details mt-0.5 flex min-w-0 flex-col gap-0.5">
+                            <div data-matrix-course-title className={`matrix-course-title font-bold ${isLight ? 'text-slate-700' : 'text-white/80'}`}>
+                              {course.course_name || course.kursus}
+                            </div>
+                            {(course.lecturer || course.pensyarah) && (
+                              <div data-matrix-course-lecturer className={`matrix-course-lecturer ${isLight ? 'text-slate-500' : 'text-white/55'}`}>
+                                {course.lecturer || course.pensyarah}
+                              </div>
+                            )}
                           </div>
                           <span data-matrix-course-time-label className={`matrix-course-time self-end font-mono font-semibold whitespace-nowrap ${isLight ? 'text-slate-600' : 'text-white/65'}`}>
                             {displayTime(startTimeLabel)}–{displayTime(endTimeLabel)}

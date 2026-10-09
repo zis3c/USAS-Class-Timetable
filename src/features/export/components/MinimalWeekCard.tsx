@@ -89,7 +89,8 @@ export default function MinimalWeekCard({
   const palette = isLight ? LIGHT_CHIPS : DARK_CHIPS;
   const colorFor = (code: string): ChipColor => {
     const slot = getCourseColorSlot(courseColorMap, code);
-    const bar = getOwnRecordValue<Record<CourseColorSlot, string>>(THEME_BARS, glassTheme)?.[slot];
+    const themeBars = getOwnRecordValue<Record<CourseColorSlot, string>>(THEME_BARS, glassTheme);
+    const bar = themeBars ? getOwnRecordValue<string>(themeBars, slot) : undefined;
     if (bar) {
       return {
         bg: hexToRgba(bar, glass ? (isLight ? 0.2 : 0.24) : glassTheme === 'oled' ? 0.48 : 0.3),
