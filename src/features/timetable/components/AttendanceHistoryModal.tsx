@@ -114,11 +114,11 @@ export default function AttendanceHistoryModal({ isOpen, onClose, course, refres
               <CalendarCheck className="w-5 h-5" />
             </div>
             <div className="text-left min-w-0">
-              <h3 className={`text-sm sm:text-base font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>
+              <h3 className={`text-sm sm:text-base font-bold leading-tight truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>
                 <span className="sm:hidden">{t('attendanceHistoryTitle')}</span>
                 <span className="hidden sm:inline">{t('attendanceHistoryTitleLong')}</span>
               </h3>
-              <p className={`text-[11px] sm:text-xs font-semibold truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>
+              <p className={`text-[11px] sm:text-xs font-semibold leading-tight truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>
                 {course.course_id || course.kod_kursus} ({groupDisplay}): {course.course_name || course.kursus}
               </p>
             </div>

@@ -246,8 +246,8 @@ export default function PrayerTimesModal({ isOpen, onClose }: PrayerTimesModalPr
               <Moon className="w-5 h-5" />
             </div>
             <div className="text-left min-w-0 flex-1">
-              <h3 className={`text-sm sm:text-base font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>{t('prayerTitle')}</h3>
-              <p className={`text-[11px] sm:text-xs font-semibold truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>
+              <h3 className={`text-sm sm:text-base font-bold leading-tight truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>{t('prayerTitle')}</h3>
+              <p className={`text-[11px] sm:text-xs font-semibold leading-tight truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>
                 {t('prayerSubtitle')}
               </p>
             </div>

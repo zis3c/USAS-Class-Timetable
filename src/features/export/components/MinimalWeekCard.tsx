@@ -10,7 +10,7 @@ type ChipColor = { bg: string; text: string; bar: string };
 type GlassTheme = 'light' | 'dark' | 'emerald' | 'oled' | 'warm';
 
 const GLASS_THEMES: Record<GlassTheme, { card: string; wash: string; strong: string; muted: string; hairline: string; rim: string }> = {
-  light: { card: 'rgba(255,255,255,0.5)', wash: 'rgba(255,255,255,0.38)', strong: '#111113', muted: 'rgba(28,28,30,0.62)', hairline: 'rgba(0,0,0,0.1)', rim: '255,255,255' },
+  light: { card: 'rgba(255,255,255,0.5)', wash: 'rgba(255,255,255,0.38)', strong: '#111113', muted: '#45454A', hairline: 'rgba(0,0,0,0.1)', rim: '255,255,255' },
   dark: { card: 'rgba(10,20,40,0.58)', wash: 'rgba(10,20,40,0.38)', strong: '#F8FAFC', muted: 'rgba(226,232,240,0.68)', hairline: 'rgba(255,255,255,0.16)', rim: '191,219,254' },
   emerald: { card: 'rgba(1,45,32,0.62)', wash: 'rgba(1,33,23,0.4)', strong: '#ECFDF5', muted: 'rgba(209,250,229,0.68)', hairline: 'rgba(110,231,183,0.2)', rim: '110,231,183' },
   oled: { card: 'rgba(0,0,0,0.72)', wash: 'rgba(0,0,0,0.52)', strong: '#FFFFFF', muted: 'rgba(228,228,231,0.68)', hairline: 'rgba(255,255,255,0.18)', rim: '212,212,216' },
@@ -29,13 +29,19 @@ const DARK_CHIPS: Record<CourseColorSlot, ChipColor> = {
 };
 
 const LIGHT_CHIPS: Record<CourseColorSlot, ChipColor> = {
-  ISNIN:  { bg: '#D1FAE5', text: '#065F46', bar: '#10B981' },
-  SELASA: { bg: '#E0E7FF', text: '#3730A3', bar: '#6366F1' },
-  RABU:   { bg: '#FEF3C7', text: '#92400E', bar: '#F59E0B' },
-  KHAMIS: { bg: '#F3E8FF', text: '#6B21A8', bar: '#A855F7' },
-  JUMAAT: { bg: '#FFE4E6', text: '#9F1239', bar: '#F43F5E' },
-  SABTU:  { bg: '#FFEDD5', text: '#9A3412', bar: '#F97316' },
-  AHAD:   { bg: '#E2E8F0', text: '#334155', bar: '#64748B' },
+  ISNIN:  { bg: '#A7F3D0', text: '#064E3B', bar: '#10B981' },
+  SELASA: { bg: '#C7D2FE', text: '#1E3A8A', bar: '#6366F1' },
+  RABU:   { bg: '#FDE68A', text: '#78350F', bar: '#F59E0B' },
+  KHAMIS: { bg: '#E9D5FF', text: '#581C87', bar: '#A855F7' },
+  JUMAAT: { bg: '#FECDD3', text: '#881337', bar: '#F43F5E' },
+  SABTU:  { bg: '#FED7AA', text: '#7C2D12', bar: '#F97316' },
+  AHAD:   { bg: '#CBD5E1', text: '#1E293B', bar: '#64748B' },
+};
+
+const THEME_BARS: Partial<Record<GlassTheme, Record<CourseColorSlot, string>>> = {
+  emerald: { ISNIN: '#10B981', SELASA: '#14B8A6', RABU: '#F59E0B', KHAMIS: '#84CC16', JUMAAT: '#059669', SABTU: '#D97706', AHAD: '#94A3B8' },
+  oled: { ISNIN: '#10B981', SELASA: '#3B82F6', RABU: '#F59E0B', KHAMIS: '#A855F7', JUMAAT: '#F43F5E', SABTU: '#F97316', AHAD: '#71717A' },
+  warm: { ISNIN: '#F59E0B', SELASA: '#F97316', RABU: '#EAB308', KHAMIS: '#EF4444', JUMAAT: '#D97706', SABTU: '#EA580C', AHAD: '#78716C' },
 };
 
 type MinimalWeekCardProps = {
@@ -64,8 +70,6 @@ const hexToRgba = (hex: string, alpha: number) => {
   return `rgba(${(value >> 16) & 255},${(value >> 8) & 255},${value & 255},${alpha})`;
 };
 
-// Liquid glass rim width and how much the rim magnifies what is behind it.
-
 const courseCode = (course: TimetableItem) => course.course_id || course.kod_kursus || '';
 
 export default function MinimalWeekCard({
@@ -84,9 +88,18 @@ export default function MinimalWeekCard({
   const glassStyle = getOwnRecordValue<typeof GLASS_THEMES.light>(GLASS_THEMES, glassTheme) || GLASS_THEMES.light;
   const palette = isLight ? LIGHT_CHIPS : DARK_CHIPS;
   const colorFor = (code: string): ChipColor => {
-    const color = getOwnRecordValue<ChipColor>(palette, getCourseColorSlot(courseColorMap, code)) || palette.ISNIN;
+    const slot = getCourseColorSlot(courseColorMap, code);
+    const bar = getOwnRecordValue<Record<CourseColorSlot, string>>(THEME_BARS, glassTheme)?.[slot];
+    if (bar) {
+      return {
+        bg: hexToRgba(bar, glass ? (isLight ? 0.2 : 0.24) : glassTheme === 'oled' ? 0.48 : 0.3),
+        text: glass ? glassStyle.strong : glassTheme === 'warm' ? '#FEF3C7' : '#ECFDF5',
+        bar,
+      };
+    }
+    const color = getOwnRecordValue<ChipColor>(palette, slot) || palette.ISNIN;
     if (!glass) return color;
-    return { ...color, bg: hexToRgba(color.bar, isLight ? 0.2 : 0.28) };
+    return { ...color, bg: hexToRgba(color.bar, isLight ? 0.2 : 0.24), text: glassStyle.strong };
   };
 
   const startOf = (course: TimetableItem) => parseTimeToMinutes(course.start_time || course.jadual || '');
@@ -117,22 +130,10 @@ export default function MinimalWeekCard({
     new Map(courses.map((course) => [courseCode(course), course.course_name || course.kursus || ''])).entries(),
   ).filter(([code]) => code);
 
-  const muted = glass ? glassStyle.muted : isLight ? '#64748B' : 'rgba(255,255,255,0.45)';
+  const muted = glass ? glassStyle.muted : isLight ? '#475569' : 'rgba(255,255,255,0.45)';
   const strong = glass ? glassStyle.strong : isLight ? '#0F172A' : 'rgba(255,255,255,0.92)';
   const hairline = glass ? glassStyle.hairline : isLight ? 'rgba(15,23,42,0.08)' : 'rgba(255,255,255,0.07)';
-  const radius = glass ? '26px' : '18px';
-  // Per-side rim: bright where light hits (top/left), dimmer on the far sides.
-  // The PNG renderer paints inset box-shadows as a solid inner band, so the
-  // glow comes from gradients instead and only a drop shadow is used.
-  const glassRim = (strength: number, width: number) => ({
-    borderStyle: 'solid',
-    borderWidth: `${width}px`,
-    borderTopColor: `rgba(${glassStyle.rim},${0.85 * strength})`,
-    borderLeftColor: `rgba(${glassStyle.rim},${0.6 * strength})`,
-    borderRightColor: `rgba(${glassStyle.rim},${0.25 * strength})`,
-    borderBottomColor: `rgba(${glassStyle.rim},${0.4 * strength})`,
-  });
-
+  const radius = glass ? '22px' : '18px';
   return (
     <div
       data-wallpaper-minimal-card
@@ -141,7 +142,7 @@ export default function MinimalWeekCard({
       style={{
         borderRadius: radius,
         ...(glass
-          ? { ...glassRim(0.82, 1), boxShadow: '0 8px 20px rgba(0,0,0,0.3)' }
+          ? { border: `1px solid rgba(${glassStyle.rim},0.34)`, boxShadow: '0 6px 18px rgba(0,0,0,0.22)' }
           : { border: `1px solid ${isLight ? 'rgba(15,23,42,0.08)' : 'rgba(255,255,255,0.08)'}` }),
         backgroundColor: glass
           ? glassStyle.card
@@ -175,10 +176,14 @@ export default function MinimalWeekCard({
           aria-hidden="true"
           data-wallpaper-glass-sheen
           className="absolute inset-0 z-[1]"
-          style={{ borderRadius: radius, backgroundImage: [
-              'linear-gradient(180deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.08) 8%, rgba(255,255,255,0) 28%, rgba(255,255,255,0) 84%, rgba(255,255,255,0.1) 100%)',
-              'linear-gradient(120deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 30%)',
-            ].join(', ') }}
+          style={{
+            borderRadius: radius,
+            backgroundImage: [
+              'radial-gradient(80% 70% at 0% 0%, rgba(255,255,255,0.16), transparent 64%)',
+              'radial-gradient(70% 60% at 100% 100%, rgba(255,255,255,0.08), transparent 62%)',
+              'linear-gradient(180deg, rgba(255,255,255,0.08), transparent 26%, transparent 82%, rgba(255,255,255,0.04))',
+            ].join(', '),
+          }}
         />
       )}
       <div className="relative z-10" style={{ padding: glass ? `16px ${padX}px 16px` : `14px ${padX}px 12px` }}>
@@ -212,16 +217,12 @@ export default function MinimalWeekCard({
                       style={{
                         backgroundColor: color.bg,
                         color: color.text,
-                        borderRadius: glass ? '11px' : '6px',
+                        borderRadius: glass ? '9px' : '6px',
                         padding: '4px 2px 5.5px',
                         lineHeight: 1.3,
                         ...(glass
                           ? {
-                              ...glassRim(0.58, 1),
-                              backgroundImage: [
-                                'linear-gradient(180deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0.1) 22%, rgba(255,255,255,0) 50%, rgba(255,255,255,0) 78%, rgba(255,255,255,0.16) 100%)',
-                                'linear-gradient(90deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0) 18%)',
-                              ].join(', '),
+                              border: `1px solid ${glassStyle.hairline}`,
                             }
                           : {}),
                       }}

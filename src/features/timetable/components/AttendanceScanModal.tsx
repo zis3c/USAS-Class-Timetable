@@ -22,7 +22,7 @@ const getCopy = (lang: string) => {
   if (lang === 'ms') {
     return {
       title: 'Imbas Kehadiran QR',
-      desc: 'Buka kamera dan imbas kod QR kehadiran dari pensyarah.',
+      desc: 'Imbas QR kehadiran pensyarah.',
       ready: 'Kamera sedia. Halakan ke kod QR kehadiran.',
       starting: 'Membuka kamera...',
       processing: 'Menghantar kod ke server UMC...',
@@ -87,7 +87,7 @@ const getCopy = (lang: string) => {
 
   return {
     title: 'Scan Attendance QR',
-    desc: 'Open the camera and scan the attendance QR from the lecturer.',
+    desc: "Scan the lecturer's attendance QR.",
     ready: 'Camera ready. Point it at the attendance QR code.',
     starting: 'Opening camera...',
     processing: 'Sending QR code to the UMC server...',
@@ -432,8 +432,8 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <h3 className={`text-sm sm:text-base font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>{copy.title}</h3>
-                <p className={`text-[11px] sm:text-xs leading-relaxed mt-0.5 truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>{copy.desc}</p>
+                <h3 className={`text-sm sm:text-base font-bold leading-tight truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>{copy.title}</h3>
+                <p className={`text-[11px] sm:text-xs font-semibold leading-tight truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>{copy.desc}</p>
               </div>
               <button
                 onClick={() => {

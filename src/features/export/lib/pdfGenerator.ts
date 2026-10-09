@@ -312,7 +312,7 @@ export async function generateElementPng(
  */
 export async function generateLockscreenImage(
   elementRef: ExportElement | null,
-  fileName = 'Jadual_USAS_Lockscreen.png',
+  fileName = 'Jadual_USAS_Wallpaper.png',
   onProgress?: ExportProgress,
 ) {
   await generateElementPng(elementRef, fileName, 5, null, onProgress);

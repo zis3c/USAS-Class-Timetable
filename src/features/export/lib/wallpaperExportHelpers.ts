@@ -61,13 +61,13 @@ export const getModalDayColors = (day: string | undefined, theme: ExportTheme) =
     'AHAD': { bg: 'bg-zinc-900/80', border: 'border-zinc-500/60', text: 'text-zinc-300 font-bold' },
   };
   const lightColors = {
-    'ISNIN': { bg: 'bg-emerald-100/80', border: 'border-emerald-300', text: 'text-emerald-800 font-bold' },
-    'SELASA': { bg: 'bg-blue-100/80', border: 'border-blue-300', text: 'text-blue-800 font-bold' },
-    'RABU': { bg: 'bg-amber-100/90', border: 'border-amber-350', text: 'text-amber-800 font-bold' },
-    'KHAMIS': { bg: 'bg-purple-100/80', border: 'border-purple-300', text: 'text-purple-800 font-bold' },
-    'JUMAAT': { bg: 'bg-rose-100/80', border: 'border-rose-300', text: 'text-rose-800 font-bold' },
-    'SABTU': { bg: 'bg-orange-100/80', border: 'border-orange-300', text: 'text-orange-800 font-bold' },
-    'AHAD': { bg: 'bg-slate-200/80', border: 'border-slate-300', text: 'text-slate-800 font-bold' },
+    'ISNIN': { bg: 'bg-emerald-200/90', border: 'border-emerald-400', text: 'text-emerald-950 font-bold' },
+    'SELASA': { bg: 'bg-blue-200/90', border: 'border-blue-400', text: 'text-blue-950 font-bold' },
+    'RABU': { bg: 'bg-amber-200/90', border: 'border-amber-400', text: 'text-amber-950 font-bold' },
+    'KHAMIS': { bg: 'bg-purple-200/90', border: 'border-purple-400', text: 'text-purple-950 font-bold' },
+    'JUMAAT': { bg: 'bg-rose-200/90', border: 'border-rose-400', text: 'text-rose-950 font-bold' },
+    'SABTU': { bg: 'bg-orange-200/90', border: 'border-orange-400', text: 'text-orange-950 font-bold' },
+    'AHAD': { bg: 'bg-slate-300/90', border: 'border-slate-400', text: 'text-slate-950 font-bold' },
   };
 
   const map = theme === 'emerald'
@@ -95,7 +95,7 @@ export const getLockscreenThemeConfig = (theme: ExportTheme) => {
         gridBg: 'bg-slate-50 border-slate-200',
         headerBorder: 'border-slate-200',
         headerText: 'text-slate-700',
-        dayText: 'text-slate-400',
+        dayText: 'text-slate-600',
         cellBorder: 'border-slate-200/60',
         isLight: true,
       };

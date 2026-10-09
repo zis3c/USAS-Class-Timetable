@@ -268,7 +268,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
       <div className="absolute inset-0" onClick={onClose} />
 
       <div 
-        className={`relative w-full max-w-2xl h-[85vh] sm:h-[34rem] max-h-[800px] rounded-2xl border shadow-2xl overflow-hidden flex flex-col transform transition-all duration-200 ${
+        className={`relative w-full max-w-2xl ${activeTab === 'share' ? 'h-[min(32rem,85vh)] sm:h-[32rem]' : 'h-[85vh] sm:h-[34rem]'} max-h-[800px] rounded-2xl border shadow-2xl overflow-hidden flex flex-col transform transition-all duration-200 ${
           animate ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
         } ${
           isLight 
@@ -291,10 +291,10 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
               )}
             </div>
             <div className="text-left min-w-0">
-              <h3 className={`text-sm sm:text-base font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>
+              <h3 className={`text-sm sm:text-base font-bold leading-tight truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>
                 {t('compareTitle')}
               </h3>
-              <p className={`text-[11px] sm:text-xs font-semibold truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>
+              <p className={`text-[11px] sm:text-xs font-semibold leading-tight truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>
                 {t('compareDesc')}
               </p>
             </div>

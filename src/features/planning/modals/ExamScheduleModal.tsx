@@ -131,7 +131,7 @@ export default function ExamScheduleModal({ isOpen, onClose, courses = [], isDem
             </div>
             <div className="text-left min-w-0">
               <div className="flex items-center gap-2">
-                <h3 className={`text-sm sm:text-base font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>
+                <h3 className={`text-sm sm:text-base font-bold leading-tight truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>
                   {t('examModalTitle')}
                 </h3>
                 {isDemo && (
@@ -140,7 +140,7 @@ export default function ExamScheduleModal({ isOpen, onClose, courses = [], isDem
                   </span>
                 )}
               </div>
-              <p className={`text-[11px] sm:text-xs font-semibold truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>
+              <p className={`text-[11px] sm:text-xs font-semibold leading-tight truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>
                 {t('examModalDesc')}
               </p>
             </div>

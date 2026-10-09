@@ -291,9 +291,9 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
           <div className="flex items-start sm:items-center gap-3 min-w-0">
             <img src={isLight ? '/usas-logo-light.png' : '/usas-logo-dark.png'} alt="USAS Logo" className="w-6 h-6 sm:w-7 sm:h-7 object-contain flex-shrink-0 mt-0.5 sm:mt-0" />
             <div className="min-w-0">
-              <h3 className={`text-xs font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>{t('exportPdfTitle')}</h3>
-              <p className={`text-[10px] sm:text-xs mt-1 transition-colors ${isLight ? 'text-slate-500' : 'text-white/50'}`}>
-                Eksport Dokumen Rasmi A4 atau Custom Wallpaper Lockscreen peranti
+              <h3 className={`text-xs font-bold leading-tight ${isLight ? 'text-slate-800' : 'text-white'}`}>{t('exportPdfTitle')}</h3>
+              <p className={`text-[10px] sm:text-xs leading-tight transition-colors ${isLight ? 'text-slate-500' : 'text-white/50'}`}>
+                {t('exportPdfDesc')}
               </p>
             </div>
           </div>
@@ -326,14 +326,14 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
 
             <button
               onClick={() => setExportMode('WALLPAPER')}
-              aria-label={lang === 'en' ? 'Wallpaper lockscreen' : 'Wallpaper skrin kunci'}
+              aria-label="Wallpaper"
               className={`py-2 px-3 rounded-lg text-[10px] sm:text-[11px] font-bold flex items-center justify-center gap-2 transition-all min-w-0 ${exportMode === 'WALLPAPER'
                   ? (isLight ? 'bg-[#0B1E43] text-white shadow-md' : 'bg-amber-400 text-slate-950 shadow-md')
                   : (isLight ? 'text-slate-500 hover:text-slate-800' : 'text-white/40 hover:text-white')
                 }`}
             >
               <Smartphone className="w-4 h-4 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
-              <span className="hidden sm:inline truncate">Wallpaper Lockscreen</span>
+              <span className="hidden sm:inline truncate">Wallpaper</span>
             </button>
           </div>
 

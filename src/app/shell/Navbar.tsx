@@ -67,9 +67,9 @@ export default function Navbar({ onOpenTools, onNavigateHome, onNavigateLogin, v
             onClick={onNavigateHome}
             className="flex items-center gap-1.5 min-w-0 cursor-pointer select-none"
           >
-            <img src={isLight ? '/usas-logo-light.png' : '/usas-logo-dark.png'} alt="USAS Emblem" className={`w-8 h-8 object-contain ${isLight ? 'drop-shadow-[0_2px_8px_rgba(16,47,97,0.15)]' : 'drop-shadow-[0_2px_8px_rgba(255,204,0,0.2)]'}`} />
-            <div className="flex flex-col justify-center text-left leading-none min-w-0">
-              <h2 className={`max-w-[11rem] sm:max-w-none truncate text-[11px] sm:text-[12px] font-semibold tracking-tight leading-none whitespace-nowrap ${isLight ? 'text-slate-800' : 'text-white'}`}>
+            <img src={isLight ? '/usas-logo-light.png' : '/usas-logo-dark.png'} alt="USAS Emblem" className={`w-7 h-7 sm:w-8 sm:h-8 object-contain ${isLight ? 'drop-shadow-[0_2px_8px_rgba(16,47,97,0.15)]' : 'drop-shadow-[0_2px_8px_rgba(255,204,0,0.2)]'}`} />
+            <div className="hidden sm:flex flex-col justify-center text-left leading-none min-w-0">
+              <h2 className={`max-w-none truncate text-[12px] font-semibold tracking-tight leading-none whitespace-nowrap ${isLight ? 'text-slate-800' : 'text-white'}`}>
                 USAS Class Timetable
               </h2>
               <p className={`hidden sm:block text-[9px] font-bold uppercase tracking-[0.15em] mt-0.5 whitespace-nowrap ${isLight ? 'text-amber-700' : 'text-amber-400'}`}>

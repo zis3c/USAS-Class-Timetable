@@ -193,7 +193,7 @@ export default function LecturerModal({ lecturerName, isOpen, onClose }: Lecture
             </div>
             <div className="text-left min-w-0">
               <h3 className={`text-sm sm:text-base font-bold leading-tight truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>{sanitizeTextForShare(cachedName, 160)}</h3>
-              <p className={`text-[11px] sm:text-xs font-semibold truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>
+              <p className={`text-[11px] sm:text-xs font-semibold leading-tight truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>
                 {hasPosition ? entry?.position : t('lecturerGenericRole')}
               </p>
             </div>
