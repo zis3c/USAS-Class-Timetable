@@ -1,5 +1,28 @@
 import { test, expect } from '@playwright/test';
 
+test('landing install action opens the browser PWA prompt', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => {
+    const event = new Event('beforeinstallprompt', { cancelable: true }) as Event & {
+      prompt: () => Promise<void>;
+      userChoice: Promise<{ outcome: 'accepted'; platform: string }>;
+    };
+    event.prompt = async () => { document.body.dataset.installPrompt = 'opened'; };
+    event.userChoice = Promise.resolve({ outcome: 'accepted', platform: 'web' });
+    window.dispatchEvent(event);
+  });
+
+  await page.getByRole('button', { name: /pasang portal|install portal app/i }).click();
+  await expect(page.getByRole('status')).toHaveText(/berjaya dipasang|installed successfully/i);
+  await expect.poll(() => page.locator('body').getAttribute('data-install-prompt')).toBe('opened');
+});
+
+test('landing install action explains manual install when browser prompt is unavailable', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /pasang portal|install portal app/i }).click();
+  await expect(page.getByRole('status')).toContainText(/menu pelayar|browser menu/i);
+});
+
 test('demo login opens timetable and export modal', async ({ page }) => {
   await page.goto('/');
 
@@ -41,6 +64,10 @@ test('matrix view positions classes accurately to the minute', async ({ page }) 
   const firstHour = page.locator('[data-matrix-time-slot="20:00"]');
   const halfHourClass = page.locator('[data-matrix-course-code="KOM6363"][data-matrix-course-start="08:30 PM"]');
   await expect(firstHour).toBeVisible();
+  expect(await firstHour.textContent()).toMatch(/^20-\d{2}$/);
+  const dynamicSlots = await page.locator('[data-matrix-time-range]').evaluateAll((nodes) =>
+    nodes.map((node) => node.getAttribute('data-matrix-time-range')!.split('-').map(Number)));
+  expect(dynamicSlots.some(([start, end]) => end - start > 60)).toBe(true);
   await expect(halfHourClass).toHaveCount(1);
   await expect(halfHourClass).toHaveAttribute('data-matrix-course-time', '20:30-23:30');
   await expect(halfHourClass.locator('[data-matrix-course-start-label]')).toHaveText('20:30');
@@ -60,10 +87,26 @@ test('matrix view positions classes accurately to the minute', async ({ page }) 
   const [hourBounds, classBounds] = geometry;
   expect(hourBounds).not.toBeNull();
   expect(classBounds).not.toBeNull();
-  expect(classBounds!.x - hourBounds!.x).toBeGreaterThan(hourBounds!.width * 0.4);
-  expect(classBounds!.x - hourBounds!.x).toBeLessThan(hourBounds!.width * 0.65);
-  expect(classBounds!.width / hourBounds!.width).toBeGreaterThan(2.8);
-  expect(classBounds!.width / hourBounds!.width).toBeLessThan(3.1);
+  expect(classBounds!.x - hourBounds!.x).toBeGreaterThan(hourBounds!.width * 0.2);
+  expect(classBounds!.x - hourBounds!.x).toBeLessThan(hourBounds!.width * 0.3);
+  expect(classBounds!.width / hourBounds!.width).toBeGreaterThan(1.4);
+  expect(classBounds!.width / hourBounds!.width).toBeLessThan(1.6);
+
+  const onePeriodClass = page.locator('[data-matrix-course-code="CSE6013"][data-matrix-course-start="04:00 PM"]');
+  await expect(onePeriodClass).toHaveAttribute('data-matrix-course-compact', 'true');
+  const compactLayout = await onePeriodClass.evaluate((block) => {
+    const bounds = (selector: string) => {
+      const rect = block.querySelector(selector)!.getBoundingClientRect();
+      return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom };
+    };
+    const intersects = (a: ReturnType<typeof bounds>, b: ReturnType<typeof bounds>) =>
+      a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+    return {
+      startOverlapsCode: intersects(bounds('[data-matrix-course-start-label]'), bounds('[data-matrix-course-code-label]')),
+      endOverlapsLocation: intersects(bounds('[data-matrix-course-end-label]'), bounds('[data-matrix-course-location]')),
+    };
+  });
+  expect(compactLayout).toEqual({ startOverlapsCode: false, endOverlapsLocation: false });
 });
 
 test('wallpaper controls wrap into two columns at tablet width', async ({ page }) => {
@@ -186,13 +229,19 @@ test('custom lockscreen background stays sharp outside the blurred glass timetab
   const glassOverlay = page.locator('[data-wallpaper-glass-overlay]');
   await expect(background).toBeVisible();
   await expect(blurredBackground).toBeVisible();
-  await expect(blurredBackground).toHaveAttribute('data-wallpaper-native-blur', 'true');
   await expect(glassOverlay).toBeVisible();
   await expect.poll(() => blurredBackground.evaluate((element) => getComputedStyle(element).filter))
-    .toBe('blur(16px)');
+    .toBe('none');
   await expect.poll(() => background.getAttribute('src')).toMatch(/^blob:/);
   await expect.poll(() => blurredBackground.evaluate((element) => getComputedStyle(element).backgroundImage))
     .toMatch(/^url\("blob:/);
+  const blurredAssetUrl = await blurredBackground.evaluate((element) => {
+    const image = element as HTMLImageElement;
+    return image.tagName === 'IMG' ? image.src : getComputedStyle(element).backgroundImage.match(/^url\("?(.+?)"?\)$/)?.[1];
+  });
+  expect(blurredAssetUrl).toMatch(/^blob:/);
+  await expect.poll(() => page.evaluate(() => (window as Window & { __wallpaperBlurSvg?: string }).__wallpaperBlurSvg))
+    .toContain('<feGaussianBlur');
   expect(await background.evaluate((element) => getComputedStyle(element).backgroundImage))
     .not.toBe(await blurredBackground.evaluate((element) => getComputedStyle(element).backgroundImage));
   expect(await glassOverlay.evaluate((element) => getComputedStyle(element).backgroundColor))
@@ -222,8 +271,19 @@ test('custom lockscreen background stays sharp outside the blurred glass timetab
   const png = Buffer.concat(chunks);
   expect(png.readUInt32BE(16)).toBeGreaterThan(1700);
   expect(png.readUInt32BE(20)).toBeGreaterThan(3000);
-  await expect.poll(() => page.evaluate(() => (window as Window & { __wallpaperBlurSvg?: string }).__wallpaperBlurSvg))
-    .toContain('<feGaussianBlur');
+
+  for (const design of [/^(minimal|minimalis)$/i, /^(liquid glass|kaca cecair)$/i]) {
+    await page.getByRole('button', { name: design }).click();
+    await expect(page.locator('[data-wallpaper-background-blur]')).toBeVisible();
+    const designBlurredAssetUrl = await page.locator('[data-wallpaper-background-blur]').evaluate((element) => {
+      const image = element as HTMLImageElement;
+      return image.tagName === 'IMG' ? image.src : getComputedStyle(element).backgroundImage.match(/^url\("?(.+?)"?\)$/)?.[1];
+    });
+    expect(designBlurredAssetUrl).toBe(blurredAssetUrl);
+    const designDownload = page.waitForEvent('download');
+    await page.getByRole('button', { name: /^download$|^muat turun$/i }).evaluate((button) => (button as HTMLButtonElement).click());
+    expect((await designDownload).suggestedFilename()).toContain('.png');
+  }
 });
 
 test('time format preference persists for the signed-in user', async ({ page }) => {
@@ -245,9 +305,10 @@ test('time format preference persists for the signed-in user', async ({ page }) 
   await expect(gridPeriods.first()).toBeVisible();
   const gridPeriodLabels = await gridPeriods.allTextContents();
   expect(gridPeriodLabels.join(' ')).not.toMatch(/\b(AM|PM)\b/i);
-  expect(new Set(gridPeriodLabels.map((label) => label.length)).size).toBe(1);
-  expect(gridPeriodLabels).toContain('11-12');
-  expect(gridPeriodLabels).toContain('12-01');
+  expect(new Set(gridPeriodLabels.map((label) => label.length)).size).toBeGreaterThan(1);
+  expect(gridPeriodLabels).toContain('10-12');
+  expect(gridPeriodLabels).toContain('12-2');
+  expect(gridPeriodLabels).toContain('2-3');
   const gridCourseTimes = page.locator('[data-matrix-course-start-label], [data-matrix-course-end-label]');
   expect((await gridCourseTimes.allTextContents()).join(' ')).toMatch(/\b(AM|PM)\b/i);
   await page.getByRole('button', { name: /open tools and export/i }).click();
@@ -688,6 +749,7 @@ test('minimal wallpaper design shows a week card and exports to PNG', async ({ p
   await expect(card).toBeVisible();
   await expect(page.locator('[data-wallpaper-grid]')).toHaveCount(0);
   await expect(card.locator('[data-export-course-color-code]')).toHaveCount(7);
+  await expect(page.getByRole('slider', { name: /adjust timetable bottom space|laraskan ruang bawah jadual/i })).toHaveValue('47');
   // Demo data has no weekend classes, so those days are left out.
   await expect(card.getByText(/^(sun|ahd|sat|sab)$/i)).toHaveCount(0);
   // Time and room stay on one line inside each chip.
@@ -701,6 +763,15 @@ test('minimal wallpaper design shows a week card and exports to PNG', async ({ p
   const rootBox = (await root.boundingBox())!;
   const cardBox = (await card.boundingBox())!;
   expect(cardBox.y).toBeGreaterThan(rootBox.y + rootBox.height / 2);
+
+  await expect(page.getByRole('slider', { name: /adjust timetable top space|laraskan ruang atas jadual/i })).toHaveCount(0);
+  const bottomPosition = page.getByRole('slider', { name: /adjust timetable bottom space|laraskan ruang bawah jadual/i });
+  await bottomPosition.focus();
+  await bottomPosition.press('End');
+  await expect.poll(async () => {
+    const [cardAfter, rootAfter] = await Promise.all([card.boundingBox(), root.boundingBox()]);
+    return cardAfter!.y - rootAfter!.y;
+  }).toBeLessThan(cardBox.y - rootBox.y - 80);
 
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: /^download$|^muat turun$/i }).click();
@@ -723,11 +794,34 @@ test('glass wallpaper design renders a frosted card and exports to PNG', async (
   const card = page.locator('[data-wallpaper-minimal-card]');
   await expect(card).toBeVisible();
   await expect(card.locator('[data-wallpaper-glass-sheen]')).toHaveCount(1);
-  await expect(page.locator('[data-wallpaper-glass-backdrop]')).toHaveCount(1);
-  await expect(card).toHaveCSS('background-color', 'rgba(255, 255, 255, 0.55)');
+  await expect(page.getByRole('slider', { name: /adjust timetable top space|laraskan ruang atas jadual/i })).toHaveCount(0);
+  await expect(page.getByRole('slider', { name: /adjust timetable bottom space|laraskan ruang bawah jadual/i })).toHaveValue('47');
+  await expect(page.locator('[data-wallpaper-glass-backdrop]')).toHaveCount(0);
+  await expect(card).toHaveAttribute('data-wallpaper-glass-theme', 'dark');
+
+  await page.getByRole('button', { name: /dark theme|light theme|tema gelap|tema terang/i }).click();
+  await page.getByRole('button', { name: /oled theme|tema oled/i }).click();
+  await expect(card).toHaveAttribute('data-wallpaper-glass-theme', 'oled');
+  await expect(card).toHaveCSS('background-color', 'rgba(0, 0, 0, 0.72)');
 
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: /^download$|^muat turun$/i }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename().toLowerCase()).toContain('.png');
+});
+
+test('android wallpaper ratio exports a taller 9:20 image', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/login');
+  await page.getByRole('button', { name: /log masuk tanpa akaun|demo/i }).click();
+  await page.getByRole('button', { name: /open tools and export/i }).click();
+  await page.getByRole('button', { name: /eksport pdf & wallpaper|export pdf & wallpaper/i }).click();
+  await page.getByRole('button', { name: /wallpaper lockscreen/i }).click();
+
+  const root = page.locator('[data-export-root="wallpaper-export-root"]');
+  await page.getByRole('button', { name: /iphone \(9:16\)/i }).click();
+  await page.getByRole('button', { name: /android \(9:20\)/i }).click();
+  await expect(page.getByRole('button', { name: /android \(9:20\)/i }).first()).toBeVisible();
+  // 360px wide at 9:20 is 800px tall.
+  await expect.poll(() => root.evaluate((el) => (el as HTMLElement).offsetHeight)).toBe(800);
 });
