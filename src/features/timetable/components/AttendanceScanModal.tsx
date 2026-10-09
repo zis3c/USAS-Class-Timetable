@@ -30,10 +30,9 @@ const getCopy = (lang: string) => {
       error: 'Imbasan gagal.',
       unsupported: 'Pelayar ini tiada sokongan kamera imbas QR automatik. Tampal nilai QR secara manual di bawah.',
       manualLabel: 'Nilai QR manual',
-      manualHint: 'Guna jika kamera tiada atau detection gagal.',
+      manualHint: 'Tak dapat imbas? Tampal QR di sini.',
       startCamera: 'Mula kamera',
       uploadImg: 'Muat naik imej',
-      scanAgain: 'Imbas semula',
       submit: 'Hantar QR',
       close: 'Tutup',
       stop: 'Henti kamera',
@@ -53,10 +52,9 @@ const getCopy = (lang: string) => {
       error: '扫描失败。',
       unsupported: '此浏览器不支持自动二维码摄像头扫描。请在下方手动粘贴二维码值。',
       manualLabel: '手动二维码值',
-      manualHint: '摄像头不可用或检测失败时使用。',
+      manualHint: '无法扫描？在此粘贴二维码。',
       startCamera: '开启摄像头',
       uploadImg: '上传图片',
-      scanAgain: '重新扫描',
       submit: '提交二维码',
       close: '关闭',
       stop: '停止摄像头',
@@ -76,10 +74,9 @@ const getCopy = (lang: string) => {
       error: 'ஸ்கேன் தோல்வி.',
       unsupported: 'இந்த உலாவி தானியங்கி QR கேமரா ஸ்கேனை ஆதரிக்கவில்லை. QR மதிப்பை கீழே கைமுறையாக ஒட்டவும்.',
       manualLabel: 'கைமுறை QR மதிப்பு',
-      manualHint: 'கேமரா கிடைக்காதபோது அல்லது கண்டறிதல் தோல்வியடையும்போது இதைப் பயன்படுத்தவும்.',
+      manualHint: 'ஸ்கேன் முடியவில்லையா? QR குறியீட்டை இங்கே ஒட்டவும்.',
       startCamera: 'கேமராவைத் தொடங்கு',
       uploadImg: 'படத்தை பதிவேற்று',
-      scanAgain: 'மீண்டும் ஸ்கேன்',
       submit: 'QR அனுப்பு',
       close: 'மூடு',
       stop: 'கேமராவை நிறுத்து',
@@ -98,10 +95,9 @@ const getCopy = (lang: string) => {
     error: 'Scan failed.',
     unsupported: 'This browser does not support automatic QR camera scanning. Paste the QR value manually below.',
     manualLabel: 'Manual QR value',
-    manualHint: 'Use this if camera access is unavailable or detection fails.',
+    manualHint: "Can't scan? Paste the QR code here.",
     startCamera: 'Start camera',
     uploadImg: 'Upload image',
-    scanAgain: 'Scan again',
     submit: 'Send QR',
     close: 'Close',
     stop: 'Stop camera',
@@ -594,40 +590,6 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
             }`}>
             {(scanState === 'error' || scanState === 'unsupported') && <AlertTriangle className="w-4 h-4 flex-shrink-0" />}
             <span>{statusMessage}</span>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-2">
-            <button
-              data-testid="attendance-scan-close"
-              onClick={() => {
-                stopCamera();
-                setScanState('idle');
-                setStatusMessage(copy.desc);
-                onClose();
-              }}
-              className={`w-full rounded-xl py-2.5 text-xs font-bold border transition-colors ${isLight
-                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
-                  : 'bg-white/[0.04] hover:bg-white/[0.08] text-white/80 border-white/10'
-                }`}
-            >
-              {copy.close}
-            </button>
-
-            <button
-              data-testid="attendance-scan-restart"
-              onClick={() => {
-                setManualQr('');
-                setScanState('idle');
-                setStatusMessage(copy.desc);
-                void startCamera();
-              }}
-              className={`w-full rounded-xl py-2.5 text-xs font-bold transition-colors ${isLight
-                  ? 'bg-[#0B1E43] hover:bg-[#122a5b] text-white'
-                  : 'bg-amber-400 hover:bg-amber-300 text-slate-950'
-                }`}
-            >
-              {copy.scanAgain}
-            </button>
           </div>
 
           <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />

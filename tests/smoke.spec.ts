@@ -819,9 +819,9 @@ test('android wallpaper ratio exports a taller 9:20 image', async ({ page }) => 
   await page.getByRole('button', { name: /wallpaper lockscreen/i }).click();
 
   const root = page.locator('[data-export-root="wallpaper-export-root"]');
-  await page.getByRole('button', { name: /iphone \(9:16\)/i }).click();
-  await page.getByRole('button', { name: /android \(9:20\)/i }).click();
-  await expect(page.getByRole('button', { name: /android \(9:20\)/i }).first()).toBeVisible();
+  await page.getByRole('button', { name: /phone|telefon.*9:16/i }).click();
+  await page.getByRole('button', { name: /tall phone|telefon tinggi.*9:20/i }).click();
+  await expect(page.getByRole('button', { name: /tall phone|telefon tinggi.*9:20/i }).first()).toBeVisible();
   // 360px wide at 9:20 is 800px tall.
   await expect.poll(() => root.evaluate((el) => (el as HTMLElement).offsetHeight)).toBe(800);
 });

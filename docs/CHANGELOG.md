@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+* Tall phone wallpaper ratio (9:20), contributed by @xfnx-17 in PR #10.
 * Minimal and Liquid Glass lockscreen wallpaper layouts with timetable-theme-aware glass styling, contributed by @xfnx-17 in PR #8.
 * Full 4-language support for English (default), Bahasa Melayu, Simplified Chinese (zh), and Tamil (ta).
 * Custom glassmorphic language selection dropdown in top navigation.
@@ -28,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Complete project documentation suite following open-source repository standards.
 
 ### Fixed
+* Aligned Minimal and Liquid Glass wallpaper blur rendering between preview and PNG export.
 * Fixed export progress overlay hang after file generation.
 * Eliminated sub-pixel typography vibration and jitter on 3D card tilt unfocus.
 * Eliminated landing page flash during authenticated page reload.
@@ -37,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Resolved all ESLint warnings across the repository.
 
 ### Changed
+* Labeled phone wallpaper presets by aspect ratio and removed redundant attendance scan footer actions.
 * Deduplicated the global stylesheet.
 * Refactored top navigation with custom language dropdown selector.
 * Standardized theme name to Dark Theme without Navy suffix.

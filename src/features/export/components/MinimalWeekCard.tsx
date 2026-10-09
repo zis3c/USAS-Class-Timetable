@@ -153,16 +153,17 @@ export default function MinimalWeekCard({
     >
       {background && (
         <div aria-hidden="true" className="absolute inset-0 z-0 overflow-hidden" style={{ borderRadius: radius }}>
-          <img
+          <div
             data-wallpaper-background-blur
-            src={background.url}
-            draggable={false}
-            className="absolute max-w-none object-cover"
+            className="absolute max-w-none"
             style={{
               width: `${background.rootWidth}px`,
               height: `${background.rootHeight}px`,
               left: `${-background.left}px`,
               bottom: `${-background.bottom}px`,
+              backgroundImage: `url("${background.url}")`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
             }}
           />
           <div className="absolute inset-0" style={{ backgroundColor: glass ? glassStyle.wash : isLight ? 'rgba(255,255,255,0.45)' : 'rgba(10,10,14,0.5)' }} />
