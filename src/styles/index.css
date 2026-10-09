@@ -46,7 +46,53 @@
   border-color: rgba(255, 255, 255, 0.1);
 }
 
-/* ───── Navbar ───── */
+/* Matrix timetable cards */
+.matrix-course-card {
+  container-type: inline-size;
+  gap: 4px;
+  padding: 6px 8px;
+}
+
+.matrix-course-summary {
+  line-height: 1.1;
+}
+
+.matrix-course-code {
+  font-size: 10px;
+  line-height: 1.1;
+}
+
+.matrix-course-duration {
+  font-size: 8px;
+  line-height: 1.1;
+}
+
+.matrix-course-time {
+  font-size: 9px;
+  line-height: 1.1;
+}
+
+.matrix-course-title {
+  display: -webkit-box;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font-size: 9px;
+  line-height: 1.15;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.matrix-course-test-label {
+  opacity: 0;
+}
+
+@container (min-width: 200px) {
+  .matrix-course-title {
+    -webkit-line-clamp: 2;
+  }
+}
+
+/* Navbar */
 .navbar-border {
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }

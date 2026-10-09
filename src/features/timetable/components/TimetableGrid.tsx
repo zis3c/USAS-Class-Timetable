@@ -348,7 +348,7 @@ export default function TimetableGrid({ attendanceRefreshToken = 0, onOpenExam }
                     return (
                       <div
                         key={cardKey}
-                        className={`rounded-lg border border-l-2 transition-all duration-300 flex flex-col ${cardColor.accent} ${cardColor.border} ${cardColor.bg} hover:brightness-105 shadow-sm`}
+                        className={`rounded-lg border transition-all duration-300 flex flex-col ${cardColor.border} ${cardColor.bg} hover:brightness-105 shadow-sm`}
                       >
                         {/* Card Header - Click to expand/collapse independently */}
                         <div 
@@ -377,7 +377,7 @@ export default function TimetableGrid({ attendanceRefreshToken = 0, onOpenExam }
                                       courseStatus === 'ongoing'
                                         ? 'bg-emerald-400 animate-pulse'
                                         : courseStatus === 'upcoming'
-                                          ? 'bg-amber-400'
+                                          ? 'bg-amber-400 animate-pulse'
                                           : 'bg-transparent'
                                     }`}
                                     aria-hidden="true"

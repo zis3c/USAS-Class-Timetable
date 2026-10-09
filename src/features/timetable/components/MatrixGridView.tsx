@@ -28,23 +28,23 @@ type MatrixGridViewProps = {
 
 const getDayColors = (day: string | undefined, isLight: boolean) => {
   const darkColors: Record<string, Record<string, string>> = {
-    'ISNIN':  { bg: 'bg-emerald-500/[0.18]', border: 'border-emerald-500/40 border-l-2 border-l-emerald-400', text: 'text-emerald-300 font-bold', dot: 'bg-emerald-400' },
-    'SELASA': { bg: 'bg-blue-500/[0.18]',    border: 'border-blue-500/40 border-l-2 border-l-blue-400',    text: 'text-blue-300 font-bold',    dot: 'bg-blue-400' },
-    'RABU':   { bg: 'bg-amber-500/[0.18]',   border: 'border-amber-500/40 border-l-2 border-l-amber-400',   text: 'text-amber-300 font-bold',   dot: 'bg-amber-400' },
-    'KHAMIS': { bg: 'bg-purple-500/[0.18]',  border: 'border-purple-500/40 border-l-2 border-l-purple-400',  text: 'text-purple-300 font-bold',  dot: 'bg-purple-400' },
-    'JUMAAT': { bg: 'bg-rose-500/[0.18]',    border: 'border-rose-500/40 border-l-2 border-l-rose-400',    text: 'text-rose-300 font-bold',    dot: 'bg-rose-400' },
-    'SABTU':  { bg: 'bg-orange-500/[0.18]',  border: 'border-orange-500/40 border-l-2 border-l-orange-400',  text: 'text-orange-300 font-bold',  dot: 'bg-orange-400' },
-    'AHAD':   { bg: 'bg-slate-500/[0.18]',   border: 'border-slate-500/40 border-l-2 border-l-slate-400',   text: 'text-slate-300 font-bold',   dot: 'bg-slate-400' },
+    'ISNIN':  { bg: 'bg-emerald-500/[0.18]', text: 'text-emerald-300 font-bold', dot: 'bg-emerald-400' },
+    'SELASA': { bg: 'bg-blue-500/[0.18]',    text: 'text-blue-300 font-bold',    dot: 'bg-blue-400' },
+    'RABU':   { bg: 'bg-amber-500/[0.18]',   text: 'text-amber-300 font-bold',   dot: 'bg-amber-400' },
+    'KHAMIS': { bg: 'bg-purple-500/[0.18]',  text: 'text-purple-300 font-bold',  dot: 'bg-purple-400' },
+    'JUMAAT': { bg: 'bg-rose-500/[0.18]',    text: 'text-rose-300 font-bold',    dot: 'bg-rose-400' },
+    'SABTU':  { bg: 'bg-orange-500/[0.18]',  text: 'text-orange-300 font-bold',  dot: 'bg-orange-400' },
+    'AHAD':   { bg: 'bg-slate-500/[0.18]',   text: 'text-slate-300 font-bold',   dot: 'bg-slate-400' },
   };
 
   const lightColors: Record<string, Record<string, string>> = {
-    'ISNIN':  { bg: 'bg-emerald-100/70', border: 'border-emerald-300/80 border-l-2 border-l-emerald-500', text: 'text-emerald-800 font-bold', dot: 'bg-emerald-500' },
-    'SELASA': { bg: 'bg-blue-100/70',    border: 'border-blue-300/80 border-l-2 border-l-blue-500',    text: 'text-blue-800 font-bold',    dot: 'bg-blue-500' },
-    'RABU':   { bg: 'bg-amber-100/80',   border: 'border-amber-300/85 border-l-2 border-l-amber-500',   text: 'text-amber-800 font-bold',   dot: 'bg-amber-500' },
-    'KHAMIS': { bg: 'bg-purple-100/70',  border: 'border-purple-300/80 border-l-2 border-l-purple-500',  text: 'text-purple-800 font-bold',  dot: 'bg-purple-500' },
-    'JUMAAT': { bg: 'bg-rose-100/70',    border: 'border-rose-300/80 border-l-2 border-l-rose-500',    text: 'text-rose-800 font-bold',    dot: 'bg-rose-500' },
-    'SABTU':  { bg: 'bg-orange-100/70',  border: 'border-orange-300/80 border-l-2 border-l-orange-500',  text: 'text-orange-800 font-bold',  dot: 'bg-orange-500' },
-    'AHAD':   { bg: 'bg-slate-200/70',   border: 'border-slate-300/80 border-l-2 border-l-slate-500',   text: 'text-slate-800 font-bold',   dot: 'bg-slate-500' },
+    'ISNIN':  { bg: 'bg-emerald-100/70', text: 'text-emerald-800 font-bold', dot: 'bg-emerald-500' },
+    'SELASA': { bg: 'bg-blue-100/70',    text: 'text-blue-800 font-bold',    dot: 'bg-blue-500' },
+    'RABU':   { bg: 'bg-amber-100/80',   text: 'text-amber-800 font-bold',   dot: 'bg-amber-500' },
+    'KHAMIS': { bg: 'bg-purple-100/70',  text: 'text-purple-800 font-bold',  dot: 'bg-purple-500' },
+    'JUMAAT': { bg: 'bg-rose-100/70',    text: 'text-rose-800 font-bold',    dot: 'bg-rose-500' },
+    'SABTU':  { bg: 'bg-orange-100/70',  text: 'text-orange-800 font-bold',  dot: 'bg-orange-500' },
+    'AHAD':   { bg: 'bg-slate-200/70',   text: 'text-slate-800 font-bold',   dot: 'bg-slate-500' },
   };
 
   const key = extractDayName(day) || 'ISNIN';
@@ -126,10 +126,9 @@ export default function MatrixGridView({
     return buildAdaptiveTimeSlots(ranges, 8, true);
   }, [timetable]);
 
-  // Constant column widths + fixed text sizing: on small screens the grid
-  // scrolls horizontally instead of shrinking boxes or dropping content.
+  // Keep each slot at its desktop width on small screens; the grid scrolls horizontally.
   const DAY_COL_WIDTH = 92;
-  const SLOT_COL_WIDTH = 108;
+  const SLOT_COL_WIDTH = 200;
   const tableMinWidth = DAY_COL_WIDTH + activeTimeSlots.length * SLOT_COL_WIDTH;
   const axisStart = activeTimeSlots[0].start;
   const axisEnd = activeTimeSlots[activeTimeSlots.length - 1].end;
@@ -158,7 +157,7 @@ export default function MatrixGridView({
           <thead>
             <tr className={`border-b ${isLight ? 'border-slate-200 bg-slate-50/50' : 'border-white/[0.06]'}`}>
               <th
-                className={`px-2 sm:px-3 py-1.5 sm:py-2 border-r w-20 sm:w-24 whitespace-nowrap leading-none ${
+                className={`px-2 sm:px-3 py-1.5 sm:py-2 border-r whitespace-nowrap leading-none ${
                   isLight ? 'border-slate-200' : 'border-white/[0.04]'
                 }`}
                 style={{ fontSize: `${autoScale * 10}px` }}
@@ -192,12 +191,12 @@ export default function MatrixGridView({
                     : 'border-white/[0.03] hover:bg-white/[0.015]'
                 }`}>
                   <td
-                    className={`px-2 sm:px-3 py-1.5 font-bold uppercase border-r text-center w-20 sm:w-24 transition-all duration-300 ${
+                    className={`px-2 sm:px-3 py-1.5 font-bold uppercase border-r text-center transition-all duration-300 ${
                       isLight ? 'border-slate-200' : 'border-white/[0.04]'
                     } ${isDimmedRow ? 'opacity-30 blur-[1px]' : ''}`}
                     style={{ fontSize: `${autoScale * 10}px` }}
                   >
-                    <span className="flex items-center justify-center gap-1.5 min-h-[42px] sm:min-h-[48px] whitespace-nowrap">
+                    <span className="flex items-center justify-center gap-1.5 min-h-[56px] whitespace-nowrap">
                       <span className={isLight ? 'text-slate-600' : 'text-white/70'}>{formatDayDisplay(d, t)}</span>
                     </span>
                   </td>
@@ -231,8 +230,7 @@ export default function MatrixGridView({
                       const durationText = getDurationLabel(course.start_time, course.end_time, lang);
                       const timeRangeText = getShortTimeRange(course.start_time || course.jadual, course.end_time, timeFormat);
                       const [startTimeLabel, endTimeLabel] = timeRangeText.split('-');
-                      const fs = (value: number) => `${value}px`;
-
+                      const displayTime = (value: string) => value.replace(/:00(?=\s|$)/, '');
                       return (
                         <div
                           key={`${course.course_id || course.kod_kursus}-${start}`}
@@ -247,25 +245,29 @@ export default function MatrixGridView({
                           onMouseLeave={() => setPreview(null)}
                           onFocus={(e) => showPreview(course, e.currentTarget)}
                           onBlur={() => setPreview(null)}
-                          className={`absolute top-1 bottom-1 z-10 rounded-md border flex flex-col justify-center cursor-pointer outline-none transition-all duration-300 hover:brightness-105 overflow-hidden ${compact ? 'px-1 pt-3 pb-3 gap-0.5' : 'px-2 py-2 gap-1'} ${courseColor.bg} ${courseColor.border} ${isDimmedRow ? 'opacity-30 blur-[1.5px]' : ''}`}
+                          className={`matrix-course-card absolute inset-y-0 z-10 flex flex-col justify-between cursor-pointer outline-none transition-all duration-300 hover:brightness-105 overflow-hidden ${courseColor.bg} ${isDimmedRow ? 'opacity-30 blur-[1.5px]' : ''}`}
                           style={{ left: `${position.left}%`, width: `${position.width}%` }}
                         >
-                          <span data-matrix-course-start-label className={`absolute z-20 font-mono font-semibold leading-none whitespace-nowrap ${compact ? 'left-1 top-1' : 'right-2 bottom-4'} ${isLight ? 'text-slate-600' : 'text-white/65'}`} style={{ fontSize: fs(compact ? 7 : 8) }}>{startTimeLabel}</span>
-                          <span data-matrix-course-end-label className={`absolute z-20 font-mono font-semibold leading-none whitespace-nowrap ${compact ? 'right-1 bottom-1' : 'right-2 bottom-1.5'} ${isLight ? 'text-slate-600' : 'text-white/65'}`} style={{ fontSize: fs(compact ? 7 : 8) }}>{endTimeLabel}</span>
-                          <div className={`flex items-center justify-between min-w-0 ${compact ? 'gap-0.5' : 'gap-1 mb-0.5'}`}>
-                            <div className={`font-bold ${courseColor.text} flex items-center min-w-0 ${compact ? 'gap-0.5' : 'gap-1.5'}`} style={{ fontSize: fs(compact ? 10 : 12) }}>
+                          <span data-matrix-course-start-label aria-hidden="true" className={`matrix-course-test-label absolute top-1 right-2 z-20 font-mono font-semibold leading-none whitespace-nowrap ${isLight ? 'text-slate-600' : 'text-white/65'}`}>
+                            {startTimeLabel}
+                          </span>
+                          <span data-matrix-course-end-label aria-hidden="true" className={`matrix-course-test-label absolute bottom-1 right-2 z-20 font-mono font-semibold leading-none whitespace-nowrap ${isLight ? 'text-slate-600' : 'text-white/65'}`}>
+                            {endTimeLabel}
+                          </span>
+                          <div className="matrix-course-summary flex items-center justify-between min-w-0 gap-2">
+                            <div className={`matrix-course-code font-bold ${courseColor.text} flex items-center min-w-0 gap-1`}>
                               <span data-matrix-course-code-label className="truncate">{course.course_id || course.kod_kursus}</span>
-                              <span className={`inline-block rounded-full flex-shrink-0 ${compact && courseStatus === 'idle' ? 'hidden' : ''} ${courseStatus === 'ongoing' ? 'bg-emerald-400 animate-pulse' : courseStatus === 'upcoming' ? 'bg-amber-400' : 'bg-transparent'}`} style={{ width: fs(compact ? 6 : 8), height: fs(compact ? 6 : 8) }} aria-hidden="true" />
+                              <span className={`relative -top-[0.25px] inline-block w-2 h-2 rounded-full flex-shrink-0 ${courseStatus === 'ongoing' ? 'bg-emerald-400 animate-pulse' : courseStatus === 'upcoming' ? 'bg-amber-400 animate-pulse' : 'hidden'}`} aria-hidden="true" />
                             </div>
-                            {durationText && <div className={`font-extrabold uppercase shrink-0 flex items-center justify-center text-center rounded leading-none ${compact ? 'px-0.5 py-0' : 'px-1 py-0.5'} ${isLight ? 'bg-slate-100 text-slate-600 border border-slate-200/50' : 'bg-white/10 text-white/80 border border-white/5'}`} style={{ fontSize: fs(compact ? 7 : 8) }}>{durationText}</div>}
+                            {durationText && <span className={`matrix-course-duration shrink-0 whitespace-nowrap rounded px-0.5 py-px font-extrabold uppercase leading-none ${isLight ? 'bg-slate-100 text-slate-600 border border-slate-200/50' : 'bg-white/10 text-white/80 border border-white/5'}`}>{durationText}</span>}
                           </div>
-                          <div data-matrix-course-title className={`font-medium leading-tight ${compact ? 'truncate' : 'break-words line-clamp-2'} ${isLight ? 'text-slate-700' : 'text-white/80'}`} style={{ fontSize: fs(compact ? 8.5 : 10) }}>
+                          <div data-matrix-course-title className={`matrix-course-title font-bold ${isLight ? 'text-slate-700' : 'text-white/80'}`}>
                             {course.course_name || course.kursus}
                           </div>
-                          <div data-matrix-course-location className={`flex items-center leading-tight min-w-0 ${compact ? 'gap-0.5' : 'gap-1'} ${isLight ? 'text-slate-500' : 'text-white/50'}`} style={{ fontSize: fs(compact ? 8 : 10.5) }}>
-                            <MapPin style={{ width: fs(compact ? 8 : 10.5), height: fs(compact ? 8 : 10.5), color: '#ed4134' }} className="flex-shrink-0 self-center" />
-                            <span className="leading-tight self-center truncate">{course.location}</span>
-                          </div>
+                          <span data-matrix-course-time-label className={`matrix-course-time self-end font-mono font-semibold whitespace-nowrap ${isLight ? 'text-slate-600' : 'text-white/65'}`}>
+                            {displayTime(startTimeLabel)}–{displayTime(endTimeLabel)}
+                          </span>
+                          <span data-matrix-course-location hidden>{course.location}</span>
                         </div>
                       );
                     })}
@@ -298,7 +300,7 @@ export default function MatrixGridView({
               </div>
             </div>
             <div className={`text-[10px] font-semibold ${isLight ? 'text-slate-500' : 'text-white/50'}`}>
-              {formatDayDisplay(preview.course.day, t)} · {getShortTimeRange(preview.course.start_time || preview.course.jadual, preview.course.end_time, timeFormat).replace('-', ' - ')}
+              {formatDayDisplay(preview.course.day, t)} · {getShortTimeRange(preview.course.start_time || preview.course.jadual, preview.course.end_time, timeFormat).replace('-', ' - ')} · {getDurationLabel(preview.course.start_time, preview.course.end_time, lang)}
             </div>
             <div className={`flex items-center gap-1.5 text-[10.5px] ${isLight ? 'text-slate-600' : 'text-white/70'}`}>
               <User className="w-3 h-3 flex-shrink-0 text-emerald-500" />
