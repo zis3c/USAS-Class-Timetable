@@ -6,15 +6,57 @@ import { getOwnRecordValue } from '@/shared/lib/security';
 
 const WEEK_DAYS = ['ISNIN', 'SELASA', 'RABU', 'KHAMIS', 'JUMAAT', 'SABTU', 'AHAD'] as const;
 
-type ChipColor = { bg: string; text: string; bar: string };
+type ChipColor = {
+  bg: string;
+  text: string;
+  bar: string;
+  liquidTop?: string;
+  liquidBottom?: string;
+  liquidBorder?: string;
+};
 type GlassTheme = 'light' | 'dark' | 'emerald' | 'oled' | 'warm';
 
 const GLASS_THEMES: Record<GlassTheme, { card: string; wash: string; strong: string; muted: string; hairline: string; rim: string }> = {
-  light: { card: 'rgba(255,255,255,0.5)', wash: 'rgba(255,255,255,0.38)', strong: '#111113', muted: '#45454A', hairline: 'rgba(0,0,0,0.1)', rim: '255,255,255' },
-  dark: { card: 'rgba(10,20,40,0.58)', wash: 'rgba(10,20,40,0.38)', strong: '#F8FAFC', muted: 'rgba(226,232,240,0.68)', hairline: 'rgba(255,255,255,0.16)', rim: '191,219,254' },
-  emerald: { card: 'rgba(1,45,32,0.62)', wash: 'rgba(1,33,23,0.4)', strong: '#ECFDF5', muted: 'rgba(209,250,229,0.68)', hairline: 'rgba(110,231,183,0.2)', rim: '110,231,183' },
-  oled: { card: 'rgba(0,0,0,0.72)', wash: 'rgba(0,0,0,0.52)', strong: '#FFFFFF', muted: 'rgba(228,228,231,0.68)', hairline: 'rgba(255,255,255,0.18)', rim: '212,212,216' },
-  warm: { card: 'rgba(38,23,5,0.64)', wash: 'rgba(23,14,3,0.42)', strong: '#FEF3C7', muted: 'rgba(253,230,138,0.7)', hairline: 'rgba(251,191,36,0.2)', rim: '252,211,77' },
+  light: {
+    card: 'rgba(255, 255, 255, 0.42)',
+    wash: 'rgba(255, 255, 255, 0.32)',
+    strong: '#FFFFFF',
+    muted: 'rgba(255, 255, 255, 0.75)',
+    hairline: 'rgba(255, 255, 255, 0.16)',
+    rim: 'rgba(255, 255, 255, 0.20)',
+  },
+  dark: {
+    card: 'rgba(15, 23, 42, 0.50)',
+    wash: 'rgba(15, 23, 42, 0.32)',
+    strong: '#FFFFFF',
+    muted: 'rgba(255, 255, 255, 0.65)',
+    hairline: 'rgba(255, 255, 255, 0.12)',
+    rim: 'rgba(255, 255, 255, 0.18)',
+  },
+  emerald: {
+    card: 'rgba(2, 44, 34, 0.50)',
+    wash: 'rgba(2, 44, 34, 0.32)',
+    strong: '#FFFFFF',
+    muted: 'rgba(209, 250, 229, 0.70)',
+    hairline: 'rgba(110, 231, 183, 0.15)',
+    rim: 'rgba(167, 243, 208, 0.20)',
+  },
+  oled: {
+    card: 'rgba(0, 0, 0, 0.65)',
+    wash: 'rgba(0, 0, 0, 0.45)',
+    strong: '#FFFFFF',
+    muted: 'rgba(255, 255, 255, 0.65)',
+    hairline: 'rgba(255, 255, 255, 0.15)',
+    rim: 'rgba(255, 255, 255, 0.16)',
+  },
+  warm: {
+    card: 'rgba(38, 20, 5, 0.50)',
+    wash: 'rgba(38, 20, 5, 0.32)',
+    strong: '#FFFFFF',
+    muted: 'rgba(254, 240, 138, 0.70)',
+    hairline: 'rgba(251, 191, 36, 0.15)',
+    rim: 'rgba(254, 240, 138, 0.20)',
+  },
 };
 
 // Plain rgba/hex values (not Tailwind classes) so the PNG renderer sees exact colours.
@@ -36,6 +78,17 @@ const LIGHT_CHIPS: Record<CourseColorSlot, ChipColor> = {
   JUMAAT: { bg: '#FECDD3', text: '#881337', bar: '#F43F5E' },
   SABTU:  { bg: '#FED7AA', text: '#7C2D12', bar: '#F97316' },
   AHAD:   { bg: '#CBD5E1', text: '#1E293B', bar: '#64748B' },
+};
+
+// Subtle, clean tinted glass pills for Apple-style liquid glass
+const LIQUID_JEWELS: Record<CourseColorSlot, { top: string; bottom: string; border: string; bar: string }> = {
+  ISNIN:  { top: 'rgba(16, 185, 129, 0.30)',  bottom: 'rgba(16, 185, 129, 0.14)', border: 'rgba(110, 231, 183, 0.20)', bar: '#10B981' },
+  SELASA: { top: 'rgba(79, 70, 229, 0.32)',   bottom: 'rgba(79, 70, 229, 0.16)',  border: 'rgba(165, 180, 252, 0.20)', bar: '#6366F1' },
+  RABU:   { top: 'rgba(245, 158, 11, 0.32)',  bottom: 'rgba(245, 158, 11, 0.16)', border: 'rgba(253, 230, 138, 0.20)', bar: '#F59E0B' },
+  KHAMIS: { top: 'rgba(168, 85, 247, 0.32)',  bottom: 'rgba(168, 85, 247, 0.16)', border: 'rgba(233, 213, 255, 0.20)', bar: '#A855F7' },
+  JUMAAT: { top: 'rgba(244, 63, 94, 0.32)',   bottom: 'rgba(244, 63, 94, 0.16)',  border: 'rgba(254, 205, 211, 0.20)', bar: '#F43F5E' },
+  SABTU:  { top: 'rgba(249, 115, 22, 0.32)',  bottom: 'rgba(249, 115, 22, 0.16)', border: 'rgba(254, 215, 170, 0.20)', bar: '#F97316' },
+  AHAD:   { top: 'rgba(148, 163, 184, 0.30)', bottom: 'rgba(148, 163, 184, 0.14)', border: 'rgba(226, 232, 240, 0.20)', bar: '#94A3B8' },
 };
 
 const THEME_BARS: Partial<Record<GlassTheme, Record<CourseColorSlot, string>>> = {
@@ -89,18 +142,27 @@ export default function MinimalWeekCard({
   const palette = isLight ? LIGHT_CHIPS : DARK_CHIPS;
   const colorFor = (code: string): ChipColor => {
     const slot = getCourseColorSlot(courseColorMap, code);
+    if (glass) {
+      const jewel = getOwnRecordValue<(typeof LIQUID_JEWELS)[CourseColorSlot]>(LIQUID_JEWELS, slot) || LIQUID_JEWELS.ISNIN;
+      return {
+        bg: jewel.bottom,
+        text: '#FFFFFF',
+        bar: jewel.bar,
+        liquidTop: jewel.top,
+        liquidBottom: jewel.bottom,
+        liquidBorder: jewel.border,
+      };
+    }
     const themeBars = getOwnRecordValue<Record<CourseColorSlot, string>>(THEME_BARS, glassTheme);
     const bar = themeBars ? getOwnRecordValue<string>(themeBars, slot) : undefined;
     if (bar) {
       return {
-        bg: hexToRgba(bar, glass ? (isLight ? 0.2 : 0.24) : glassTheme === 'oled' ? 0.48 : 0.3),
-        text: glass ? glassStyle.strong : glassTheme === 'warm' ? '#FEF3C7' : '#ECFDF5',
+        bg: hexToRgba(bar, glassTheme === 'oled' ? 0.48 : 0.3),
+        text: glassTheme === 'warm' ? '#FEF3C7' : '#ECFDF5',
         bar,
       };
     }
-    const color = getOwnRecordValue<ChipColor>(palette, slot) || palette.ISNIN;
-    if (!glass) return color;
-    return { ...color, bg: hexToRgba(color.bar, isLight ? 0.2 : 0.24), text: glassStyle.strong };
+    return getOwnRecordValue<ChipColor>(palette, slot) || palette.ISNIN;
   };
 
   const startOf = (course: TimetableItem) => parseTimeToMinutes(course.start_time || course.jadual || '');
@@ -113,9 +175,10 @@ export default function MinimalWeekCard({
 
   // Free days are left out so class days get the full card width. Text is then
   // sized to fit each chip on one line (the PNG renderer can't shrink-to-fit).
-  const COLUMN_GAP = 4;
-  const padX = glass ? 14 : 12;
-  const chipTextWidth = (width - (glass ? 4 : 2) - padX * 2 - COLUMN_GAP * Math.max(0, byDay.length - 1)) / Math.max(1, byDay.length) - 6;
+  const COLUMN_GAP = glass ? 3.5 : 4;
+  const padX = glass ? 10 : 12;
+  const chipWidth = (width - (glass ? 2 : 2) - padX * 2 - COLUMN_GAP * Math.max(0, byDay.length - 1)) / Math.max(1, byDay.length);
+  const chipTextWidth = chipWidth - (glass ? 8 : 6);
   const fitFont = (texts: string[], max: number, charWidth: number) =>
     Math.max(4, Math.min(max, chipTextWidth / (Math.max(1, ...texts.map((text) => text.length)) * charWidth)));
   const chipDetail = (course: TimetableItem) => {
@@ -124,11 +187,11 @@ export default function MinimalWeekCard({
   };
   // One size for every chip so the card reads evenly.
   const shownCourses = byDay.flatMap(({ classes }) => classes);
-  const codeFontSize = fitFont(shownCourses.map(courseCode), 8.5, 0.68);
-  const detailFontSize = fitFont(shownCourses.map(chipDetail), 6.5, 0.6);
+  const codeFontSize = fitFont(shownCourses.map(courseCode), glass ? 7.2 : 8.5, glass ? 0.82 : 0.68);
+  const detailFontSize = fitFont(shownCourses.map(chipDetail), glass ? 5.6 : 6.5, glass ? 0.68 : 0.6);
   // The detail font can't shrink below the 4px floor, so when a chip is narrow
   // (e.g. many class days), trim the text instead of letting it bleed past the chip.
-  const detailMaxChars = Math.max(5, Math.floor(chipTextWidth / Math.max(1, detailFontSize) / 0.6));
+  const detailMaxChars = Math.max(5, Math.floor(chipTextWidth / Math.max(1, detailFontSize) / (glass ? 0.68 : 0.6)));
   const shortenDetail = (text: string) => {
     if (text.length <= detailMaxChars) return text;
     const separator = text.indexOf(' | ');
@@ -148,7 +211,7 @@ export default function MinimalWeekCard({
   const muted = glass ? glassStyle.muted : isLight ? '#475569' : 'rgba(255,255,255,0.45)';
   const strong = glass ? glassStyle.strong : isLight ? '#0F172A' : 'rgba(255,255,255,0.92)';
   const hairline = glass ? glassStyle.hairline : isLight ? 'rgba(15,23,42,0.08)' : 'rgba(255,255,255,0.07)';
-  const radius = glass ? '22px' : '18px';
+  const radius = glass ? '24px' : '18px';
   return (
     <div
       data-wallpaper-minimal-card
@@ -157,13 +220,20 @@ export default function MinimalWeekCard({
       style={{
         borderRadius: radius,
         ...(glass
-          ? { border: `1px solid rgba(${glassStyle.rim},0.34)`, boxShadow: '0 6px 18px rgba(0,0,0,0.22)' }
-          : { border: `1px solid ${isLight ? 'rgba(15,23,42,0.08)' : 'rgba(255,255,255,0.08)'}` }),
-        backgroundColor: glass
-          ? glassStyle.card
-          : background
-            ? (isLight ? 'rgba(255,255,255,0.55)' : 'rgba(18,18,22,0.55)')
-            : (isLight ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.05)'),
+          ? {
+              border: `1px solid ${glassStyle.rim}`,
+              // html2canvas mis-renders `inset` box-shadow layers (fills the card
+              // with a grey wash and draws a dark offset rectangle in the export),
+              // so the top-edge highlight lives on the sheen overlay instead.
+              boxShadow: '0 16px 36px -6px rgba(0, 0, 0, 0.35)',
+              backgroundColor: glassStyle.card,
+            }
+          : {
+              border: `1px solid ${isLight ? 'rgba(15,23,42,0.08)' : 'rgba(255,255,255,0.08)'}`,
+              backgroundColor: background
+                ? (isLight ? 'rgba(255,255,255,0.55)' : 'rgba(18,18,22,0.55)')
+                : (isLight ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.05)'),
+            }),
         isolation: 'isolate',
       }}
     >
@@ -186,22 +256,18 @@ export default function MinimalWeekCard({
         </div>
       )}
       {glass && (
-        // Specular light along the top edge, a diagonal glint and a faint bottom glow.
+        /* Subtle Apple-style top-edge glass light */
         <div
           aria-hidden="true"
           data-wallpaper-glass-sheen
-          className="absolute inset-0 z-[1]"
+          className="absolute inset-0 z-[1] pointer-events-none"
           style={{
             borderRadius: radius,
-            backgroundImage: [
-              'radial-gradient(80% 70% at 0% 0%, rgba(255,255,255,0.16), transparent 64%)',
-              'radial-gradient(70% 60% at 100% 100%, rgba(255,255,255,0.08), transparent 62%)',
-              'linear-gradient(180deg, rgba(255,255,255,0.08), transparent 26%, transparent 82%, rgba(255,255,255,0.04))',
-            ].join(', '),
+            backgroundImage: 'linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0) 100%)',
           }}
         />
       )}
-      <div className="relative z-10" style={{ padding: glass ? `16px ${padX}px 16px` : `14px ${padX}px 12px` }}>
+      <div className="relative z-10" style={{ padding: glass ? `16px ${padX}px 14px` : `14px ${padX}px 12px` }}>
         <div data-wallpaper-minimal-text style={{ fontSize: '7.5px', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: muted }}>
           {title}
         </div>
@@ -215,42 +281,84 @@ export default function MinimalWeekCard({
           }}
         >
           {byDay.map(({ day, classes }) => (
-            <div key={day} className="flex flex-col items-center" style={{ gap: '3px', minWidth: 0 }}>
-              <div data-wallpaper-minimal-text style={{ fontSize: '7px', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: strong, marginBottom: '2px' }}>
+            <div key={day} className="flex flex-col items-center" style={{ gap: glass ? '3.5px' : '3px', minWidth: 0 }}>
+              <div
+                data-wallpaper-minimal-text
+                style={{
+                  fontSize: '7px',
+                  fontWeight: 800,
+                  letterSpacing: '0.06em',
+                  textTransform: 'uppercase',
+                  color: strong,
+                  marginBottom: '2px',
+                }}
+              >
                 {t(`shortDays.${day}`)}
               </div>
               {classes.map((course) => {
-                  const code = courseCode(course);
-                  const color = colorFor(code);
-                  const start = startOf(course);
-                  const detail = chipDetail(course);
-                  return (
+                const code = courseCode(course);
+                const color = colorFor(code);
+                const start = startOf(course);
+                const detail = chipDetail(course);
+                const isSingleLine = !showTimes || !detail;
+                return (
+                  <div
+                    key={`${code}-${start}`}
+                    data-export-course-color-code={code}
+                    className="w-full text-center relative overflow-hidden"
+                    style={{
+                      borderRadius: glass ? (isSingleLine ? '9999px' : '10px') : '6px',
+                      padding: glass ? (isSingleLine ? '4px 2px' : '3.5px 1.5px 4px') : '4px 2px 5.5px',
+                      lineHeight: 1.25,
+                      backgroundColor: color.bg,
+                      color: glass ? '#FFFFFF' : color.text,
+                      ...(glass
+                        ? {
+                            border: `1px solid ${color.liquidBorder || 'rgba(255, 255, 255, 0.35)'}`,
+                            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.12)',
+                            backgroundImage: `linear-gradient(180deg, ${color.liquidTop || 'rgba(255,255,255,0.18)'} 0%, ${color.liquidBottom || 'rgba(255,255,255,0.06)'} 100%)`,
+                          }
+                        : {}),
+                    }}
+                  >
                     <div
-                      key={`${code}-${start}`}
-                      data-export-course-color-code={code}
-                      className="w-full text-center"
+                      data-wallpaper-minimal-text
                       style={{
-                        backgroundColor: color.bg,
-                        color: color.text,
-                        borderRadius: glass ? '9px' : '6px',
-                        padding: '4px 2px 5.5px',
-                        lineHeight: 1.3,
-                        ...(glass
-                          ? {
-                              border: `1px solid ${glassStyle.hairline}`,
-                            }
-                          : {}),
+                        position: 'relative',
+                        zIndex: 2,
+                        fontSize: `${codeFontSize}px`,
+                        fontWeight: 800,
+                        letterSpacing: glass ? '-0.02em' : '0.01em',
+                        whiteSpace: 'nowrap',
+                        color: glass ? '#FFFFFF' : color.text,
+                        textShadow: glass ? '0 1px 2px rgba(0, 0, 0, 0.35)' : undefined,
                       }}
                     >
-                      <div data-wallpaper-minimal-text style={{ fontSize: `${codeFontSize}px`, fontWeight: 800, letterSpacing: '0.01em', whiteSpace: 'nowrap' }}>{code}</div>
-                      {showTimes && detail && (
-                        <div data-minimal-chip-detail data-wallpaper-minimal-text style={{ fontSize: `${detailFontSize}px`, fontWeight: 600, opacity: 0.85, marginTop: '1.5px', whiteSpace: 'nowrap' }}>
-                          {shortenDetail(detail)}
-                        </div>
-                      )}
+                      {code}
                     </div>
-                  );
-                })}
+
+                    {showTimes && detail && (
+                      <div
+                        data-minimal-chip-detail
+                        data-wallpaper-minimal-text
+                        style={{
+                          position: 'relative',
+                          zIndex: 2,
+                          fontSize: `${detailFontSize}px`,
+                          fontWeight: 600,
+                          opacity: glass ? 0.88 : 0.85,
+                          marginTop: '1.5px',
+                          whiteSpace: 'nowrap',
+                          color: glass ? 'rgba(255, 255, 255, 0.88)' : undefined,
+                          textShadow: glass ? '0 1px 2px rgba(0, 0, 0, 0.3)' : undefined,
+                        }}
+                      >
+                        {shortenDetail(detail)}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           ))}
         </div>
@@ -258,8 +366,6 @@ export default function MinimalWeekCard({
         {legend.length > 0 && (
           <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: `1px solid ${hairline}`, display: 'grid', rowGap: '4px' }}>
             {legend.map(([code, name]) => (
-              // The colour bar is a text glyph so it shares the code's baseline; box
-              // elements drift above the text in the PNG renderer.
               <div key={code} data-wallpaper-minimal-text style={{ fontSize: '7.5px', lineHeight: 1.4, minWidth: 0, whiteSpace: 'nowrap' }}>
                 <span aria-hidden="true" style={{ color: colorFor(code).bar, marginRight: '5px' }}>{'\u258E'}</span>
                 <span style={{ fontWeight: 800, color: strong }}>{code}</span>{' '}
@@ -274,3 +380,5 @@ export default function MinimalWeekCard({
     </div>
   );
 }
+
+

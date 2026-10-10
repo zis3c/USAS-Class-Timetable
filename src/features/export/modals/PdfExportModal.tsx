@@ -37,7 +37,7 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
   const [exportFileType, setExportFileType] = useState<ExportFileType>('PDF');
 
   // Wallpaper Presets: phone (9:16) | tall phone (9:20) | tablet (4:3) | desktop (16:9) | square (1:1)
-  const [wallpaperPreset, setWallpaperPreset] = useState<WallpaperPreset>('phone');
+  const [wallpaperPreset, setWallpaperPreset] = useState<WallpaperPreset>('phone-tall');
 
   // Content Detail Customizer: 'CODE' | 'DETAILS'
   const [contentDetail, setContentDetail] = useState<ContentDetail>('DETAILS');
@@ -252,8 +252,8 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
   ];
 
   const ratioOptions: Array<{ id: WallpaperPreset; label: string }> = [
-    { id: 'phone', label: `${t('phonePreset')} (9:16)` },
-    { id: 'android', label: `${t('tallPhonePreset')} (9:20)` },
+    { id: 'phone-small', label: `${t('phonePreset')} (9:16)` },
+    { id: 'phone-tall', label: `${t('tallPhonePreset')} (9:20)` },
     { id: 'tablet', label: `${t('tabletPreset')} (4:3)` },
     { id: 'desktop', label: `${t('desktopPreset')} (16:9)` },
     { id: 'square', label: `${t('squarePreset')} (1:1)` },

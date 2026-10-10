@@ -2,11 +2,11 @@ import { extractDayName } from '@/shared/lib/dayFormat';
 import { getOwnRecordValue } from '@/shared/lib/security';
 import { formatTimeFromMinutes, getShortTimeRange } from '@/shared/lib/timetableTime';
 
-export type WallpaperPreset = 'phone' | 'android' | 'tablet' | 'desktop' | 'square';
+export type WallpaperPreset = 'phone-small' | 'phone-tall' | 'tablet' | 'desktop' | 'square';
 
-// Android wallpapers are just a taller phone, so they share the phone layout.
-export const getLayoutPreset = (preset: WallpaperPreset): Exclude<WallpaperPreset, 'android'> =>
-  preset === 'android' ? 'phone' : preset;
+// The taller phone ratio shares the small-phone layout.
+export const getLayoutPreset = (preset: WallpaperPreset): Exclude<WallpaperPreset, 'phone-tall'> =>
+  preset === 'phone-tall' ? 'phone-small' : preset;
 export type ContentDetail = 'CODE' | 'DETAILS';
 export type WallpaperDesign = 'GRID' | 'MINIMAL' | 'GLASS';
 export type ExportTheme = 'light' | 'dark' | 'emerald' | 'oled' | 'warm';
@@ -155,8 +155,8 @@ export type LockscreenThemeConfig = ReturnType<typeof getLockscreenThemeConfig>;
 
 export const getPresetStyle = (wallpaperPreset: WallpaperPreset, detail: ContentDetail = 'DETAILS'): WallpaperPresetStyle => {
   const preset = getLayoutPreset(wallpaperPreset);
-  const base: Record<Exclude<WallpaperPreset, 'android'>, WallpaperPresetStyle> = {
-    phone: {
+  const base: Record<Exclude<WallpaperPreset, 'phone-tall'>, WallpaperPresetStyle> = {
+    'phone-small': {
       tableFontSize: 'text-[5.75px]',
       thPadding: 'p-0.5',
       tdPadding: 'p-0.5',
@@ -204,28 +204,28 @@ export const getPresetStyle = (wallpaperPreset: WallpaperPreset, detail: Content
 
   const detailTweaks: Record<ContentDetail, Partial<Record<WallpaperPreset, Partial<WallpaperPresetStyle>>>> = {
     CODE: {
-      phone: { minH: 'min-h-[24px]', courseTitleSize: 'text-[7.2px] font-black leading-none text-center tracking-tight', durationSize: 'text-[4px] leading-none text-center font-semibold' },
+      'phone-small': { minH: 'min-h-[24px]', courseTitleSize: 'text-[7.2px] font-black leading-none text-center tracking-tight', durationSize: 'text-[4px] leading-none text-center font-semibold' },
       square: { minH: 'min-h-[32px]', courseTitleSize: 'text-[8.4px] font-black leading-none text-center tracking-tight', durationSize: 'text-[4.6px] leading-none text-center font-semibold' },
       tablet: { minH: 'min-h-[38px]', courseTitleSize: 'text-[10px] font-black leading-none text-center tracking-tight', durationSize: 'text-[5.2px] leading-none text-center font-semibold' },
       desktop: { minH: 'min-h-[44px]', courseTitleSize: 'text-[11.8px] font-black leading-none text-center tracking-tight', durationSize: 'text-[5.8px] leading-none text-center font-semibold' },
     },
     DETAILS: {
-      phone: { minH: 'min-h-[26px]', courseTitleSize: 'text-[6.8px] font-black leading-none text-center tracking-tight', courseLocSize: 'text-[3.8px] leading-none text-center font-medium', durationSize: 'text-[3.8px] leading-none text-center font-semibold' },
+      'phone-small': { minH: 'min-h-[26px]', courseTitleSize: 'text-[6.8px] font-black leading-none text-center tracking-tight', courseLocSize: 'text-[3.8px] leading-none text-center font-medium', durationSize: 'text-[3.8px] leading-none text-center font-semibold' },
       square: { minH: 'min-h-[34px]', courseTitleSize: 'text-[8px] font-black leading-none text-center tracking-tight', courseLocSize: 'text-[4.5px] leading-none text-center font-medium', durationSize: 'text-[4.5px] leading-none text-center font-semibold' },
       tablet: { minH: 'min-h-[40px]', courseTitleSize: 'text-[9.4px] font-black leading-none text-center tracking-tight', courseLocSize: 'text-[5.1px] leading-none text-center font-medium', durationSize: 'text-[5px] leading-none text-center font-semibold' },
       desktop: { minH: 'min-h-[46px]', courseTitleSize: 'text-[10.8px] font-black leading-none text-center tracking-tight', courseLocSize: 'text-[5.8px] leading-none text-center font-medium', durationSize: 'text-[5.8px] leading-none text-center font-semibold' },
     },
   };
 
-  const presetBase = getOwnRecordValue<WallpaperPresetStyle>(base, preset) ?? base.phone;
+  const presetBase = getOwnRecordValue<WallpaperPresetStyle>(base, preset) ?? base['phone-small'];
   const detailConfig = getOwnRecordValue<Partial<Record<WallpaperPreset, Partial<WallpaperPresetStyle>>>>(detailTweaks, detail);
   const presetTweaks = detailConfig && getOwnRecordValue<Partial<WallpaperPresetStyle>>(detailConfig, preset);
   return { ...presetBase, ...(presetTweaks || {}) };
 };
 
 export const WALLPAPER_PRESET_SIZES = new Map<WallpaperPreset, { width: number; height: number }>([
-  ['phone', { width: 360, height: 640 }],
-  ['android', { width: 360, height: 800 }],
+  ['phone-small', { width: 360, height: 640 }],
+  ['phone-tall', { width: 360, height: 800 }],
   ['tablet', { width: 520, height: 640 }],
   ['square', { width: 480, height: 480 }],
   ['desktop', { width: 780, height: 480 }],

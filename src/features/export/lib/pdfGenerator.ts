@@ -140,7 +140,11 @@ async function captureElement(
       const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
 
       if (isApple && isWallpaper) {
-        clonedRoot.querySelectorAll('[data-export-time-label], [data-export-course-code]').forEach((node) => {
+        // iOS html2canvas lays out letter-spaced text character-by-character and
+        // mis-spaces it (e.g. "MKG" renders as "MK G"). Reset tracking so the text
+        // is drawn as one run. Covers the grid labels plus the Minimal/Liquid Glass
+        // card text, which previously kept its tracking and broke on iOS exports.
+        clonedRoot.querySelectorAll('[data-export-time-label], [data-export-course-code], [data-wallpaper-minimal-text]').forEach((node) => {
           (node as HTMLElement).style.letterSpacing = 'normal';
         });
       }

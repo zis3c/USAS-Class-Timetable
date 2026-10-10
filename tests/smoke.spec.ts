@@ -816,7 +816,7 @@ test('glass wallpaper design renders a frosted card and exports to PNG', async (
   await page.getByRole('button', { name: /dark theme|light theme|tema gelap|tema terang/i }).click();
   await page.getByRole('button', { name: /oled black|oled hitam/i }).click();
   await expect(card).toHaveAttribute('data-wallpaper-glass-theme', 'oled');
-  await expect(card).toHaveCSS('background-color', 'rgba(0, 0, 0, 0.72)');
+  await expect(card).toHaveCSS('background-color', 'rgba(0, 0, 0, 0.65)');
 
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: /^download$|^muat turun$/i }).click();
@@ -824,7 +824,7 @@ test('glass wallpaper design renders a frosted card and exports to PNG', async (
   expect(download.suggestedFilename().toLowerCase()).toContain('.png');
 });
 
-test('android wallpaper ratio exports a taller 9:20 image', async ({ page }) => {
+test('wallpaper phone ratios: 9:20 default and 9:16 small phone', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/login');
   await page.getByRole('button', { name: /log masuk tanpa akaun|demo/i }).click();
@@ -833,9 +833,10 @@ test('android wallpaper ratio exports a taller 9:20 image', async ({ page }) => 
   await page.getByRole('button', { name: 'Wallpaper', exact: true }).click();
 
   const root = page.locator('[data-export-root="wallpaper-export-root"]');
-  await page.getByRole('button', { name: /phone|telefon.*9:16/i }).click();
-  await page.getByRole('button', { name: /tall phone|telefon tinggi.*9:20/i }).click();
-  await expect(page.getByRole('button', { name: /tall phone|telefon tinggi.*9:20/i }).first()).toBeVisible();
-  // 360px wide at 9:20 is 800px tall.
+  // Tall phone (9:20) is the default; 360px wide at 9:20 is 800px tall.
   await expect.poll(() => root.evaluate((el) => (el as HTMLElement).offsetHeight)).toBe(800);
+  await page.getByRole('button', { name: /9:20/i }).click();
+  await page.getByRole('button', { name: /small phone.*9:16/i }).click();
+  // 360px wide at 9:16 is 640px tall.
+  await expect.poll(() => root.evaluate((el) => (el as HTMLElement).offsetHeight)).toBe(640);
 });

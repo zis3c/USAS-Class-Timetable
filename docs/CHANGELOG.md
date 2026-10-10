@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Adjustable background-blur slider (0–40 px) for custom lockscreen wallpaper images.
 
 ### Fixed
+* iOS lockscreen exports of the Minimal and Liquid Glass designs no longer mis-space letter-tracked text (e.g. course codes rendering as "MK G").
 * Grid (matrix) view now fits the desktop viewport with no horizontal scroll; horizontal swipe is reserved for small screens.
 * Grid-view class-block text scales with row height so every block renders at a consistent, readable size regardless of how many time slots it spans.
 * Minimal and Liquid Glass weekly-card chips truncate long time/room details instead of overflowing into neighbouring chips.
@@ -44,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Resolved all ESLint warnings across the repository.
 
 ### Changed
+* Wallpaper ratios: 9:20 is now the default **Phone** preset, and 9:16 is relabelled **Small Phone**.
 * Labeled phone wallpaper presets by aspect ratio and removed redundant attendance scan footer actions.
 * Deduplicated the global stylesheet.
 * Refactored top navigation with custom language dropdown selector.
