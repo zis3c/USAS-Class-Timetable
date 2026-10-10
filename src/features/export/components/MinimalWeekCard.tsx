@@ -3,6 +3,7 @@ import { extractDayName } from '@/shared/lib/dayFormat';
 import { getCourseColorSlot, type CourseColorSlot } from '@/shared/lib/courseColors';
 import { formatTimeFromMinutes, parseTimeToMinutes } from '@/shared/lib/timetableTime';
 import { getOwnRecordValue } from '@/shared/lib/security';
+import { measureTextWidth } from '../lib/wallpaperExportHelpers';
 
 const WEEK_DAYS = ['ISNIN', 'SELASA', 'RABU', 'KHAMIS', 'JUMAAT', 'SABTU', 'AHAD'] as const;
 
@@ -114,10 +115,6 @@ type MinimalWeekCardProps = {
   background?: { url: string; rootWidth: number; rootHeight: number; left: number; bottom: number };
 };
 
-// The PNG renderer clips text inside overflow:hidden boxes, so long names are
-// shortened here instead of with CSS ellipsis.
-const shortenName = (name: string, max = 42) => (name.length > max ? `${name.slice(0, max - 1).trimEnd()}…` : name);
-
 const hexToRgba = (hex: string, alpha: number) => {
   const value = parseInt(hex.slice(1), 16);
   return `rgba(${(value >> 16) & 255},${(value >> 8) & 255},${value & 255},${alpha})`;
@@ -207,6 +204,33 @@ export default function MinimalWeekCard({
   const legend = Array.from(
     new Map(courses.map((course) => [courseCode(course), course.course_name || course.kursus || ''])).entries(),
   ).filter(([code]) => code);
+
+  // The PNG renderer clips (it can't ellipsize), so trim the class name to the
+  // width it can actually occupy beside the colour bar and course code instead of
+  // a fixed character cap that cut names short even when the card had room.
+  const LEGEND_FONT_PX = 7.5;
+  const legendFont = (weight: number) => `${weight} ${LEGEND_FONT_PX}px Inter, Arial, sans-serif`;
+  const fitLegendName = (code: string, name: string) => {
+    const lower = name.toLowerCase();
+    const fallbackCharWidth = LEGEND_FONT_PX * 0.52;
+    const widthOf = (text: string) => measureTextWidth(text, legendFont(400)) ?? text.length * fallbackCharWidth;
+    const barWidth = widthOf('\u258E') + 5;
+    const codeWidth = measureTextWidth(code, legendFont(800)) ?? code.length * LEGEND_FONT_PX * 0.62;
+    const separatorWidth = widthOf(' \u00b7 ');
+    // `textTransform: capitalize` widens word initials slightly; keep a 2% margin.
+    const budget = (width - padX * 2 - barWidth - codeWidth - separatorWidth) * 0.98;
+    if (budget <= 0) return '';
+    if (widthOf(lower) <= budget) return lower;
+    const ellipsis = '\u2026';
+    const ellipsisWidth = widthOf(ellipsis);
+    let lo = 0;
+    let hi = lower.length;
+    while (lo < hi) {
+      const mid = Math.ceil((lo + hi) / 2);
+      if (widthOf(lower.slice(0, mid)) + ellipsisWidth <= budget) lo = mid; else hi = mid - 1;
+    }
+    return `${lower.slice(0, lo).trimEnd()}${ellipsis}`;
+  };
 
   const muted = glass ? glassStyle.muted : isLight ? '#475569' : 'rgba(255,255,255,0.45)';
   const strong = glass ? glassStyle.strong : isLight ? '#0F172A' : 'rgba(255,255,255,0.92)';
@@ -370,7 +394,7 @@ export default function MinimalWeekCard({
                 <span aria-hidden="true" style={{ color: colorFor(code).bar, marginRight: '5px' }}>{'\u258E'}</span>
                 <span style={{ fontWeight: 800, color: strong }}>{code}</span>{' '}
                 <span style={{ color: muted, whiteSpace: 'nowrap', textTransform: 'capitalize' }}>
-                  · {shortenName(name.toLowerCase())}
+                  · {fitLegendName(code, name)}
                 </span>
               </div>
             ))}

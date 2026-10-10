@@ -244,17 +244,19 @@ export const getWallpaperPresetFileLabel = (preset: WallpaperPreset): string => 
   return getOwnRecordValue<string>(labels, preset) ?? 'PHONE';
 };
 
-// Measures the real rendered width of bold text so the wallpaper can shrink the
-// course code to exactly fit a narrow (single-period) cell.
+// Measures the real rendered width of text so the wallpaper can shrink or trim
+// courses to exactly fit the available space (the PNG renderer cannot ellipsize).
 let codeMeasureCanvas: HTMLCanvasElement | null = null;
-export const measureBoldTextWidth = (text: string, fontSizePx: number): number | null => {
+export const measureTextWidth = (text: string, font: string): number | null => {
   if (typeof document === 'undefined' || !text) return null;
   if (!codeMeasureCanvas) codeMeasureCanvas = document.createElement('canvas');
   const ctx = codeMeasureCanvas.getContext('2d');
   if (!ctx) return null;
-  ctx.font = `900 ${fontSizePx}px Inter, Arial, sans-serif`;
+  ctx.font = font;
   return ctx.measureText(text).width || null;
 };
+export const measureBoldTextWidth = (text: string, fontSizePx: number): number | null =>
+  measureTextWidth(text, `900 ${fontSizePx}px Inter, Arial, sans-serif`);
 
 export const parseTimeToMinutes = (timeStr?: string) => {
   if (!timeStr) return null;
