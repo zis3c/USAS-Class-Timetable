@@ -523,8 +523,15 @@ test('wallpaper export converts OKLab gradient colors for PNG rendering', async 
       return { x: rect.left - rootRect.left, y: rect.top - rootRect.top, width: rect.width, height: rect.height };
     };
     const contents = [...root.querySelectorAll<HTMLElement>('[data-export-course-content]')];
-    const content = contents[0];
+    // Sample the widest block so the comparison is not sensitive to the tiny
+    // text rendered inside narrow single-slot classes.
+    const widthOf = (node: HTMLElement) => node.parentElement!.getBoundingClientRect().width;
+    const content = contents.reduce((widest, node) => (widthOf(node) > widthOf(widest) ? node : widest), contents[0]);
     const blockRect = content.parentElement!.getBoundingClientRect();
+    const within = (selector: string) => {
+      const rect = content.querySelector<HTMLElement>(selector)!.getBoundingClientRect();
+      return { x: rect.left - rootRect.left, y: rect.top - rootRect.top, width: rect.width, height: rect.height };
+    };
     const centerDeltaRatios = contents.map((courseContent) => {
       const courseBlock = courseContent.parentElement!.getBoundingClientRect();
       const centerItems = ['[data-export-course-duration]', '[data-export-course-code]', '[data-export-course-location]']
@@ -542,10 +549,10 @@ test('wallpaper export converts OKLab gradient colors for PNG rendering', async 
       time: bounds('[data-export-time-label]'),
       block: { x: blockRect.left - rootRect.left, y: blockRect.top - rootRect.top, width: blockRect.width, height: blockRect.height },
       maxCenterDeltaRatio: Math.max(...centerDeltaRatios),
-      start: bounds('[data-export-course-time="start"]'),
-      end: bounds('[data-export-course-time="end"]'),
-      duration: bounds('[data-export-course-duration]'),
-      course: bounds('[data-export-course-code]'),
+      start: within('[data-export-course-time="start"]'),
+      end: within('[data-export-course-time="end"]'),
+      duration: within('[data-export-course-duration]'),
+      course: within('[data-export-course-code]'),
     };
   });
   expect(textBounds.start.x).toBeGreaterThan(textBounds.block.x + 1);
