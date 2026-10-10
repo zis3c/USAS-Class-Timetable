@@ -252,8 +252,8 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
   ];
 
   const ratioOptions: Array<{ id: WallpaperPreset; label: string }> = [
-    { id: 'phone-small', label: `${t('phonePreset')} (9:16)` },
-    { id: 'phone-tall', label: `${t('tallPhonePreset')} (9:20)` },
+    { id: 'phone-tall', label: `${t('phonePreset')} (9:20)` },
+    { id: 'phone-small', label: `${t('smallPhonePreset')} (9:16)` },
     { id: 'tablet', label: `${t('tabletPreset')} (4:3)` },
     { id: 'desktop', label: `${t('desktopPreset')} (16:9)` },
     { id: 'square', label: `${t('squarePreset')} (1:1)` },

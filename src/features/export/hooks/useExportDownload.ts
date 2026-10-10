@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { generateElementPng, generateLockscreenImage, generateTimetablePdf } from '@/features/export/lib/pdfGenerator';
 import type { LanguageCode } from '@/shared/types/usas';
-import type { ExportTheme, WallpaperPreset } from '../lib/wallpaperExportHelpers';
+import {
+  getWallpaperPresetFileLabel,
+  type ExportTheme,
+  type WallpaperPreset,
+} from '../lib/wallpaperExportHelpers';
 
 type ExportDownloadOptions = {
   mode: 'FORMAL_A4' | 'WALLPAPER';
@@ -56,7 +60,7 @@ export function useExportDownload({ mode, fileType, preset, theme, matricNo, lan
       await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
 
       if (mode === 'WALLPAPER') {
-        const filename = `USAS_Wallpaper_${preset.toUpperCase()}_${theme.toUpperCase()}_${matricNo || 'USAS'}.png`;
+        const filename = `USAS_Wallpaper_${getWallpaperPresetFileLabel(preset)}_${theme.toUpperCase()}_${matricNo || 'USAS'}.png`;
         await generateLockscreenImage(wallpaperRef.current, filename, updateExportProgress);
       } else if (fileType === 'PNG') {
         const filename = `Jadual_USAS_Formal_${matricNo || 'USAS'}_LANDSCAPE.png`;

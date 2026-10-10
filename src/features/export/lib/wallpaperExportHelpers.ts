@@ -231,6 +231,19 @@ export const WALLPAPER_PRESET_SIZES = new Map<WallpaperPreset, { width: number; 
   ['desktop', { width: 780, height: 480 }],
 ]);
 
+// Friendly, locale-independent segment used in the downloaded file name so the
+// 9:20 preset reads as "PHONE" and the 9:16 preset as "SMALL_PHONE".
+export const getWallpaperPresetFileLabel = (preset: WallpaperPreset): string => {
+  const labels: Record<WallpaperPreset, string> = {
+    'phone-tall': 'PHONE',
+    'phone-small': 'SMALL_PHONE',
+    tablet: 'TABLET',
+    desktop: 'DESKTOP',
+    square: 'SQUARE',
+  };
+  return getOwnRecordValue<string>(labels, preset) ?? 'PHONE';
+};
+
 // Measures the real rendered width of bold text so the wallpaper can shrink the
 // course code to exactly fit a narrow (single-period) cell.
 let codeMeasureCanvas: HTMLCanvasElement | null = null;
