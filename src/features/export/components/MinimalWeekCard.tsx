@@ -126,6 +126,20 @@ export default function MinimalWeekCard({
   const shownCourses = byDay.flatMap(({ classes }) => classes);
   const codeFontSize = fitFont(shownCourses.map(courseCode), 8.5, 0.68);
   const detailFontSize = fitFont(shownCourses.map(chipDetail), 6.5, 0.6);
+  // The detail font can't shrink below the 4px floor, so when a chip is narrow
+  // (e.g. many class days), trim the text instead of letting it bleed past the chip.
+  const detailMaxChars = Math.max(5, Math.floor(chipTextWidth / Math.max(1, detailFontSize) / 0.6));
+  const shortenDetail = (text: string) => {
+    if (text.length <= detailMaxChars) return text;
+    const separator = text.indexOf(' | ');
+    if (separator > 0) {
+      const prefix = text.slice(0, separator + 3);
+      const room = text.slice(separator + 3);
+      const roomMax = Math.max(1, detailMaxChars - prefix.length - 1);
+      return `${prefix}${room.slice(0, roomMax).trimEnd()}…`;
+    }
+    return `${text.slice(0, Math.max(1, detailMaxChars - 1)).trimEnd()}…`;
+  };
 
   const legend = Array.from(
     new Map(courses.map((course) => [courseCode(course), course.course_name || course.kursus || ''])).entries(),
@@ -231,7 +245,7 @@ export default function MinimalWeekCard({
                       <div data-wallpaper-minimal-text style={{ fontSize: `${codeFontSize}px`, fontWeight: 800, letterSpacing: '0.01em', whiteSpace: 'nowrap' }}>{code}</div>
                       {showTimes && detail && (
                         <div data-minimal-chip-detail data-wallpaper-minimal-text style={{ fontSize: `${detailFontSize}px`, fontWeight: 600, opacity: 0.85, marginTop: '1.5px', whiteSpace: 'nowrap' }}>
-                          {detail}
+                          {shortenDetail(detail)}
                         </div>
                       )}
                     </div>

@@ -46,9 +46,11 @@
   border-color: rgba(255, 255, 255, 0.1);
 }
 
-/* Matrix timetable cards */
+/* Matrix timetable cards. The card is a size query container; text scales with
+   the row HEIGHT so every block in the grid stays the same size regardless of
+   how many time slots it spans. */
 .matrix-course-card {
-  container-type: inline-size;
+  container-type: size;
   gap: 4px;
   padding: 6px 8px;
 }
@@ -57,18 +59,21 @@
   line-height: 1.1;
 }
 
+/* Font sizes scale with the row height (cqh = 1% of the card height), so all
+   blocks share the same text size while taller rows (smaller timetable) get
+   bigger, more readable text. */
 .matrix-course-code {
-  font-size: 10px;
+  font-size: clamp(10px, 13cqh, 14.5px);
   line-height: 1.1;
 }
 
 .matrix-course-duration {
-  font-size: 7px;
+  font-size: clamp(7px, 7.5cqh, 9.5px);
   line-height: 1.1;
 }
 
 .matrix-course-time {
-  font-size: 9px;
+  font-size: clamp(9px, 10.5cqh, 12px);
   line-height: 1.1;
 }
 
@@ -76,8 +81,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 8px;
-  line-height: 1.1;
+  font-size: clamp(8px, 9.5cqh, 11px);
+  line-height: 1.15;
 }
 
 .matrix-course-title {
@@ -85,13 +90,21 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: 9px;
-  line-height: 1.15;
+  font-size: clamp(9px, 12cqh, 13.5px);
+  line-height: 1.2;
 }
 
 .matrix-course-test-label {
   opacity: 0;
   font-size: 7px;
+}
+
+/* Desktop: fit the grid to the screen (no horizontal scroll).
+   Small screens keep the wide min-width so the grid can slide horizontally. */
+@media (min-width: 1024px) {
+  .matrix-grid-viewport {
+    min-width: 0 !important;
+  }
 }
 
 /* Navbar */

@@ -48,31 +48,34 @@ test('demo login opens timetable and export modal', async ({ page }) => {
   await expect(page.getByText(/eksport pdf & wallpaper|export pdf & wallpaper/i)).toBeVisible();
 
   await page.getByRole('button', { name: /eksport pdf & wallpaper|export pdf & wallpaper/i }).click();
-  await expect(page.getByText(/muat turun jadual|download timetable/i)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Wallpaper', exact: true })).toBeVisible();
 
   await expect(page.getByRole('button', { name: /^PDF$/i })).toBeVisible();
   await expect(page.getByRole('button', { name: /^PNG$/i })).toBeVisible();
   await expect(page.getByRole('button', { name: /^download$|^muat turun$/i })).toBeVisible();
 });
 
-test('matrix view positions classes accurately to the minute', async ({ page }) => {
+test('matrix view positions classes across adaptive time slots', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /log in|log masuk/i }).first().click();
   await page.getByRole('button', { name: /log masuk tanpa akaun|demo/i }).click();
   await page.getByTitle('Paparan Grid').click();
 
-  const firstHour = page.locator('[data-matrix-time-slot="20:00"]');
-  const halfHourClass = page.locator('[data-matrix-course-code="KOM6363"][data-matrix-course-start="08:30 PM"]');
-  await expect(firstHour).toBeVisible();
-  expect(await firstHour.textContent()).toMatch(/^20-\d{2}$/);
+  const slot14 = page.locator('[data-matrix-time-slot="14:00"]');
+  await expect(slot14).toBeVisible();
+  expect(await slot14.textContent()).toMatch(/^14-\d{2}$/);
+  // Adaptive slots keep the empty 12:00-14:00 gap and shrink the trailing hour to 60 min.
   const dynamicSlots = await page.locator('[data-matrix-time-range]').evaluateAll((nodes) =>
     nodes.map((node) => node.getAttribute('data-matrix-time-range')!.split('-').map(Number)));
+  expect(dynamicSlots).toContainEqual([1080, 1140]);
   expect(dynamicSlots.some(([start, end]) => end - start > 60)).toBe(true);
-  await expect(halfHourClass).toHaveCount(1);
-  await expect(halfHourClass).toHaveAttribute('data-matrix-course-time', '20:30-23:30');
-  await expect(halfHourClass.locator('[data-matrix-course-start-label]')).toHaveText('20:30');
-  await expect(halfHourClass.locator('[data-matrix-course-end-label]')).toHaveText('23:30');
-  const timeLabelPositions = await halfHourClass.evaluate((block) => {
+
+  const threeHourClass = page.locator('[data-matrix-course-code="KOM6373"][data-matrix-course-start="02:00 PM"]');
+  await expect(threeHourClass).toHaveCount(1);
+  await expect(threeHourClass).toHaveAttribute('data-matrix-course-time', '14:00-17:00');
+  await expect(threeHourClass.locator('[data-matrix-course-start-label]')).toHaveText('14:00');
+  await expect(threeHourClass.locator('[data-matrix-course-end-label]')).toHaveText('17:00');
+  const timeLabelPositions = await threeHourClass.evaluate((block) => {
     const start = block.querySelector('[data-matrix-course-start-label]')!.getBoundingClientRect();
     const end = block.querySelector('[data-matrix-course-end-label]')!.getBoundingClientRect();
     return { startTop: start.top, endTop: end.top, rightDelta: Math.abs(start.right - end.right) };
@@ -81,20 +84,20 @@ test('matrix view positions classes accurately to the minute', async ({ page }) 
   expect(timeLabelPositions.rightDelta).toBeLessThan(1);
 
   const geometry = await Promise.all([
-    firstHour.boundingBox(),
-    halfHourClass.boundingBox(),
+    slot14.boundingBox(),
+    threeHourClass.boundingBox(),
   ]);
-  const [hourBounds, classBounds] = geometry;
-  expect(hourBounds).not.toBeNull();
+  const [slotBounds, classBounds] = geometry;
+  expect(slotBounds).not.toBeNull();
   expect(classBounds).not.toBeNull();
-  expect(classBounds!.x - hourBounds!.x).toBeGreaterThan(hourBounds!.width * 0.2);
-  expect(classBounds!.x - hourBounds!.x).toBeLessThan(hourBounds!.width * 0.3);
-  expect(classBounds!.width / hourBounds!.width).toBeGreaterThan(1.4);
-  expect(classBounds!.width / hourBounds!.width).toBeLessThan(1.6);
+  // A 3-hour class starts flush with the 14:00 slot and spans 1.5 slot widths.
+  expect(Math.abs(classBounds!.x - slotBounds!.x)).toBeLessThan(slotBounds!.width * 0.05);
+  expect(classBounds!.width / slotBounds!.width).toBeGreaterThan(1.4);
+  expect(classBounds!.width / slotBounds!.width).toBeLessThan(1.6);
 
-  const onePeriodClass = page.locator('[data-matrix-course-code="CSE6013"][data-matrix-course-start="04:00 PM"]');
-  await expect(onePeriodClass).toHaveAttribute('data-matrix-course-compact', 'true');
-  const compactLayout = await onePeriodClass.evaluate((block) => {
+  // Time labels stay inside a narrow single-slot class without overlapping the code.
+  const narrowClass = page.locator('[data-matrix-course-code="RKS6093"][data-matrix-course-start="08:00 AM"]');
+  const compactLayout = await narrowClass.evaluate((block) => {
     const bounds = (selector: string) => {
       const rect = block.querySelector(selector)!.getBoundingClientRect();
       return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom };
@@ -116,7 +119,7 @@ test('wallpaper controls wrap into two columns at tablet width', async ({ page }
   await page.getByRole('button', { name: /log masuk tanpa akaun|demo/i }).click();
   await page.getByRole('button', { name: /open tools and export/i }).click();
   await page.getByRole('button', { name: /eksport pdf & wallpaper|export pdf & wallpaper/i }).click();
-  await page.getByRole('button', { name: /wallpaper lockscreen/i }).click();
+  await page.getByRole('button', { name: 'Wallpaper', exact: true }).click();
 
   const controls = page.locator('[data-wallpaper-controls]');
   await expect(controls).toBeVisible();
@@ -135,7 +138,7 @@ test('wallpaper position controls fit inside the export toolbar on laptop', asyn
   await page.getByRole('button', { name: /log masuk tanpa akaun|demo/i }).click();
   await page.getByRole('button', { name: /open tools and export/i }).click();
   await page.getByRole('button', { name: /eksport pdf & wallpaper|export pdf & wallpaper/i }).click();
-  await page.getByRole('button', { name: /wallpaper lockscreen/i }).click();
+  await page.getByRole('button', { name: 'Wallpaper', exact: true }).click();
 
   const controls = page.locator('[data-wallpaper-controls]');
   const layout = await controls.evaluate((element) => {
@@ -177,7 +180,7 @@ test('wallpaper day labels brighten only when custom background behind them is b
   await page.getByRole('button', { name: /log masuk tanpa akaun|demo/i }).click();
   await page.getByRole('button', { name: /open tools and export/i }).click();
   await page.getByRole('button', { name: /eksport pdf & wallpaper|export pdf & wallpaper/i }).click();
-  await page.getByRole('button', { name: /wallpaper lockscreen/i }).click();
+  await page.getByRole('button', { name: 'Wallpaper', exact: true }).click();
   await page.getByText(/light theme|dark theme|tema terang|tema gelap/i).first().click();
   await page.getByRole('button', { name: /dark theme|tema gelap/i }).last().click();
 
@@ -221,7 +224,7 @@ test('custom lockscreen background stays sharp outside the blurred glass timetab
   await page.getByRole('button', { name: /log masuk tanpa akaun|demo/i }).click();
   await page.getByRole('button', { name: /open tools and export/i }).click();
   await page.getByRole('button', { name: /eksport pdf & wallpaper|export pdf & wallpaper/i }).click();
-  await page.getByRole('button', { name: /wallpaper lockscreen/i }).click();
+  await page.getByRole('button', { name: 'Wallpaper', exact: true }).click();
 
   await page.getByLabel(/choose background image|pilih gambar latar/i).setInputFiles('public/usas-logo-light.png');
   const background = page.locator('[data-wallpaper-background-layer]');
@@ -308,12 +311,12 @@ test('time format preference persists for the signed-in user', async ({ page }) 
   expect(new Set(gridPeriodLabels.map((label) => label.length)).size).toBeGreaterThan(1);
   expect(gridPeriodLabels).toContain('10-12');
   expect(gridPeriodLabels).toContain('12-2');
-  expect(gridPeriodLabels).toContain('2-3');
+  expect(gridPeriodLabels).toContain('2-4');
   const gridCourseTimes = page.locator('[data-matrix-course-start-label], [data-matrix-course-end-label]');
   expect((await gridCourseTimes.allTextContents()).join(' ')).toMatch(/\b(AM|PM)\b/i);
   await page.getByRole('button', { name: /open tools and export/i }).click();
   await page.getByRole('button', { name: /eksport pdf & wallpaper|export pdf & wallpaper/i }).click();
-  await page.getByRole('button', { name: /wallpaper lockscreen/i }).click();
+  await page.getByRole('button', { name: 'Wallpaper', exact: true }).click();
   const wallpaperTimes = page.locator('[data-export-time-label], [data-export-course-time]');
   await expect(wallpaperTimes.first()).toBeVisible();
   expect((await wallpaperTimes.allTextContents()).join(' ')).not.toMatch(/\b(AM|PM)\b/i);
@@ -324,10 +327,11 @@ test('time format preference persists for the signed-in user', async ({ page }) 
 });
 
 test('class reminder chime does not replay after a page refresh', async ({ page, context }) => {
-  const nextWednesday = new Date();
-  nextWednesday.setDate(nextWednesday.getDate() + ((3 - nextWednesday.getDay() + 7) % 7));
-  nextWednesday.setHours(13, 50, 0, 0);
-  await page.clock.install({ time: nextWednesday });
+  // Demo timetable has a Thursday 10:00 class, so the 10-minute reminder fires at 09:50.
+  const nextThursday = new Date();
+  nextThursday.setDate(nextThursday.getDate() + ((4 - nextThursday.getDay() + 7) % 7));
+  nextThursday.setHours(9, 50, 0, 0);
+  await page.clock.install({ time: nextThursday });
   await context.grantPermissions(['notifications']);
   await page.addInitScript(() => {
     localStorage.setItem('usas_auto_notify', 'true');
@@ -452,7 +456,7 @@ test('wallpaper export converts OKLab gradient colors for PNG rendering', async 
   await page.getByRole('button', { name: /log masuk tanpa akaun|demo/i }).click();
   await page.getByRole('button', { name: /open tools and export/i }).click();
   await page.getByRole('button', { name: /eksport pdf & wallpaper|export pdf & wallpaper/i }).click();
-  await page.getByRole('button', { name: /wallpaper lockscreen/i }).click();
+  await page.getByRole('button', { name: 'Wallpaper', exact: true }).click();
   await expect(page.locator('[data-wallpaper-grid]')).toHaveCSS('border-top-left-radius', '12px');
   await expect(page.locator('[data-wallpaper-grid]')).toHaveCSS('border-left-width', '0px');
   await expect(page.locator('[data-wallpaper-grid]')).toHaveCSS('border-right-width', '0px');
@@ -466,7 +470,7 @@ test('wallpaper export converts OKLab gradient colors for PNG rendering', async 
     colors.add(color);
     courseColorSets.set(course, colors);
   }
-  expect(courseColorSets.size, JSON.stringify([...courseColorSets.keys()])).toBe(5);
+  expect(courseColorSets.size, JSON.stringify([...courseColorSets.keys()])).toBe(6);
   expect([...courseColorSets.values()].every((colors) => colors.size === 1)).toBe(true);
   expect(new Set([...courseColorSets.values()].map((colors) => [...colors][0])).size).toBe(courseColorSets.size);
   const headerColumns = await page.locator('[data-export-time-label]').evaluateAll((labels) => labels.map((label) => {
@@ -481,10 +485,10 @@ test('wallpaper export converts OKLab gradient colors for PNG rendering', async 
     };
   }));
   expect(headerColumns.length).toBeGreaterThan(0);
-  expect(headerColumns.length).toBe(7);
-  expect(headerColumns.reduce((total, { duration }) => total + duration, 0)).toBe(10 * 60);
+  expect(headerColumns.length).toBe(5);
+  expect(headerColumns.reduce((total, { duration }) => total + duration, 0)).toBe(9 * 60);
   expect(headerColumns.some(({ duration }) => duration < 120)).toBe(true);
-  expect(headerColumns.at(-1)?.label).toContain('24');
+  expect(headerColumns.at(-1)?.label).toBe('18-19');
   const headerWidths = headerColumns.map(({ width }) => width);
   expect(Math.max(...headerWidths) - Math.min(...headerWidths)).toBeLessThan(1);
   expect(headerColumns.every(({ availableWidth, labelWidth }) => availableWidth >= labelWidth), JSON.stringify(headerColumns)).toBe(true);
@@ -561,7 +565,7 @@ test('wallpaper export converts OKLab gradient colors for PNG rendering', async 
   await page.getByRole('button', { name: /^download$|^muat turun$/i }).click();
   const download = await downloadPromise;
 
-  expect(download.suggestedFilename().toLowerCase()).toContain('lockscreen');
+  expect(download.suggestedFilename().toLowerCase()).toContain('wallpaper');
   const stream = await download.createReadStream();
   if (!stream) throw new Error('Wallpaper download has no stream.');
   const chunks: Buffer[] = [];
@@ -668,7 +672,7 @@ test('wallpaper class blocks stay centered at maximum position', async ({ page }
   await page.getByRole('button', { name: /log masuk tanpa akaun|demo/i }).click();
   await page.getByRole('button', { name: /open tools and export/i }).click();
   await page.getByRole('button', { name: /eksport pdf & wallpaper|export pdf & wallpaper/i }).click();
-  await page.getByRole('button', { name: /wallpaper lockscreen/i }).click();
+  await page.getByRole('button', { name: 'Wallpaper', exact: true }).click();
   await page.getByRole('slider', { name: /adjust timetable top space|laraskan ruang atas/i }).press('End');
   await page.getByRole('slider', { name: /adjust timetable bottom space|laraskan ruang bawah/i }).press('End');
   await expect(page.getByRole('slider', { name: /adjust timetable top space|laraskan ruang atas/i })).toHaveValue('216');
@@ -742,16 +746,16 @@ test('minimal wallpaper design shows a week card and exports to PNG', async ({ p
   await page.getByRole('button', { name: /log masuk tanpa akaun|demo/i }).click();
   await page.getByRole('button', { name: /open tools and export/i }).click();
   await page.getByRole('button', { name: /eksport pdf & wallpaper|export pdf & wallpaper/i }).click();
-  await page.getByRole('button', { name: /wallpaper lockscreen/i }).click();
+  await page.getByRole('button', { name: 'Wallpaper', exact: true }).click();
 
   await page.getByRole('button', { name: /^(minimal|minimalis)$/i }).click();
   const card = page.locator('[data-wallpaper-minimal-card]');
   await expect(card).toBeVisible();
   await expect(page.locator('[data-wallpaper-grid]')).toHaveCount(0);
-  await expect(card.locator('[data-export-course-color-code]')).toHaveCount(7);
+  await expect(card.locator('[data-export-course-color-code]')).toHaveCount(6);
   await expect(page.getByRole('slider', { name: /adjust timetable bottom space|laraskan ruang bawah jadual/i })).toHaveValue('47');
-  // Demo data has no weekend classes, so those days are left out.
-  await expect(card.getByText(/^(sun|ahd|sat|sab)$/i)).toHaveCount(0);
+  // Demo classes run Monday to Saturday, so Saturday is included.
+  await expect(card.getByText(/^sat$/i)).toHaveCount(1);
   // Time and room stay on one line inside each chip.
   const overflow = await card.locator('[data-minimal-chip-detail]').evaluateAll((lines) =>
     lines.filter((line) => line.getBoundingClientRect().right > line.parentElement!.getBoundingClientRect().right + 0.5
@@ -788,7 +792,7 @@ test('glass wallpaper design renders a frosted card and exports to PNG', async (
   await page.getByRole('button', { name: /log masuk tanpa akaun|demo/i }).click();
   await page.getByRole('button', { name: /open tools and export/i }).click();
   await page.getByRole('button', { name: /eksport pdf & wallpaper|export pdf & wallpaper/i }).click();
-  await page.getByRole('button', { name: /wallpaper lockscreen/i }).click();
+  await page.getByRole('button', { name: 'Wallpaper', exact: true }).click();
 
   await page.getByRole('button', { name: /^(liquid glass|kaca cecair)$/i }).click();
   const card = page.locator('[data-wallpaper-minimal-card]');
@@ -800,7 +804,7 @@ test('glass wallpaper design renders a frosted card and exports to PNG', async (
   await expect(card).toHaveAttribute('data-wallpaper-glass-theme', 'dark');
 
   await page.getByRole('button', { name: /dark theme|light theme|tema gelap|tema terang/i }).click();
-  await page.getByRole('button', { name: /oled theme|tema oled/i }).click();
+  await page.getByRole('button', { name: /oled black|oled hitam/i }).click();
   await expect(card).toHaveAttribute('data-wallpaper-glass-theme', 'oled');
   await expect(card).toHaveCSS('background-color', 'rgba(0, 0, 0, 0.72)');
 
@@ -816,7 +820,7 @@ test('android wallpaper ratio exports a taller 9:20 image', async ({ page }) => 
   await page.getByRole('button', { name: /log masuk tanpa akaun|demo/i }).click();
   await page.getByRole('button', { name: /open tools and export/i }).click();
   await page.getByRole('button', { name: /eksport pdf & wallpaper|export pdf & wallpaper/i }).click();
-  await page.getByRole('button', { name: /wallpaper lockscreen/i }).click();
+  await page.getByRole('button', { name: 'Wallpaper', exact: true }).click();
 
   const root = page.locator('[data-export-root="wallpaper-export-root"]');
   await page.getByRole('button', { name: /phone|telefon.*9:16/i }).click();

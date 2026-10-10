@@ -142,7 +142,7 @@ export default function MatrixGridView({
       isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-white/[0.025] border-white/[0.06]'
     }`}>
       <div
-        className="flex-1 overflow-y-auto flex flex-col"
+        className="matrix-grid-viewport flex-1 overflow-y-auto flex flex-col"
         style={{ minWidth: `${tableMinWidth}px` }}
         onScroll={() => { if (preview) setPreview(null); }}
       >
@@ -150,7 +150,7 @@ export default function MatrixGridView({
           <colgroup>
             <col style={{ width: `${DAY_COL_WIDTH}px` }} />
             {activeTimeSlots.map((slot) => (
-              <col key={slot.start} style={{ width: `${SLOT_COL_WIDTH}px` }} />
+              <col key={slot.start} />
             ))}
           </colgroup>
           {/* Head - Transposed: Time slots as columns */}

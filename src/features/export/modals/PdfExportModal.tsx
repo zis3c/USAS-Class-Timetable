@@ -55,6 +55,7 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
   const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
   const [wallpaperTopAdjustment, setWallpaperTopAdjustment] = useState(0);
   const [wallpaperBottomAdjustment, setWallpaperBottomAdjustment] = useState(0);
+  const [wallpaperBackgroundBlur, setWallpaperBackgroundBlur] = useState(16);
 
   useEffect(() => {
     if (isOpen) {
@@ -163,6 +164,7 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
     wallpaperPreset,
     wallpaperTopAdjustment,
     wallpaperBottomAdjustment,
+    wallpaperBackgroundBlur,
     daysList,
   });
 
@@ -573,6 +575,26 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
                       )}
                     </div>
                     {wallpaperBackgroundError && <span role="alert" className="text-[9px] text-rose-400">{t(wallpaperBackgroundError)}</span>}
+                    {wallpaperBackground && (
+                      <label className={`rounded-lg border px-2 py-1 ${isLight
+                        ? 'bg-white border-slate-200'
+                        : 'bg-white/[0.04] border-white/10'
+                      }`}>
+                        <span className={`flex justify-between gap-1 text-[9px] font-semibold ${isLight ? 'text-slate-500' : 'text-white/55'}`}>
+                          <span>{t('wallpaperBackgroundBlur')}</span><span>{wallpaperBackgroundBlur}px</span>
+                        </span>
+                        <input
+                          type="range"
+                          min={0}
+                          max={40}
+                          step={1}
+                          value={wallpaperBackgroundBlur}
+                          onChange={(e) => setWallpaperBackgroundBlur(Number(e.target.value))}
+                          className={`usas-range w-full cursor-pointer ${isLight ? '' : 'usas-range-dark'}`}
+                          aria-label={t('adjustWallpaperBlurAria')}
+                        />
+                      </label>
+                    )}
                   </div>
                 )}
 

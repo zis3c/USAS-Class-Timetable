@@ -8,12 +8,13 @@ type WallpaperBackgroundOptions = {
   wallpaperPreset: WallpaperPreset;
   wallpaperTopAdjustment: number;
   wallpaperBottomAdjustment: number;
+  wallpaperBackgroundBlur: number;
   daysList: string[];
 };
 
 export function useWallpaperBackground({
   wallpaperRef, exportMode, exportTheme, wallpaperPreset,
-  wallpaperTopAdjustment, wallpaperBottomAdjustment, daysList,
+  wallpaperTopAdjustment, wallpaperBottomAdjustment, wallpaperBackgroundBlur, daysList,
 }: WallpaperBackgroundOptions) {
   const [wallpaperBackground, setWallpaperBackground] = useState('');
   const [wallpaperBackgroundBlurred, setWallpaperBackgroundBlurred] = useState('');
@@ -22,9 +23,63 @@ export function useWallpaperBackground({
   const [brightDayLabels, setBrightDayLabels] = useState<Set<number>>(() => new Set());
   const wallpaperBackgroundInputRef = useRef<HTMLInputElement>(null);
   const wallpaperBackgroundUrlsRef = useRef<string[]>([]);
+  // Keep the decoded source image so the blur can be re-rendered without
+  // re-reading the file the user picked.
+  const sourceImageRef = useRef<HTMLImageElement | null>(null);
+  const lastBlurRef = useRef(wallpaperBackgroundBlur);
+
   useEffect(() => () => {
     wallpaperBackgroundUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
   }, []);
+
+  // Renders the source image onto a canvas with a Gaussian blur whose radius is
+  // expressed in the wallpaper's on-screen pixels (blurStrength px), then returns
+  // an object URL. html2canvas strips CSS filters on export, so the blur must be
+  // baked into the bitmap the preview uses.
+  const renderBlurredUrl = async (image: HTMLImageElement, blurStrength: number): Promise<string | null> => {
+    const maxDimension = Math.max(image.naturalWidth, image.naturalHeight);
+    const blurScale = Math.min(1, 2048 / maxDimension);
+    const blurWidth = Math.max(1, Math.round(image.naturalWidth * blurScale));
+    const blurHeight = Math.max(1, Math.round(image.naturalHeight * blurScale));
+    const blurProbe = document.createElement('canvas');
+    blurProbe.width = blurProbe.height = 5;
+    const probeContext = blurProbe.getContext('2d');
+    let supportsCanvasBlur = false;
+    if (probeContext) {
+      probeContext.filter = 'blur(1px)';
+      probeContext.fillStyle = '#000';
+      probeContext.fillRect(2, 2, 1, 1);
+      supportsCanvasBlur = probeContext.getImageData(1, 2, 1, 1).data[3] > 0;
+    }
+    blurProbe.width = blurProbe.height = 0;
+
+    const root = wallpaperRef.current;
+    const rootWidth = root?.offsetWidth || blurWidth;
+    const rootHeight = root?.offsetHeight || blurHeight;
+    const scale = Math.max(rootWidth / blurWidth, rootHeight / blurHeight) || 1;
+    const blurRadius = Math.max(0, Math.min(64, blurStrength / scale));
+    const pad = Math.ceil(blurRadius * 2);
+    const canvas = document.createElement('canvas');
+    canvas.width = blurWidth;
+    canvas.height = blurHeight;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Canvas unavailable');
+    if (supportsCanvasBlur && blurRadius > 0) context.filter = `blur(${blurRadius}px)`;
+    context.drawImage(image, -pad, -pad, blurWidth + pad * 2, blurHeight + pad * 2);
+
+    let blob: Blob | null;
+    if (!supportsCanvasBlur) {
+      const imageData = canvas.toDataURL('image/png');
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${blurWidth}" height="${blurHeight}" viewBox="0 0 ${blurWidth} ${blurHeight}"><defs><filter id="blur" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="${blurRadius}"/></filter></defs><image href="${imageData}" width="100%" height="100%" filter="url(#blur)"/></svg>`;
+      blob = new Blob([svg], { type: 'image/svg+xml' });
+    } else {
+      blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+    }
+    canvas.width = 0;
+    canvas.height = 0;
+    if (!blob) throw new Error('Could not encode wallpaper background.');
+    return URL.createObjectURL(blob);
+  };
 
   const loadWallpaperBackground = async (file?: File) => {
     setWallpaperBackgroundError('');
@@ -39,72 +94,57 @@ export function useWallpaperBackground({
     }
 
     const objectUrl = URL.createObjectURL(file);
-    let blurredCanvas: HTMLCanvasElement | null = null;
     let blurredUrl = '';
-    let retainedUrls = false;
-    let supportsCanvasBlur = false;
     try {
       const image = new Image();
       image.src = objectUrl;
       await image.decode();
-      const maxDimension = Math.max(image.naturalWidth, image.naturalHeight);
-      const blurScale = Math.min(1, 2048 / maxDimension);
-      const blurWidth = Math.max(1, Math.round(image.naturalWidth * blurScale));
-      const blurHeight = Math.max(1, Math.round(image.naturalHeight * blurScale));
-      const blurProbe = document.createElement('canvas');
-      blurProbe.width = blurProbe.height = 5;
-      const probeContext = blurProbe.getContext('2d');
-      if (probeContext) {
-        probeContext.filter = 'blur(1px)';
-        probeContext.fillStyle = '#000';
-        probeContext.fillRect(2, 2, 1, 1);
-        supportsCanvasBlur = probeContext.getImageData(1, 2, 1, 1).data[3] > 0;
-      }
-      blurProbe.width = blurProbe.height = 0;
 
-      const root = wallpaperRef.current;
-      const rootWidth = root?.offsetWidth || blurWidth;
-      const rootHeight = root?.offsetHeight || blurHeight;
-      const blurRadius = Math.max(1, Math.min(64, 16 / Math.max(rootWidth / blurWidth, rootHeight / blurHeight)));
-      const pad = Math.ceil(blurRadius * 2);
-      blurredCanvas = document.createElement('canvas');
-      blurredCanvas.width = blurWidth;
-      blurredCanvas.height = blurHeight;
-      const blurredContext = blurredCanvas.getContext('2d');
-      if (!blurredContext) throw new Error('Canvas unavailable');
-      if (supportsCanvasBlur) blurredContext.filter = `blur(${blurRadius}px)`;
-      blurredContext.drawImage(image, -pad, -pad, blurWidth + pad * 2, blurHeight + pad * 2);
+      blurredUrl = (await renderBlurredUrl(image, wallpaperBackgroundBlur)) || '';
+      if (!blurredUrl) throw new Error('Could not render wallpaper blur.');
 
-      let blurredBlob: Blob | null;
-      if (!supportsCanvasBlur) {
-        const imageData = blurredCanvas.toDataURL('image/png');
-        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${blurWidth}" height="${blurHeight}" viewBox="0 0 ${blurWidth} ${blurHeight}"><defs><filter id="blur" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="${blurRadius}"/></filter></defs><image href="${imageData}" width="100%" height="100%" filter="url(#blur)"/></svg>`;
-        blurredBlob = new Blob([svg], { type: 'image/svg+xml' });
-      } else {
-        blurredBlob = await new Promise<Blob | null>((resolve) => blurredCanvas!.toBlob(resolve, 'image/png'));
-      }
-      if (!blurredBlob) throw new Error('Could not encode wallpaper background.');
-
-      blurredUrl = URL.createObjectURL(blurredBlob);
       wallpaperBackgroundUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
       wallpaperBackgroundUrlsRef.current = [objectUrl, blurredUrl];
-      retainedUrls = true;
+      lastBlurRef.current = wallpaperBackgroundBlur;
+      sourceImageRef.current = image;
       setWallpaperBackground(objectUrl);
       setWallpaperBackgroundBlurred(blurredUrl);
       setWallpaperBackgroundName(file.name);
     } catch {
       setWallpaperBackgroundError('wallpaperImageLoadFailed');
-      if (!retainedUrls) {
-        URL.revokeObjectURL(objectUrl);
-        if (blurredUrl) URL.revokeObjectURL(blurredUrl);
-      }
-    } finally {
-      if (blurredCanvas) {
-        blurredCanvas.width = 0;
-        blurredCanvas.height = 0;
-      }
+      URL.revokeObjectURL(objectUrl);
+      if (blurredUrl) URL.revokeObjectURL(blurredUrl);
     }
   };
+
+  // Re-render the blur whenever the slider changes, without reloading the file.
+  useEffect(() => {
+    const image = sourceImageRef.current;
+    if (!image || !wallpaperBackground) {
+      lastBlurRef.current = wallpaperBackgroundBlur;
+      return;
+    }
+    if (lastBlurRef.current === wallpaperBackgroundBlur) return;
+
+    const handle = window.setTimeout(() => {
+      lastBlurRef.current = wallpaperBackgroundBlur;
+      void (async () => {
+        try {
+          const nextUrl = await renderBlurredUrl(image, wallpaperBackgroundBlur);
+          if (!nextUrl) return;
+          const previous = wallpaperBackgroundBlurred;
+          wallpaperBackgroundUrlsRef.current = wallpaperBackgroundUrlsRef.current.filter((url) => url !== previous);
+          wallpaperBackgroundUrlsRef.current.push(nextUrl);
+          if (previous) URL.revokeObjectURL(previous);
+          setWallpaperBackgroundBlurred(nextUrl);
+        } catch {
+          // Keep the previous blurred image if re-rendering fails.
+        }
+      })();
+    }, 80);
+    return () => window.clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wallpaperBackgroundBlur, wallpaperBackground]);
 
 
   useEffect(() => {
@@ -173,6 +213,7 @@ export function useWallpaperBackground({
   const clearWallpaperBackground = () => {
     wallpaperBackgroundUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
     wallpaperBackgroundUrlsRef.current = [];
+    sourceImageRef.current = null;
     setWallpaperBackground('');
     setWallpaperBackgroundBlurred('');
     setWallpaperBackgroundName('');

@@ -53,7 +53,7 @@ export const MOCK_STUDENT_DATA: {
       group: 'GRP01',
       start_time: '08:00 AM',
       end_time: '10:00 AM',
-      location: 'BILIK KULIAH KOMPUTER 3',
+      location: 'MAKMAL KOMPUTER 03',
       lecturer: 'DR. DEMO LECTURER',
       kehadiran: '100%',
       catatan: 'Demo class'
@@ -66,7 +66,7 @@ export const MOCK_STUDENT_DATA: {
       group: 'GRP01',
       start_time: '02:00 PM',
       end_time: '05:00 PM',
-      location: 'BILIK SEMINAR UTAMA / ONLINE CONSULTATION',
+      location: 'BK B4 / MS TEAMS 05',
       lecturer: 'PROF. DR. DEMO LECTURER',
       kehadiran: '100%',
       catatan: 'Demo class'
@@ -79,7 +79,7 @@ export const MOCK_STUDENT_DATA: {
       group: 'GRP01',
       start_time: '04:00 PM',
       end_time: '07:00 PM',
-      location: 'MAKMAL KOMPUTER 2',
+      location: 'BKB',
       lecturer: 'MR. DEMO LECTURER',
       kehadiran: '90%',
       catatan: 'Demo class'
@@ -92,7 +92,7 @@ export const MOCK_STUDENT_DATA: {
       group: 'GRP01',
       start_time: '10:00 AM',
       end_time: '12:00 PM',
-      location: 'BILIK KULIAH C1',
+      location: 'BK G10',
       lecturer: 'DR. DEMO LECTURER',
       kehadiran: '0%',
       catatan: 'Demo class'
@@ -105,7 +105,7 @@ export const MOCK_STUDENT_DATA: {
       group: 'GRP02',
       start_time: '02:00 PM',
       end_time: '05:00 PM',
-      location: 'DEWAN KULIAH C / MICROSOFT TEAMS',
+      location: 'MS TEAMS 05',
       lecturer: 'DR. DEMO LECTURER',
       kehadiran: '78%',
       catatan: 'Demo class'
@@ -118,7 +118,7 @@ export const MOCK_STUDENT_DATA: {
       group: 'GRP03',
       start_time: '09:00 AM',
       end_time: '12:00 PM',
-      location: 'MAKMAL KOMPUTER 2',
+      location: 'MAKMAL KOMPUTER 05',
       lecturer: 'MR. DEMO LECTURER',
       kehadiran: '88%',
       catatan: 'Demo weekend class'
