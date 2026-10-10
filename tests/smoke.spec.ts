@@ -312,7 +312,9 @@ test('time format preference persists for the signed-in user', async ({ page }) 
   expect(gridPeriodLabels.join(' ')).not.toMatch(/\b(AM|PM)\b/i);
   expect(new Set(gridPeriodLabels.map((label) => label.length)).size).toBeGreaterThan(1);
   expect(gridPeriodLabels).toContain('10-12');
-  expect(gridPeriodLabels).toContain('12-2');
+  // Empty hours are dropped from the adaptive header, so the 12:00-14:00 gap
+  // (labelled "12-2" in 12h format) is not shown as a column.
+  expect(gridPeriodLabels).not.toContain('12-2');
   expect(gridPeriodLabels).toContain('2-4');
   const gridCourseTimes = page.locator('[data-matrix-course-start-label], [data-matrix-course-end-label]');
   expect((await gridCourseTimes.allTextContents()).join(' ')).toMatch(/\b(AM|PM)\b/i);
