@@ -27,8 +27,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * JavaScript bundle-size budget check (`npm run size`).
 * Scheduled USAS API schema monitor (`scripts/check-usas-schema.mjs`).
 * Complete project documentation suite following open-source repository standards.
+* Adjustable background-blur slider (0–40 px) for custom lockscreen wallpaper images.
 
 ### Fixed
+* Grid (matrix) view now fits the desktop viewport with no horizontal scroll; horizontal swipe is reserved for small screens.
+* Grid-view class-block text scales with row height so every block renders at a consistent, readable size regardless of how many time slots it spans.
+* Minimal and Liquid Glass weekly-card chips truncate long time/room details instead of overflowing into neighbouring chips.
+* Repaired the Playwright e2e suite for the current Formal/Wallpaper export tabs and demo timetable data.
 * Aligned Minimal and Liquid Glass wallpaper blur rendering between preview and PNG export.
 * Fixed export progress overlay hang after file generation.
 * Eliminated sub-pixel typography vibration and jitter on 3D card tilt unfocus.
@@ -48,4 +53,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Removed fabricated placeholder data shown to real accounts (faculty, venues, groups, attendance week numbers); values now come from the API or display as unknown.
 * Attendance history no longer falls back to a default group when the real group ID is missing.
 * Ongoing/upcoming class status now uses a coloured dot indicator instead of a card border ring.
+* Demo timetable uses realistic USAS room codes (e.g. BK B4, BK G10, BKB, MAKMAL KOMPUTER, MS TEAMS).
 * Removed dead code and the unused `workbox-window` dependency.

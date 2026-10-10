@@ -22,7 +22,7 @@ USAS Class Timetable is a modern, client-side academic schedule portal designed 
 * **University API Integration**: Connects to official USAS UMC portal endpoints through the Cloudflare Pages Function proxy.
 * **Document & Wallpaper Exports**:
   * **Print-Ready A4 PDF & PNG**: High-resolution landscape documents formatted with student matric identity, course codes, locations, and timestamps.
-  * **Device Lockscreen Wallpapers**: Tailored presets for Phone (9:16), Tablet (4:3), Desktop (16:9), and Square (1:1) with vertical clock offset adjustment and 5 color themes.
+  * **Device Lockscreen Wallpapers**: Tailored presets for Phone (9:16), Tall Phone (9:20), Tablet (4:3), Desktop (16:9), and Square (1:1), with three layouts (Grid, Minimal, Liquid Glass), vertical clock offset adjustment, an optional custom background image with adjustable blur, and 5 color themes.
 * **Live Schedule Tracking**:
   * **Live Next Class Card**: Real-time widget highlighting the current ongoing lecture or countdown timer to the next session.
   * **Clash Detection**: Automated detection and warning flags for overlapping course hours.
