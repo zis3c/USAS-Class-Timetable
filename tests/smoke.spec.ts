@@ -64,11 +64,13 @@ test('matrix view positions classes across adaptive time slots', async ({ page }
   const slot14 = page.locator('[data-matrix-time-slot="14:00"]');
   await expect(slot14).toBeVisible();
   expect(await slot14.textContent()).toMatch(/^14-\d{2}$/);
-  // Adaptive slots keep the empty 12:00-14:00 gap and shrink the trailing hour to 60 min.
+  // Adaptive slots drop empty hours (no zero-waste columns) like the wallpaper
+  // period header, so the empty 12:00-14:00 gap is not shown as a column.
   const dynamicSlots = await page.locator('[data-matrix-time-range]').evaluateAll((nodes) =>
     nodes.map((node) => node.getAttribute('data-matrix-time-range')!.split('-').map(Number)));
   expect(dynamicSlots).toContainEqual([1080, 1140]);
   expect(dynamicSlots.some(([start, end]) => end - start > 60)).toBe(true);
+  expect(dynamicSlots.some(([start]) => start === 720)).toBe(false);
 
   const threeHourClass = page.locator('[data-matrix-course-code="KOM6373"][data-matrix-course-start="02:00 PM"]');
   await expect(threeHourClass).toHaveCount(1);

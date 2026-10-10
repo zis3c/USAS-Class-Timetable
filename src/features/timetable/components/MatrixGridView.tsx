@@ -123,7 +123,9 @@ export default function MatrixGridView({
       const end = parseTimeToMinutes(course.end_time);
       return [{ start, end: end !== null && end > start ? end : start + 60 }];
     });
-    return buildAdaptiveTimeSlots(ranges, 8, true);
+    // Skip hours with no classes (same as the wallpaper per-period header) so the
+    // grid never shows wasted empty columns between morning and afternoon blocks.
+    return buildAdaptiveTimeSlots(ranges, 8);
   }, [timetable]);
 
   // Keep each slot at its desktop width on small screens; the grid scrolls horizontally.
