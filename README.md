@@ -24,7 +24,7 @@ USAS Class Timetable is a modern, client-side academic schedule portal designed 
   * **Print-Ready A4 PDF & PNG**: High-resolution landscape documents formatted with student matric identity, course codes, locations, and timestamps.
   * **Device Lockscreen Wallpapers**: Tailored presets for Phone (9:20, default), Small Phone (9:16), Tablet (4:3), Desktop (16:9), and Square (1:1), with three layouts (Grid, Minimal, Liquid Glass), vertical clock offset adjustment, an optional custom background image with adjustable blur, and 5 color themes.
 * **Live Schedule Tracking**:
-  * **Live Next Class Card**: Real-time widget highlighting the current ongoing lecture or countdown timer to the next session.
+  * **Live Next Class Card**: Real-time widget highlighting the current ongoing lecture or countdown timer to the next session, with distinct day-status messages for days that have no sessions scheduled ("No classes on ...") versus days whose sessions have all finished ("Today's Classes Completed").
   * **Clash Detection**: Automated detection and warning flags for overlapping course hours.
   * **Attendance Meter**: Visual percentage tracker monitoring course attendance thresholds against the 80% bar risk limit.
   * **GPA Target Calculator**: Interactive tool for simulating semester GPA and cumulative CGPA goals.

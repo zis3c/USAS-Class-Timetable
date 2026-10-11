@@ -109,11 +109,13 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
   let ongoingClass: NextClassItem | null = null;
   let nextClass: NextClassItem | null = null;
   let minDiff = Infinity;
+  let hasClassToday = false;
 
   if (Array.isArray(timetable) && timetable.length > 0) {
     for (const item of timetable) {
       const isToday = extractDayName(item.day) === currentDayName || item.day?.toUpperCase() === currentDayName;
       if (!isToday) continue;
+      hasClassToday = true;
 
       const startMin = parseTimeToMinutes(item.start_time);
       const endMin = item.end_time ? parseTimeToMinutes(item.end_time) : startMin + 120;
@@ -164,7 +166,9 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
           <CheckCircle2 className="w-3 h-3" />
         </div>
         <span className="font-semibold tracking-wide truncate flex-1 min-w-0">
-          {t('noClassRemaining')} ({t(`days.${currentDayName}`) || currentDayName})
+          {hasClassToday
+            ? `${t('noClassRemaining')} (${t(`days.${currentDayName}`) || currentDayName})`
+            : `${t('noClassesOnDay')} (${t(`days.${currentDayName}`) || currentDayName})`}
         </span>
         <button
           onClick={toggleAutoNotify}

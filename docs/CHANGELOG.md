@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Adjustable background-blur slider (0–40 px) for custom lockscreen wallpaper images.
 
 ### Fixed
+* Live Next Class card now shows "No classes on (DAY)" for days with no sessions scheduled, instead of the misleading "Today's Classes Completed" message which is reserved for days whose sessions have all finished.
 * iOS lockscreen exports of the Minimal and Liquid Glass designs no longer mis-space letter-tracked text (e.g. course codes rendering as "MK G").
 * Grid (matrix) view now fits the desktop viewport with no horizontal scroll; horizontal swipe is reserved for small screens.
 * Grid-view class-block text scales with row height so every block renders at a consistent, readable size regardless of how many time slots it spans.
