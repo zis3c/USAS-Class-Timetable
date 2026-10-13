@@ -47,7 +47,7 @@ USAS Class Timetable is a modern, client-side academic schedule portal designed 
 Because the portal processes student academic schedules, security and privacy are implemented at every layer:
 
 * **Stateless API Proxy**: Requests pass through a Cloudflare Pages Function to `https://mobile.usas.edu.my`. The app code does not write credentials or sessions to a project database or function logs.
-* **Server-Side Bot Protection**: When `TURNSTILE_SECRET_KEY` is configured, the Pages Function verifies the login challenge before proxying the request.
+* **Stateless API Proxy**: Login and API requests pass through a Cloudflare Pages Function that enforces an endpoint allowlist and request-size limits. Add Cloudflare Rate Limiting on the login endpoint for abuse protection.
 * **Content Security Policy (CSP)**: Restricts script, frame, and connection sources to reduce injection and framing risks.
 * **Browser Storage**: The session is kept in `sessionStorage`; the timetable cache and preferences use `localStorage`. These remain on the device until logout or browser storage is cleared. See the [Privacy Notice](docs/PRIVACY.md).
 
@@ -67,7 +67,7 @@ Because the portal processes student academic schedules, security and privacy ar
 - [QRCode](https://github.com/soldair/node-qrcode)
 
 **Backend & Hosting**
-- [Cloudflare Pages Functions](https://developers.cloudflare.com/pages/functions/) (API proxy & Turnstile verification)
+- [Cloudflare Pages Functions](https://developers.cloudflare.com/pages/functions/) (API proxy)
 - [Wrangler](https://developers.cloudflare.com/workers/wrangler/)
 
 **Testing & Quality Assurance**
@@ -140,7 +140,7 @@ USAS Class Timetable/
 │   └── usas-logo.png          # Dark theme compatibility asset
 ├── functions/
 │   └── api/usas/
-│       └── _middleware.ts     # Cloudflare Pages Function proxy to the USAS API (Turnstile gate)
+│       └── _middleware.ts     # Cloudflare Pages Function proxy to the USAS API (endpoint allowlist)
 ├── src/
 │   ├── app/
 │   │   ├── main.tsx           # Application entrypoint
@@ -148,7 +148,7 @@ USAS Class Timetable/
 │   │   ├── providers/         # Auth, Language & Theme state providers
 │   │   └── shell/             # Navbar, ToolsDrawer, ErrorBoundary
 │   ├── features/
-│   │   ├── auth/              # Login form, LoginPage, TurnstileCaptcha
+│   │   ├── auth/              # Login form, LoginPage
 │   │   ├── export/            # PdfExportModal, PDF & wallpaper engines
 │   │   ├── landing/           # LandingPage (hero, 3D tilt, bento features), video tutorial player
 │   │   ├── planning/          # ExamScheduleModal, GpaCalculatorModal
