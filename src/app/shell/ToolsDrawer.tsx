@@ -67,18 +67,15 @@ export default function ToolsDrawer({
 
   return (
     <>
-      {/* Backdrop */}
       <div
         className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-50 transition-opacity duration-250 ${animate ? 'opacity-100' : 'opacity-0'}`}
         onClick={onClose}
       />
 
-      {/* Drawer Panel */}
       <div role="dialog" aria-modal="true" aria-label="Menu Alat" className={`fixed top-0 right-0 h-full w-[min(20rem,85vw)] sm:w-80 border-l z-50 flex flex-col shadow-2xl transition-all duration-250 ease-in-out ${animate ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'} ${
         isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-[#0A1428] border-white/[0.06] text-white/80'
       }`}>
         
-        {/* Header */}
         <div className={`h-11 flex items-center justify-between px-4 border-b ${
           isLight ? 'border-slate-200' : 'border-white/[0.06]'
         }`}>
@@ -97,7 +94,6 @@ export default function ToolsDrawer({
           </button>
         </div>
 
-        {/* Student Info */}
         {session && (
           <div className={`px-4 py-3 border-b ${isLight ? 'bg-slate-50/50 border-slate-200' : 'border-white/[0.06]'}`}>
             <div className="flex items-center gap-3 min-w-0">
@@ -113,10 +109,8 @@ export default function ToolsDrawer({
           </div>
         )}
 
-        {/* Action List */}
         <div data-lenis-prevent className="flex-1 overflow-y-auto p-3 space-y-0.5 usas-scrollbar touch-pan-y overscroll-contain">
           
-          {/* Export Section */}
           <p className={`text-[9px] font-semibold uppercase tracking-widest px-2 pt-2 pb-1 ${
             isLight ? 'text-slate-400' : 'text-white/20'
           }`}>{t('exportSection')}</p>
@@ -150,7 +144,6 @@ export default function ToolsDrawer({
             </div>
           </button>
 
-          {/* Share Section */}
           <p className={`text-[9px] font-semibold uppercase tracking-widest px-2 pt-3 pb-1 ${
             isLight ? 'text-slate-400' : 'text-white/20'
           }`}>{t('shareSection')}</p>
@@ -185,7 +178,6 @@ export default function ToolsDrawer({
             </div>
           </button>
 
-          {/* Academic Section */}
           <p className={`text-[9px] font-semibold uppercase tracking-widest px-2 pt-3 pb-1 ${
             isLight ? 'text-slate-400' : 'text-white/20'
           }`}>{t('academicSection')}</p>
@@ -233,7 +225,6 @@ export default function ToolsDrawer({
             </div>
           </button>
 
-          {/* Account Section */}
           <p className={`text-[9px] font-semibold uppercase tracking-widest px-2 pt-3 pb-1 ${
             isLight ? 'text-slate-400' : 'text-white/20'
           }`}>{t('accountSection')}</p>
@@ -254,7 +245,6 @@ export default function ToolsDrawer({
               </div>
             </div>
             
-            {/* Toggle Switch */}
             <div className={`w-8 h-4 rounded-full flex items-center transition-colors px-0.5 ${
               isNotificationsEnabled 
                 ? (isLight ? 'bg-indigo-500' : 'bg-indigo-500/80') 

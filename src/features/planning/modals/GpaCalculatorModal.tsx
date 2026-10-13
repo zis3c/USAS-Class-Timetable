@@ -35,7 +35,6 @@ function GpaCustomDropdown<T extends string | number>({
 }: GpaCustomDropdownProps<T>) {
   const [open, setOpen] = useState(false);
 
-  // Close dropdown on click outside
   useEffect(() => {
     if (!open) return;
     const handleGlobalClick = () => setOpen(false);
@@ -107,7 +106,7 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: Gp
     'D+': 1.33, 'D': 1.0, 'F': 0.0
   };
 
-  // Group courses by ID/name to avoid duplicate slots having separate inputs
+  // Duplicate course slots (same id) share one set of inputs.
   const uniqueCourses = courses.reduce<TimetableItem[]>((acc, item) => {
     const id = item.course_id || item.kod_kursus || item.course_name;
     if (id && !acc.some(x => (x.course_id || x.kod_kursus || x.course_name) === id)) {
@@ -116,10 +115,8 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: Gp
     return acc;
   }, []);
 
-  // State mapping course id to { credits, grade }
   const [courseTargets, setCourseTargets] = useState<Map<string, CourseTarget>>(() => new Map());
 
-  // Reset/Initialize state when courses list changes or modal opens
   useEffect(() => {
     if (isOpen) {
       const initial = new Map<string, CourseTarget>();
@@ -163,7 +160,6 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: Gp
     });
   };
 
-  // Calculate GPA
   let totalPoints = 0;
   let totalCredits = 0;
 
@@ -189,19 +185,18 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: Gp
           : 'bg-[#0A1428]/95 border-white/10 text-white shadow-2xl'
       }`}>
 
-        {/* Modal Header */}
-        <div className={`p-4 sm:p-5 border-b flex items-start sm:items-center justify-between gap-3 flex-shrink-0 ${
+        <div className={`p-4 sm:p-5 border-b flex items-center justify-between gap-3 flex-shrink-0 ${
           isLight ? 'border-slate-200 bg-slate-50/50' : 'border-white/[0.06] bg-[#0A1428]/95'
         }`}>
-          <div className="flex items-start sm:items-center gap-3 min-w-0">
+          <div className="flex items-center gap-3 min-w-0">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border ${
               isLight ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-amber-400/10 border-amber-400/20 text-amber-400'
             }`}>
               <Calculator className="w-5 h-5" />
             </div>
             <div className="text-left min-w-0 flex-1">
-              <h3 className={`text-sm sm:text-base font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>{t('gpaBtn')}</h3>
-              <p className={`text-[11px] sm:text-xs font-semibold truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>
+              <h3 className={`text-sm sm:text-base font-bold leading-tight truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>{t('gpaBtn')}</h3>
+              <p className={`text-[11px] sm:text-xs font-semibold leading-tight truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>
                 {t('gpaSubtitle')}
               </p>
             </div>
@@ -216,10 +211,8 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: Gp
           </button>
         </div>
 
-        {/* Modal Body */}
         <div data-lenis-prevent className="p-4 sm:p-6 space-y-5 flex-1 overflow-y-auto usas-scrollbar touch-pan-y overscroll-contain">
           
-          {/* GPA Result Display Banner */}
           <div className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm ${
             isLight 
               ? 'bg-amber-500/[0.04] border-amber-500/20' 
@@ -280,7 +273,6 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: Gp
             </a>
           </div>
 
-          {/* Subject Grade Target Table */}
           <div className="space-y-2 pr-1">
             {uniqueCourses.map((c, i) => {
               const id = c.course_id || c.kod_kursus || c.course_name || `course-${i}`;
@@ -296,9 +288,7 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: Gp
                     <div className="font-bold leading-snug mt-0.5 truncate">{c.course_name || c.kursus}</div>
                   </div>
 
-                  {/* Custom Dropdown Controls */}
                   <div className="flex flex-wrap items-center gap-2.5 sm:justify-end">
-                    {/* Credit Selector */}
                     <div className="flex items-center gap-1.5">
                       <span className={`text-[10px] font-medium break-words ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                         {t('gpaCredits')}
@@ -318,7 +308,6 @@ export default function GpaCalculatorModal({ isOpen, onClose, courses = [] }: Gp
                       />
                     </div>
 
-                    {/* Target Grade Selector */}
                     <div className="flex items-center gap-1.5">
                       <span className={`text-[10px] font-medium break-words ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                         {t('gpaTarget')}

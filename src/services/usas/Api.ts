@@ -16,8 +16,7 @@ import {
 } from '@/shared/lib/security';
 import { normalizeDayLabel, parseDisplayDate, sortDayLabels } from '@/shared/lib/dayFormat';
 
-// USAS API Service Layer
-// Dual JSON & Form-UrlEncoded transport layer with multi-endpoint fallback
+// Dual JSON / form-urlencoded transport with multi-endpoint fallback.
 
 const BASE_URL = '/api/usas';
 const API_KEY = '123';
@@ -27,7 +26,6 @@ const DUMMY_TOKEN = 'dummytoken';
 const REQUEST_TIMEOUT_MS = 12_000;
 const POISON_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
-// Mock data for Demo Mode
 export const MOCK_STUDENT_DATA: {
   user_id: string;
   name: string;
@@ -42,103 +40,90 @@ export const MOCK_STUDENT_DATA: {
   program: 'BACHELOR OF COMPUTER SCIENCE (HONS)',
   semester: 'Demo Semester',
   financialBalance: 'RM 0.00 (Lunas)',
-  timetableDays: ['ISNIN', 'SELASA', 'RABU', 'KHAMIS'],
+  timetableDays: ['ISNIN', 'SELASA', 'RABU', 'KHAMIS', 'JUMAAT', 'SABTU'],
+  // GPA demo assigns 3 credits per unique course, so six courses keeps the default total at 18.
   timetable: [
     {
       id: '1',
       day: 'ISNIN',
-      course_id: 'DKF6013',
-      course_name: 'TEORI REKABENTUK',
+      course_id: 'RKS6093',
+      course_name: 'PENETRATION TESTING AND ETHICAL HACKING',
       group: 'GRP01',
-      start_time: '08:00 PM',
-      end_time: '11:00 PM',
-      location: 'BKG/MSTEAMS09',
-      lecturer: 'DEMO LECTURER',
-      kehadiran: '88%',
-      catatan: 'Demo class'
-    },
-    {
-      id: '2',
-      day: 'SELASA',
-      course_id: 'RKS6083',
-      course_name: 'COMPUTER FORENSIC',
-      group: 'GRP01',
-      start_time: '11:00 AM',
-      end_time: '01:00 PM',
-      location: 'BK B4',
-      lecturer: 'DEMO LECTURER',
-      kehadiran: '88%',
-      catatan: 'Demo class'
-    },
-    {
-      id: '3',
-      day: 'SELASA',
-      course_id: 'CSE6013',
-      course_name: 'SOFTWARE DESIGN AND ARCHITECTURE',
-      group: 'GRP01',
-      start_time: '04:00 PM',
-      end_time: '05:00 PM',
-      location: 'BKB/MSTEAMS02',
-      lecturer: 'DEMO LECTURER',
-      kehadiran: '90%',
-      catatan: 'Demo class'
-    },
-    {
-      id: '4',
-      day: 'RABU',
-      course_id: 'RKS6083',
-      course_name: 'COMPUTER FORENSIC',
-      group: 'GRP01',
-      start_time: '02:00 PM',
-      end_time: '03:00 PM',
-      location: 'BKB/MSTEAMS05',
-      lecturer: 'DEMO LECTURER',
-      kehadiran: '88%',
-      catatan: 'Demo class'
-    },
-    {
-      id: '5',
-      day: 'RABU',
-      course_id: 'KOM6363',
-      course_name: 'RESEARCH METHODOLOGY / FINAL YEAR PROJECT I',
-      group: 'GRP01',
-      start_time: '08:30 PM',
-      end_time: '11:30 PM',
-      location: 'BK G11',
-      lecturer: 'DEMO LECTURER',
-      kehadiran: '90%',
-      catatan: 'Demo class'
-    },
-    {
-      id: '6',
-      day: 'KHAMIS',
-      course_id: 'CSE6013',
-      course_name: 'SOFTWARE DESIGN AND ARCHITECTURE',
-      group: 'GRP01',
-      start_time: '10:00 AM',
-      end_time: '12:00 PM',
-      location: 'BK G3',
-      lecturer: 'DEMO LECTURER',
-      kehadiran: '90%',
+      start_time: '08:00 AM',
+      end_time: '10:00 AM',
+      location: 'MAKMAL KOMPUTER 03',
+      lecturer: 'DR. DEMO LECTURER',
+      kehadiran: '100%',
       catatan: 'Demo class'
     },
     {
       id: '7',
-      day: 'KHAMIS',
-      course_id: 'KSC6433',
-      course_name: 'FINANCIAL TECHNOLOGY',
+      day: 'SELASA',
+      course_id: 'KOM6373',
+      course_name: 'FINAL YEAR PROJECT DEVELOPMENT AND RESEARCH METHODS',
       group: 'GRP01',
       start_time: '02:00 PM',
       end_time: '05:00 PM',
-      location: 'BKB/MSTEAMS10',
-      lecturer: 'DEMO LECTURER',
+      location: 'BK B4 / MS TEAMS 05',
+      lecturer: 'PROF. DR. DEMO LECTURER',
+      kehadiran: '100%',
+      catatan: 'Demo class'
+    },
+    {
+      id: '10',
+      day: 'RABU',
+      course_id: 'KSC6433',
+      course_name: 'FINANCIAL TECHNOLOGY AND DIGITAL BANKING',
+      group: 'GRP01',
+      start_time: '04:00 PM',
+      end_time: '07:00 PM',
+      location: 'BKB',
+      lecturer: 'MR. DEMO LECTURER',
       kehadiran: '90%',
       catatan: 'Demo class'
+    },
+    {
+      id: '12',
+      day: 'KHAMIS',
+      course_id: 'MKT6043',
+      course_name: 'MARKETING CHANNELS AND CUSTOMER EXPERIENCE',
+      group: 'GRP01',
+      start_time: '10:00 AM',
+      end_time: '12:00 PM',
+      location: 'BK G10',
+      lecturer: 'DR. DEMO LECTURER',
+      kehadiran: '0%',
+      catatan: 'Demo class'
+    },
+    {
+      id: '16',
+      day: 'JUMAAT',
+      course_id: 'RKS6113',
+      course_name: 'INFORMATION SECURITY MANAGEMENT',
+      group: 'GRP02',
+      start_time: '02:00 PM',
+      end_time: '05:00 PM',
+      location: 'MS TEAMS 05',
+      lecturer: 'DR. DEMO LECTURER',
+      kehadiran: '78%',
+      catatan: 'Demo class'
+    },
+    {
+      id: '17',
+      day: 'SABTU',
+      course_id: 'CSE6013',
+      course_name: 'SOFTWARE DESIGN AND ARCHITECTURE',
+      group: 'GRP03',
+      start_time: '09:00 AM',
+      end_time: '12:00 PM',
+      location: 'MAKMAL KOMPUTER 05',
+      lecturer: 'MR. DEMO LECTURER',
+      kehadiran: '88%',
+      catatan: 'Demo weekend class'
     }
   ]
 };
 
-// Robust HTTP POST helper for USAS backend
 type UsasPayload = Record<string, string | number | boolean | undefined | null>;
 
 function isSafeJsonValue(value: unknown): boolean {
@@ -200,14 +185,14 @@ async function postUSASOutcome(
 
   let networkError = false;
 
-  // 1. Try application/json
   try {
     const jsonRes = await fetchWithTimeout(`${BASE_URL}${endpoint}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...extraHeaders },
       body: JSON.stringify(payload)
     });
-    if (jsonRes.ok || jsonRes.status === 403) {
+    const contentType = jsonRes.headers.get('content-type') || '';
+    if (jsonRes.ok || jsonRes.status === 403 || contentType.includes('application/json')) {
       const text = await jsonRes.text();
       if (text && !text.startsWith('Access Denied') && text.includes('{')) {
         const data = parseSafeJsonResponse(text);
@@ -218,7 +203,6 @@ async function postUSASOutcome(
     networkError = true;
   }
 
-  // 2. Fallback to application/x-www-form-urlencoded
   try {
     const formParams = new URLSearchParams();
     Object.keys(payload).forEach(key => {
@@ -310,11 +294,16 @@ export async function loginStudentAPI(
 
   const result = outcome.data;
 
-  const gateResult = result as { success?: boolean; error?: string } | null;
-  if (gateResult && gateResult.success === false && typeof gateResult.error === 'string' && gateResult.error.trim()) {
+  // Gate error envelope (e.g. Turnstile captcha rejection), not a USAS response.
+  const gateResult = result as { success?: boolean; error?: unknown; 'error-codes'?: unknown } | null;
+  if (gateResult && gateResult.success === false) {
+    if (typeof gateResult.error === 'string' && gateResult.error.trim()) {
+      return { success: false, error: sanitizeSingleLine(gateResult.error, 160) };
+    }
+    const codes = Array.isArray(gateResult['error-codes']) ? gateResult['error-codes'].join(', ') : '';
     return {
       success: false,
-      error: sanitizeSingleLine(gateResult.error, 160),
+      error: `Pengesahan captcha gagal. Sila cuba lagi.${codes ? ` [${sanitizeSingleLine(codes, 80)}]` : ''}`,
     };
   }
 
@@ -458,8 +447,7 @@ export async function fetchAttendanceHistoryAPI(
   return [];
 }
 
-// Resolves the numeric group_id for a course code via `senarai_kursus`.
-// Used as a fallback when a cached timetable item is missing group_id.
+// Resolves a course's numeric group_id via `senarai_kursus`; fallback when a cached item lacks group_id.
 export async function resolveGroupIdForCourseAPI(
   session: StudentSession | null,
   courseCode: string,
@@ -565,9 +553,8 @@ export async function scanAttendanceQrAPI(
   };
 }
 
-// Computes the attendance percentage from real `laporan_kehadiran` rows.
-// Only sessions that have actually taken place count toward the total:
-// a row is "held" when it has a recorded status or its date is in the past.
+// Attendance % from `laporan_kehadiran` rows. Only held sessions count: a row is
+// held once it has a status or its date has passed.
 export function computeAttendancePercent(rows: AttendanceHistoryItem[] | null | undefined): number | null {
   if (!rows || rows.length === 0) return null;
 
@@ -677,7 +664,7 @@ export async function fetchTimetableAPI(session: StudentSession): Promise<Timeta
     postUSASOutcome('/student/get_kehadiran_kuliah.php', kehadiranCoursePayload),
   ]);
 
-  // If neither endpoint returns usable data, the USAS API is unreachable/broken.
+  // Throw only if both endpoints fail; one working source is enough.
   if (!timetableOutcome.ok && !kehadiranCourseOutcome.ok) {
     throw new UsasUnavailableError();
   }
@@ -688,7 +675,7 @@ export async function fetchTimetableAPI(session: StudentSession): Promise<Timeta
   let rawItems: TimetableItem[] = [];
   let rawDays: string[] = [];
 
-  // Build course -> group_id map from senarai_kursus so attendance logs wire to real database group IDs
+  // Map course -> group_id from `senarai_kursus` so attendance logs use real DB group IDs.
   const courseGroupMap = new Map<string, { group_id: string; kumpulan?: string; semester?: string }>();
   const kehadiranPayloadTyped = kehadiranCourseRes as {
     server_response?: Array<Record<string, string | undefined>>;
@@ -728,9 +715,8 @@ export async function fetchTimetableAPI(session: StudentSession): Promise<Timeta
       }
       return sanitized;
     });
-    // Keep the formatted date + weekday label (e.g. "05-10-2026 (ISNIN)") so the
-    // UI can render the real date beside the translated weekday, while still
-    // de-duplicating repeated weekdays.
+    // Keep the "DD-MM-YYYY (ISNIN)" label so the UI shows the real date beside the
+    // translated weekday while de-duplicating repeated weekdays.
     rawDays = sortDayLabels(Array.from(new Set(
       (timetablePayloadRes.server_response_day || [])
         .map((day) => normalizeDayLabel(sanitizeSingleLine(day, 64)))
@@ -760,8 +746,7 @@ export async function fetchTimetableAPI(session: StudentSession): Promise<Timeta
     rawDays = [];
   }
 
-  // If the backend did not return a day list, derive it from the timetable
-  // items themselves, preserving any embedded date labels.
+  // Fallback: derive the day list from timetable items when the backend omits it.
   if (rawDays.length === 0 && rawItems.length > 0) {
     rawDays = sortDayLabels(Array.from(new Set(
       rawItems
@@ -770,10 +755,8 @@ export async function fetchTimetableAPI(session: StudentSession): Promise<Timeta
     )));
   }
 
-  // Resolve the real lecture-attendance percentage per course from the official
-  // `laporan_kehadiran` report, keyed by the group_id from `senarai_kursus`.
-  // The timetable `kehadiran` field is only a human status string, so it can't
-  // be parsed as a percentage.
+  // Real attendance % comes from `laporan_kehadiran` keyed by group_id; the timetable
+  // `kehadiran` field is only a status string and can't be parsed as a percentage.
   const uniqueGroupIds = Array.from(new Set(
     rawItems
       .map((item) => sanitizeSingleLine(item.group_id, 32))

@@ -1,13 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-/**
- * Basic dialog accessibility: closes on Escape, moves focus into the dialog
- * when it opens, and restores focus to the previously focused element on close.
- *
- * Usage:
- *   const modalRef = useModalA11y(isOpen, onClose);
- *   return <div ref={modalRef} role="dialog" aria-modal="true" ...>
- */
+/** Dialog a11y: Escape closes, focus moves in on open and restores on close. */
 export function useModalA11y(isOpen: boolean, onClose: () => void) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const onCloseRef = useRef(onClose);

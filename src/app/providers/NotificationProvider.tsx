@@ -39,7 +39,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         persistDayScopedNotificationKeys(NOTIFIED_CLASSES_KEY, notifiedClasses.current);
       }
 
-      // Check every class
       const courses = timetableData.timetable;
       
       const daysStrMap: Record<number, string> = {
@@ -50,11 +49,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       courses.forEach(course => {
         if (extractDayName(course.day) !== currentDay) return;
         
-        // Parse class start time
         const startStr = course.start_time;
         if (!startStr) return;
 
-        // Parse "10:00 AM" to Date object today
         const match = startStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
         if (!match) return;
 
@@ -68,17 +65,15 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         const classTime = new Date(now);
         classTime.setHours(hours, mins, 0, 0);
 
-        // Calculate diff in minutes
         const diffMs = classTime.getTime() - now.getTime();
 
-        // Notify once while the class is within its 15-minute reminder window.
+        // Reminder fires once per class, only inside its notification window.
         const classKey = buildDayScopedNotificationKey(now, course.course_id, course.day, startStr);
         
         if (isWithinClassNotificationWindow(diffMs) && !notifiedClasses.current.has(classKey)) {
           notifiedClasses.current.add(classKey);
           persistDayScopedNotificationKeys(NOTIFIED_CLASSES_KEY, notifiedClasses.current);
           playClassChime();
-          // Fire notification
           new Notification('Class Starting Soon!', {
             body: `${course.course_name} starts in ${Math.ceil(diffMs / 60000)} minutes at ${course.location}`,
             icon: '/usas-logo-dark.png'
@@ -88,7 +83,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       });
     };
 
-    // Check immediately, then poll often enough to catch the reminder window.
+    // Poll every 30s so no reminder window is missed.
     checkClasses();
     const interval = setInterval(checkClasses, 30000);
 

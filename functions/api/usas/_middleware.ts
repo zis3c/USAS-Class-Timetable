@@ -27,8 +27,8 @@ function jsonResponse(body: unknown, status: number): Response {
   });
 }
 
-async function verifyTurnstileToken(token: string, secret: string, ip?: string): Promise<boolean> {
-  if (!token) return false;
+async function verifyTurnstileToken(token: string, secret: string, ip?: string): Promise<{ ok: boolean; codes?: string[] }> {
+  if (!token) return { ok: false, codes: ['missing-input-response'] };
   try {
     const form = new FormData();
     form.append('secret', secret);
@@ -36,12 +36,15 @@ async function verifyTurnstileToken(token: string, secret: string, ip?: string):
     if (ip) form.append('remoteip', ip);
 
     const res = await fetch(TURNSTILE_VERIFY_URL, { method: 'POST', body: form });
-    if (!res.ok) return false;
+    if (!res.ok) return { ok: false, codes: [`http-${res.status}`] };
 
-    const data = (await res.json()) as { success?: boolean };
-    return data?.success === true;
+    const data = (await res.json()) as { success?: boolean; 'error-codes'?: string[] };
+    return {
+      ok: data?.success === true,
+      codes: Array.isArray(data?.['error-codes']) ? data['error-codes'] : [],
+    };
   } catch {
-    return false;
+    return { ok: false, codes: ['verification-request-failed'] };
   }
 }
 
@@ -78,17 +81,25 @@ export async function onRequest(context: PagesContext) {
 
   const ip = context.request.headers.get('cf-connecting-ip') || 'unknown';
 
-  // Verify the Cloudflare Turnstile token on login before proxying upstream.
-  // Skipped only when the secret is not configured (e.g. local dev).
+  // Verify Turnstile on login before proxying upstream; skipped when the secret is unset (local dev).
   if (cleanPath === LOGIN_PATH) {
     const secret = context.env?.TURNSTILE_SECRET_KEY;
     if (secret) {
       const token = context.request.headers.get('x-turnstile-token') || '';
-      const verified = await verifyTurnstileToken(token, secret, ip === 'unknown' ? undefined : ip);
-      if (!verified) {
-        console.warn('usas-proxy captcha rejected', { ip, path: cleanPath });
+      const verification = await verifyTurnstileToken(token, secret, ip === 'unknown' ? undefined : ip);
+      if (!verification.ok) {
+        console.warn('usas-proxy captcha rejected', {
+          ip,
+          path: cleanPath,
+          codes: verification.codes,
+          hostname: url.hostname,
+        });
         return jsonResponse(
-          { success: false, error: 'Pengesahan captcha gagal. Sila cuba lagi.' },
+          {
+            success: false,
+            error: 'Pengesahan captcha gagal. Sila cuba lagi.',
+            'error-codes': verification.codes,
+          },
           403,
         );
       }
@@ -100,7 +111,7 @@ export async function onRequest(context: PagesContext) {
     return jsonResponse({ success: false, error: 'Not found.' }, 404);
   }
 
-  // Never forward the one-time captcha token to the upstream USAS server.
+  // Never forward the one-time captcha token upstream.
   const upstreamRequest = new Request(upstreamUrl, context.request);
   upstreamRequest.headers.delete('x-turnstile-token');
 

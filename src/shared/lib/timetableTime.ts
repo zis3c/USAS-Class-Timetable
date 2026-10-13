@@ -37,7 +37,6 @@ export const parseTimeToMinutes = (timeStr?: string): number | null => {
   if (!timeStr) return null;
   const raw = String(timeStr).trim();
 
-  // "11:30 AM" or "02:30 PM"
   const ampmMatch = raw.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
   if (ampmMatch) {
     let hour = parseInt(ampmMatch[1], 10);
@@ -48,7 +47,6 @@ export const parseTimeToMinutes = (timeStr?: string): number | null => {
     return hour * 60 + minute;
   }
 
-  // "11:30" (24-hour with minutes)
   const twentyFourMatch = raw.match(/^(\d{1,2}):(\d{2})$/);
   if (twentyFourMatch) {
     const hour = parseInt(twentyFourMatch[1], 10);
@@ -56,14 +54,12 @@ export const parseTimeToMinutes = (timeStr?: string): number | null => {
     return hour * 60 + minute;
   }
 
-  // "11-13" or "14-17" (range)
   const rangeMatch = raw.match(/^(\d{1,2})\s*-\s*(\d{1,2})$/);
   if (rangeMatch) {
     const hour = parseInt(rangeMatch[1], 10);
     return hour * 60;
   }
 
-  // "11" or "14" (plain hour)
   const plainHourMatch = raw.match(/^(\d{1,2})$/);
   if (plainHourMatch) {
     const hour = parseInt(plainHourMatch[1], 10);

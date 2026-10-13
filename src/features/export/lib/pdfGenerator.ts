@@ -52,7 +52,7 @@ async function captureElement(
   onProgress?.(15);
   await yieldToPaint();
 
-  // Ensure all fonts are loaded before capturing so metrics match the browser preview.
+  // Wait for fonts so metrics match the browser preview.
   if (typeof document !== 'undefined' && document.fonts && document.fonts.ready) {
     await document.fonts.ready;
   }
@@ -62,7 +62,6 @@ async function captureElement(
   const exportRootId = elementRef.getAttribute?.('data-export-root');
   const isWallpaper = exportRootId === 'wallpaper-export-root';
 
-  // Measure the element layout width and height before cloning
   const width = elementRef.scrollWidth || elementRef.offsetWidth || undefined;
   const height = elementRef.scrollHeight || elementRef.offsetHeight || undefined;
   const exportWidth = isWallpaper && width ? width + 2 : width;
@@ -84,8 +83,7 @@ async function captureElement(
       return element !== elementRef && !element.contains(elementRef) && !elementRef.contains(element);
     },
     onclone: async (clonedDoc) => {
-      // Sync all style and link tags from document.head to clonedDoc.head
-      // so html2canvas uses the exact same web fonts and font metrics as the live preview
+      // Copy head styles into the clone so html2canvas uses the same web fonts and metrics.
       const styles = document.head.querySelectorAll('style, link[rel="stylesheet"]');
       styles.forEach((node) => {
         clonedDoc.head.appendChild(node.cloneNode(true));
@@ -95,8 +93,7 @@ async function captureElement(
       const clonedRoot = clonedDoc.querySelector(`[data-export-root="${exportRootId}"]`) as HTMLElement | null;
       if (!clonedRoot) return;
 
-      // html2canvas cannot parse modern OKLCH/OKLab colors emitted by Tailwind 4.
-      // Convert only affected computed declarations in the export clone.
+      // html2canvas can't parse Tailwind 4's OKLCH/OKLab colors; convert affected declarations in the clone.
       const colorContext = clonedDoc.createElement('canvas').getContext('2d', { willReadFrequently: true });
       const view = clonedDoc.defaultView || window;
       if (colorContext) {
@@ -129,18 +126,18 @@ async function captureElement(
         });
       }
 
-      // Reset transform, transitions, animations, and filters on the cloned root
       clonedRoot.style.transform = 'none';
       clonedRoot.style.transition = 'none';
       clonedRoot.style.animation = 'none';
       clonedRoot.style.filter = 'none';
 
-      // Compensate for html2canvas's font-baseline offset. Wallpaper only needs it on time labels.
+      // Compensate for html2canvas's font-baseline offset; wallpaper needs it only on time labels.
       const isApple = typeof navigator !== 'undefined' && (/Mac|iPod|iPhone|iPad/.test(navigator.platform) || (/MacIntel/.test(navigator.platform) && navigator.maxTouchPoints > 1) || /iPhone|iPad|iPod/i.test(navigator.userAgent));
       const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
 
       if (isApple && isWallpaper) {
-        clonedRoot.querySelectorAll('[data-export-time-label], [data-export-course-code]').forEach((node) => {
+        // iOS html2canvas draws letter-spaced text per character and mis-spaces it (e.g. "MKG" -> "MK G"). Reset tracking so text draws as one run.
+        clonedRoot.querySelectorAll('[data-export-time-label], [data-export-course-code], [data-wallpaper-minimal-text]').forEach((node) => {
           (node as HTMLElement).style.letterSpacing = 'normal';
         });
       }
@@ -194,14 +191,13 @@ async function captureElement(
         clonedRoot.style.height = elementRef.style.height || `${exportHeight || elementRef.offsetHeight}px`;
         clonedRoot.style.borderRadius = '0';
       } else {
-        // For formal document or auto-layout, expand height to fit content
+        // Documents expand height to fit content.
         clonedRoot.style.overflow = 'visible';
         clonedRoot.style.width = `${elementRef.scrollWidth || elementRef.offsetWidth || clonedRoot.scrollWidth}px`;
         clonedRoot.style.height = 'auto';
       }
 
-      // Reset transforms, transitions, animations, filters, and overflow clipping on all parent elements
-      // up to the body so they don't shift, scale down, or clip the element in html2canvas's render space.
+      // Strip transforms/overflow on ancestors up to body so they don't shift or clip the render.
       let current: HTMLElement | null = clonedRoot.parentElement;
       while (current && current !== clonedDoc.body) {
         current.style.transform = 'none';
@@ -222,9 +218,7 @@ async function captureElement(
   return canvas;
 }
 
-/**
- * Generates an official printable PDF file (A4 Portrait or Landscape)
- */
+/** Renders the element to a scaled A4 PDF (portrait or landscape). */
 export async function generateTimetablePdf(
   elementRef: ExportElement | null,
   orientation: 'portrait' | 'landscape' = 'portrait',
@@ -255,9 +249,7 @@ export async function generateTimetablePdf(
   pdf.save(sanitizeDownloadFileName(fileName, 'Jadual_Kuliah_USAS.pdf'));
 }
 
-/**
- * Generates a downloadable PNG from the given element.
- */
+/** Renders the element to a PNG and triggers download or share. */
 export async function generateElementPng(
   elementRef: ExportElement | null,
   fileName = 'Jadual_Kuliah_USAS.png',
@@ -284,15 +276,14 @@ export async function generateElementPng(
           files: [file],
           title: 'Jadual Kuliah USAS'
         });
-        return; // Successfully opened native share sheet (Save Image)
+        return; // Share sheet opened (Save Image)
       }
     } catch (err: unknown) {
       console.warn('Share API failed or cancelled:', err);
-      if (err instanceof Error && err.name === 'AbortError') return; // User simply closed the share sheet
+      if (err instanceof Error && err.name === 'AbortError') return; // User cancelled the share sheet
     }
   }
 
-  // Fallback for Desktop, standard browsers, or if Share API fails
   const link = document.createElement('a');
   const objectUrl = URL.createObjectURL(blob);
   onProgress?.(96);
@@ -307,12 +298,10 @@ export async function generateElementPng(
   }
 }
 
-/**
- * Generates a high-resolution PNG image for Device Lock Screen / Phone Wallpaper
- */
+/** Renders a high-resolution PNG for lock screen / phone wallpaper. */
 export async function generateLockscreenImage(
   elementRef: ExportElement | null,
-  fileName = 'Jadual_USAS_Lockscreen.png',
+  fileName = 'Jadual_USAS_Wallpaper.png',
   onProgress?: ExportProgress,
 ) {
   await generateElementPng(elementRef, fileName, 5, null, onProgress);

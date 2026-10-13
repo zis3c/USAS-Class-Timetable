@@ -188,7 +188,6 @@ function readPrayerNotifiedStore(): Set<string> {
       return new Set(Object.entries(parsed).filter(([, value]) => value === true).map(([key]) => key));
     }
   } catch {
-    // Ignore malformed storage.
   }
   return new Set();
 }
@@ -197,7 +196,6 @@ function persistPrayerNotifiedStore(store: ReadonlySet<string>): void {
   try {
     localStorage.setItem(PRAYER_NOTIFIED_STORE_KEY, JSON.stringify([...store]));
   } catch {
-    // Ignore storage failures.
   }
 }
 
@@ -210,8 +208,7 @@ export function PrayerTimesNotifier(): null {
   });
   const [now, setNow] = useState(new Date());
   const [autoNotifyEnabled] = usePrayerAutoNotifySetting();
-  // Persist the notified keys so a page refresh does not replay the chime for
-  // a prayer that was already announced.
+  // Persist notified keys so a refresh does not replay an already-announced chime.
   const notifiedRef = useRef(readPrayerNotifiedStore());
   const activeDayStampRef = useRef('');
 

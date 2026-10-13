@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import jsQR from 'jsqr';
 import { Camera, AlertTriangle, QrCode, ScanLine, X, Upload, Square, Info, Maximize, Minimize, ZoomIn, ZoomOut } from 'lucide-react';
 import { useAuth } from '@/app/providers/AuthProvider';
@@ -22,7 +23,7 @@ const getCopy = (lang: string) => {
   if (lang === 'ms') {
     return {
       title: 'Imbas Kehadiran QR',
-      desc: 'Buka kamera dan imbas kod QR kehadiran dari pensyarah.',
+      desc: 'Imbas QR kehadiran pensyarah.',
       ready: 'Kamera sedia. Halakan ke kod QR kehadiran.',
       starting: 'Membuka kamera...',
       processing: 'Menghantar kod ke server UMC...',
@@ -30,10 +31,9 @@ const getCopy = (lang: string) => {
       error: 'Imbasan gagal.',
       unsupported: 'Pelayar ini tiada sokongan kamera imbas QR automatik. Tampal nilai QR secara manual di bawah.',
       manualLabel: 'Nilai QR manual',
-      manualHint: 'Guna jika kamera tiada atau detection gagal.',
+      manualHint: 'Tak dapat imbas? Tampal QR di sini.',
       startCamera: 'Mula kamera',
       uploadImg: 'Muat naik imej',
-      scanAgain: 'Imbas semula',
       submit: 'Hantar QR',
       close: 'Tutup',
       stop: 'Henti kamera',
@@ -53,10 +53,9 @@ const getCopy = (lang: string) => {
       error: '扫描失败。',
       unsupported: '此浏览器不支持自动二维码摄像头扫描。请在下方手动粘贴二维码值。',
       manualLabel: '手动二维码值',
-      manualHint: '摄像头不可用或检测失败时使用。',
+      manualHint: '无法扫描？在此粘贴二维码。',
       startCamera: '开启摄像头',
       uploadImg: '上传图片',
-      scanAgain: '重新扫描',
       submit: '提交二维码',
       close: '关闭',
       stop: '停止摄像头',
@@ -76,10 +75,9 @@ const getCopy = (lang: string) => {
       error: 'ஸ்கேன் தோல்வி.',
       unsupported: 'இந்த உலாவி தானியங்கி QR கேமரா ஸ்கேனை ஆதரிக்கவில்லை. QR மதிப்பை கீழே கைமுறையாக ஒட்டவும்.',
       manualLabel: 'கைமுறை QR மதிப்பு',
-      manualHint: 'கேமரா கிடைக்காதபோது அல்லது கண்டறிதல் தோல்வியடையும்போது இதைப் பயன்படுத்தவும்.',
+      manualHint: 'ஸ்கேன் முடியவில்லையா? QR குறியீட்டை இங்கே ஒட்டவும்.',
       startCamera: 'கேமராவைத் தொடங்கு',
       uploadImg: 'படத்தை பதிவேற்று',
-      scanAgain: 'மீண்டும் ஸ்கேன்',
       submit: 'QR அனுப்பு',
       close: 'மூடு',
       stop: 'கேமராவை நிறுத்து',
@@ -90,7 +88,7 @@ const getCopy = (lang: string) => {
 
   return {
     title: 'Scan Attendance QR',
-    desc: 'Open the camera and scan the attendance QR from the lecturer.',
+    desc: "Scan the lecturer's attendance QR.",
     ready: 'Camera ready. Point it at the attendance QR code.',
     starting: 'Opening camera...',
     processing: 'Sending QR code to the UMC server...',
@@ -98,10 +96,9 @@ const getCopy = (lang: string) => {
     error: 'Scan failed.',
     unsupported: 'This browser does not support automatic QR camera scanning. Paste the QR value manually below.',
     manualLabel: 'Manual QR value',
-    manualHint: 'Use this if camera access is unavailable or detection fails.',
+    manualHint: "Can't scan? Paste the QR code here.",
     startCamera: 'Start camera',
     uploadImg: 'Upload image',
-    scanAgain: 'Scan again',
     submit: 'Send QR',
     close: 'Close',
     stop: 'Stop camera',
@@ -169,7 +166,7 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
 
       const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
       const code = jsQR(imageData.data, imageData.width, imageData.height, {
-        inversionAttempts: 'dontInvert',
+        inversionAttempts: 'attemptBoth',
       });
 
       const firstValue = code?.data?.trim();
@@ -284,7 +281,7 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
 
       const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
       const code = jsQR(imageData.data, imageData.width, imageData.height, {
-        inversionAttempts: 'dontInvert',
+        inversionAttempts: 'attemptBoth',
       });
 
       const firstValue = code?.data?.trim();
@@ -415,9 +412,68 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
     };
   }, []);
 
+  // Fullscreen remounts the <video> via the body portal and drops its stream; reattach.
+  useEffect(() => {
+    const video = videoRef.current;
+    const stream = streamRef.current;
+    if (video && stream && video.srcObject !== stream) {
+      video.srcObject = stream;
+      void video.play().catch(() => {});
+    }
+  }, [isFullscreen]);
+
   if (!shouldRender) return null;
 
   const showCamera = scanState !== 'unsupported';
+
+  // backdrop-blur/transform on the modal traps fixed children into a thin strip; portal the fullscreen scanner to <body> to escape.
+  const scannerViewport = showCamera ? (
+    <div className={isFullscreen
+      ? 'fixed inset-0 z-[100] bg-black flex items-center justify-center'
+      : `flex-shrink-0 rounded-2xl border overflow-hidden ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-black/40 border-white/10'}`
+    }>
+      <div className={`relative bg-black flex items-center justify-center overflow-hidden ${isFullscreen ? 'w-full h-full' : 'h-48 sm:h-56 w-full'}`}>
+        <video
+          ref={videoRef}
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-150 will-change-transform"
+          style={supportsNativeZoom ? undefined : { transform: `scale(${zoom})` }}
+          playsInline
+          muted
+        />
+        <div className="absolute inset-0 pointer-events-none bg-black/10" />
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-4">
+          <div className={`rounded-xl border-2 border-white/30 border-dashed ${isFullscreen ? 'w-56 h-56 sm:w-64 sm:h-64' : 'w-32 h-32 sm:w-40 sm:h-40'}`} />
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsFullscreen((v) => !v)}
+          className="absolute top-2 right-2 p-2 rounded-lg bg-black/50 text-white/80 hover:text-white hover:bg-black/70 backdrop-blur-sm transition-colors"
+          aria-label={isFullscreen ? (lang === 'ms' ? 'Keluar skrin penuh' : 'Exit fullscreen') : (lang === 'ms' ? 'Skrin penuh' : 'Fullscreen')}
+        >
+          {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+        </button>
+
+        {(scanState === 'scanning' || scanState === 'starting') && (
+          <div className={`absolute left-0 right-0 flex items-center gap-2 px-3 ${isFullscreen ? 'bottom-5' : 'bottom-2'}`}>
+            <ZoomOut className="w-4 h-4 text-white/70 flex-shrink-0" />
+            <input
+              type="range"
+              min={1}
+              max={maxZoom}
+              step={0.1}
+              value={zoom}
+              onChange={(e) => applyZoom(parseFloat(e.target.value))}
+              className="flex-1 h-1 cursor-pointer accent-amber-400"
+              aria-label={lang === 'ms' ? 'Zum kamera' : 'Camera zoom'}
+            />
+            <ZoomIn className="w-4 h-4 text-white/70 flex-shrink-0" />
+            <span className="text-[10px] font-mono text-white/70 w-8 text-right flex-shrink-0">{zoom.toFixed(1)}x</span>
+          </div>
+        )}
+      </div>
+    </div>
+  ) : null;
 
   return (
     <div ref={modalRef} data-testid="attendance-scan-modal" role="dialog" aria-modal="true" aria-label="Imbas Kehadiran QR" className={`fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 backdrop-blur-md transition-all duration-200 touch-pan-y overscroll-contain ${animate ? 'bg-slate-900/35 opacity-100' : 'bg-slate-900/0 opacity-0 pointer-events-none'
@@ -426,8 +482,7 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
         } ${isLight ? 'bg-white/95 border-slate-200 text-slate-800' : 'bg-[#0A1428]/95 border-white/[0.08] shadow-black/40 text-white'
         }`}>
 
-        {/* Header */}
-        <div className={`p-4 border-b flex-shrink-0 flex items-start gap-3 ${isLight ? 'border-slate-200 bg-slate-50/50' : 'border-white/[0.06] bg-[#0A1428]/95'
+        <div className={`p-4 border-b flex-shrink-0 flex items-center gap-3 ${isLight ? 'border-slate-200 bg-slate-50/50' : 'border-white/[0.06] bg-[#0A1428]/95'
           }`}>
           <div className={`w-10 h-10 rounded-xl border flex items-center justify-center flex-shrink-0 ${isLight ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-amber-400/10 border-amber-400/20 text-amber-300'
             }`}>
@@ -436,8 +491,8 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <h3 className={`text-sm sm:text-base font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>{copy.title}</h3>
-                <p className={`text-[11px] sm:text-xs leading-relaxed mt-0.5 truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>{copy.desc}</p>
+                <h3 className={`text-sm sm:text-base font-bold leading-tight truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>{copy.title}</h3>
+                <p className={`text-[11px] sm:text-xs font-semibold leading-tight truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>{copy.desc}</p>
               </div>
               <button
                 onClick={() => {
@@ -454,56 +509,9 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
           </div>
         </div>
 
-        {/* Scrollable Body */}
         <div data-lenis-prevent className="p-4 flex-1 overflow-y-auto min-h-0 flex flex-col gap-4 touch-pan-y overscroll-contain">
 
-          {showCamera && (
-            <div className={isFullscreen
-              ? 'fixed inset-0 z-[100] bg-black flex items-center justify-center'
-              : `flex-shrink-0 rounded-2xl border overflow-hidden ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-black/40 border-white/10'}`
-            }>
-              <div className={`relative bg-black flex items-center justify-center overflow-hidden ${isFullscreen ? 'w-full h-full' : 'h-48 sm:h-56 w-full'}`}>
-                <video
-                  ref={videoRef}
-                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-150 will-change-transform"
-                  style={supportsNativeZoom ? undefined : { transform: `scale(${zoom})` }}
-                  playsInline
-                  muted
-                />
-                <div className="absolute inset-0 pointer-events-none bg-black/10" />
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-4">
-                  <div className={`rounded-xl border-2 border-white/30 border-dashed ${isFullscreen ? 'w-56 h-56 sm:w-64 sm:h-64' : 'w-32 h-32 sm:w-40 sm:h-40'}`} />
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setIsFullscreen((v) => !v)}
-                  className="absolute top-2 right-2 p-2 rounded-lg bg-black/50 text-white/80 hover:text-white hover:bg-black/70 backdrop-blur-sm transition-colors"
-                  aria-label={isFullscreen ? (lang === 'ms' ? 'Keluar skrin penuh' : 'Exit fullscreen') : (lang === 'ms' ? 'Skrin penuh' : 'Fullscreen')}
-                >
-                  {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
-                </button>
-
-                {(scanState === 'scanning' || scanState === 'starting') && (
-                  <div className={`absolute left-0 right-0 flex items-center gap-2 px-3 ${isFullscreen ? 'bottom-5' : 'bottom-2'}`}>
-                    <ZoomOut className="w-4 h-4 text-white/70 flex-shrink-0" />
-                    <input
-                      type="range"
-                      min={1}
-                      max={maxZoom}
-                      step={0.1}
-                      value={zoom}
-                      onChange={(e) => applyZoom(parseFloat(e.target.value))}
-                      className="flex-1 h-1 cursor-pointer accent-amber-400"
-                      aria-label={lang === 'ms' ? 'Zum kamera' : 'Camera zoom'}
-                    />
-                    <ZoomIn className="w-4 h-4 text-white/70 flex-shrink-0" />
-                    <span className="text-[10px] font-mono text-white/70 w-8 text-right flex-shrink-0">{zoom.toFixed(1)}x</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+          {isFullscreen ? createPortal(scannerViewport, document.body) : scannerViewport}
 
           <div className="space-y-2">
             <div className="flex items-center gap-1.5 group relative w-max">
@@ -586,54 +594,20 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
             </div>
           </div>
 
-          <div role="status" aria-live="polite" className={`rounded-xl border px-3 py-2 text-xs leading-relaxed flex items-center gap-2 ${scanState === 'success'
-              ? isLight ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-emerald-400/10 border-emerald-400/20 text-emerald-300'
+          <div role="status" aria-live="polite" className={`text-xs leading-relaxed flex items-center gap-2 ${scanState === 'success'
+              ? `rounded-xl border px-3 py-2 ${isLight ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-emerald-400/10 border-emerald-400/20 text-emerald-300'}`
               : scanState === 'error' || scanState === 'unsupported'
-                ? isLight ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-amber-400/10 border-amber-400/20 text-amber-300'
-                : isLight ? 'bg-slate-50 border-slate-200 text-slate-500' : 'bg-white/[0.03] border-white/10 text-white/50'
+                ? `rounded-xl border px-3 py-2 ${isLight ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-amber-400/10 border-amber-400/20 text-amber-300'}`
+                : isLight ? 'text-slate-500' : 'text-white/50'
             }`}>
             {(scanState === 'error' || scanState === 'unsupported') && <AlertTriangle className="w-4 h-4 flex-shrink-0" />}
             <span>{statusMessage}</span>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-2">
-            <button
-              data-testid="attendance-scan-close"
-              onClick={() => {
-                stopCamera();
-                setScanState('idle');
-                setStatusMessage(copy.desc);
-                onClose();
-              }}
-              className={`w-full rounded-xl py-2.5 text-xs font-bold border transition-colors ${isLight
-                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
-                  : 'bg-white/[0.04] hover:bg-white/[0.08] text-white/80 border-white/10'
-                }`}
-            >
-              {copy.close}
-            </button>
-
-            <button
-              data-testid="attendance-scan-restart"
-              onClick={() => {
-                setManualQr('');
-                setScanState('idle');
-                setStatusMessage(copy.desc);
-                void startCamera();
-              }}
-              className={`w-full rounded-xl py-2.5 text-xs font-bold transition-colors ${isLight
-                  ? 'bg-[#0B1E43] hover:bg-[#122a5b] text-white'
-                  : 'bg-amber-400 hover:bg-amber-300 text-slate-950'
-                }`}
-            >
-              {copy.scanAgain}
-            </button>
-          </div>
-
           <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
           <canvas ref={canvasRef} className="hidden" aria-hidden="true" />
 
-        </div> {/* End Scrollable Body */}
+        </div>
       </div>
     </div>
   );

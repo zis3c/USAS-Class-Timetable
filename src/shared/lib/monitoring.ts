@@ -1,7 +1,6 @@
 import * as Sentry from '@sentry/react';
 
-// Initialises Sentry only when a DSN is provided via VITE_SENTRY_DSN, so the
-// app runs unchanged without error tracking configured.
+// Sentry initialises only when VITE_SENTRY_DSN is set; app runs unchanged otherwise.
 export function initMonitoring(): void {
   const dsn = import.meta.env.VITE_SENTRY_DSN;
   if (!dsn) return;

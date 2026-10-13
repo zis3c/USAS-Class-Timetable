@@ -107,6 +107,9 @@ export interface AuthContextValue {
   logout: () => void;
   refreshTimetable: () => Promise<void>;
   setError: Dispatch<SetStateAction<string | null>>;
+  pendingCompareData: string | null;
+  consumePendingCompareData: () => string | null;
+  clearPendingCompare: () => void;
 }
 
 export interface ThemeContextValue {

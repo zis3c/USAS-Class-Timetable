@@ -15,11 +15,10 @@ export default function ExamCountdownWidget({ courses, isDemo = false, onOpenExa
   const { lang } = useLanguage();
   const isLight = theme === 'light';
 
-  // Find the closest upcoming exam only if real exam dates exist or explicitly in demo mode
+  // Closest exam, only when real exam dates exist or demo mode is on.
   const closestExam = useMemo(() => {
     if (!courses || courses.length === 0) return null;
 
-    // Check if courses have official exam dates
     const coursesWithOfficialExams = courses.filter(c => Boolean((c as unknown as { exam_date?: string }).exam_date));
 
     if (coursesWithOfficialExams.length > 0) {
@@ -44,7 +43,6 @@ export default function ExamCountdownWidget({ courses, isDemo = false, onOpenExa
       return nearest;
     }
 
-    // In demo mode only, show a sample preview
     if (isDemo) {
       const baseDate = new Date();
       baseDate.setDate(baseDate.getDate() + 14);
@@ -59,7 +57,7 @@ export default function ExamCountdownWidget({ courses, isDemo = false, onOpenExa
       };
     }
 
-    // For real student accounts without published exam schedules, do not synthesize fake exams
+    // Real accounts with no published exam schedule get no invented exams.
     return null;
   }, [courses, isDemo]);
 

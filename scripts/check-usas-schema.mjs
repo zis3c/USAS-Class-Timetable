@@ -1,9 +1,6 @@
-// Monitors the official USAS UMC API response shape so schema changes or
-// outages are detected before they break the client.
-//
-// Always validates the login endpoint (works with a dummy matric number).
-// When USAS_MONITOR_USER / USAS_MONITOR_PASS are provided (repository secrets),
-// it additionally logs in and validates the timetable and course-list schemas.
+// Monitors the USAS UMC API response shape so schema changes/outages surface before they break the client.
+// Login is always checked (dummy matric works); when USAS_MONITOR_USER/PASS secrets are set, it also
+// validates the timetable and course-list schemas.
 
 const API_ORIGIN = 'https://mobile.usas.edu.my/umc_v2';
 const UMC_VERSION = '2.0.3';
@@ -39,7 +36,7 @@ function expectArray(value, label) {
 const user = process.env.USAS_MONITOR_USER;
 const pass = process.env.USAS_MONITOR_PASS;
 
-// 1. Login endpoint shape (dummy credentials still return a server_response array).
+// Dummy credentials still return a server_response array, so login shape is always checkable.
 const login = await post('/student/login_student.php', {
   request_type: 'login',
   user_id: user || 'SCHEMA-CHECK',
@@ -73,7 +70,6 @@ const base = {
   umc_version: UMC_VERSION,
 };
 
-// 2. Timetable schema.
 const timetable = await post('/student/get_timetable_stud.php', {
   ...base,
   request_type: 'jadual_kuliah',
@@ -87,7 +83,6 @@ if (timetable.server_response.length > 0) {
   if (missing.length) fail(`timetable rows missing expected keys: ${missing.join(', ')}`);
 }
 
-// 3. Enrolled course list schema.
 const courses = await post('/student/get_kehadiran_kuliah.php', {
   ...base,
   request_type: 'senarai_kursus',
