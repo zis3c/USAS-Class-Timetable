@@ -241,9 +241,11 @@ export default function LoginForm() {
 
       </div>
 
-      <div className="mt-5 flex items-start justify-center gap-1 text-[10px] text-center text-slate-500">
-        <ShieldCheck className="mt-px w-3 h-3 text-emerald-500/60 flex-shrink-0" />
-        <span className="max-w-full">{t('privacyNote')} {t('loginUnofficial')}</span>
+      <div className="mt-5 flex justify-center">
+        <p className="flex items-start gap-1.5 max-w-[300px] text-left text-[10px] leading-relaxed text-slate-500">
+          <ShieldCheck className="mt-px w-3 h-3 shrink-0 text-emerald-500/60" />
+          <span>{t('privacyNote')} {t('loginUnofficial')}</span>
+        </p>
       </div>
 
     </div>
