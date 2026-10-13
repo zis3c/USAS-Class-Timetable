@@ -29,7 +29,7 @@ https://mobile.usas.edu.my/umc_v2   (official USAS UMC API)
 
 1. `LoginForm` renders a Cloudflare Turnstile widget; the token is passed to `AuthProvider.login(userId, password, false, captchaToken)`.
 2. `loginStudentAPI` POSTs to `/api/usas/student/login_student.php` with the `x-turnstile-token` header.
-3. The Pages Function verifies the token via `siteverify` when `TURNSTILE_SECRET_KEY` is set, then removes the one-time token header and proxies the request upstream. If the secret is absent, server-side challenge verification is skipped.
+3. The Pages Function requires `TURNSTILE_SECRET_KEY`, verifies the token via `siteverify`, then removes the one-time token header and proxies the request upstream. If the secret is missing, login is refused (fails closed).
 4. On success, `sid_1`/`sid_2`/`sid_3` are stored in `sessionStorage` and the timetable is cached in `localStorage`. The cache can remain after the browser tab closes; logout or clearing site storage removes it.
 5. Login throttling state lives in `sessionStorage`.
 
