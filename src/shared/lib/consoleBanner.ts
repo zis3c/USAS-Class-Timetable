@@ -12,6 +12,7 @@ export function logConsoleBanner(): void {
   if (typeof console === 'undefined') return;
   const version = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'dev';
 
+  // eslint-disable-next-line no-console -- intentional console easter egg
   console.log(
     `%c${U545}\n%cUSAS Class Timetable\n%cDibina oleh pelajar, untuk pelajar.\n%cversion: ${version}\n%csource: ${REPO_URL}`,
     'color:#fbbf24;font-family:ui-monospace,Menlo,monospace;font-size:12px',

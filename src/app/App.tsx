@@ -26,7 +26,7 @@ const PrayerTimesModal = lazy(() => import('@/features/timetable/modals/PrayerTi
 const PrayerToast = lazy(() => import('@/features/timetable/components/PrayerToast'));
 
 const SITE_NAME = 'USAS Class Timetable';
-const SITE_DESCRIPTION = 'Official and independent student schedule portal for Universiti Sultan Azlan Shah (USAS) to preview, format, and export class timetables into calendar feeds (.ICS), printable A4 PDFs, and lockscreen wallpapers.';
+const SITE_DESCRIPTION = 'An unofficial, independent student project by STEM USAS to preview, format, and export your USAS class timetable into calendar feeds (.ICS), printable A4 PDFs, and lockscreen wallpapers. Not affiliated with or endorsed by Universiti Sultan Azlan Shah.';
 const SITE_IMAGE = '/seo-preview.svg';
 const SITE_IMAGE_ALT = 'USAS Class Timetable preview image';
 const SITE_KEYWORDS = 'USAS, Universiti Sultan Azlan Shah, timetable, class schedule, student portal, PDF export, wallpaper export';

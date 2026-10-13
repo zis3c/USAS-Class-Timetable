@@ -41,7 +41,7 @@ export default defineConfig({
       manifest: {
         name: 'USAS Class Timetable',
         short_name: 'USAS Timetable',
-        description: 'Official and independent student schedule portal for Universiti Sultan Azlan Shah.',
+        description: 'An unofficial, independent student timetable portal by STEM USAS. Not affiliated with Universiti Sultan Azlan Shah.',
         theme_color: '#070F22',
         background_color: '#070F22',
         display: 'standalone',
