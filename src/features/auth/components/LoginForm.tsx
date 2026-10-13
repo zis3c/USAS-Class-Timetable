@@ -1,8 +1,9 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useLanguage } from '@/app/providers/LanguageProvider';
 import { useTheme, THEMES } from '@/app/providers/ThemeProvider';
 import { Lock, User, Fingerprint, ShieldCheck, ArrowRight, XCircle, Eye, EyeOff } from 'lucide-react';
+import 'altcha';
 
 export default function LoginForm() {
   const { login, loading, error, setError } = useAuth();
@@ -12,8 +13,33 @@ export default function LoginForm() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isFocused, setIsFocused] = useState<string | null>(null);
+  const altchaRef = useRef<HTMLDivElement | null>(null);
+  const altchaPayloadRef = useRef('');
 
   const isLight = theme === THEMES.LIGHT;
+
+  // ALTCHA widget is a web component; mount it imperatively and capture the
+  // proof-of-work payload on verification.
+  useEffect(() => {
+    const container = altchaRef.current;
+    if (!container || container.childElementCount > 0) return;
+    const widget = document.createElement('altcha-widget');
+    widget.setAttribute('challenge', '/api/altcha');
+    widget.setAttribute('name', 'altcha');
+    widget.setAttribute('auto', 'onload');
+    const onState = (event: Event) => {
+      const detail = (event as CustomEvent<{ state?: string; payload?: string }>).detail;
+      if (detail?.state === 'verified' && detail.payload) {
+        altchaPayloadRef.current = detail.payload;
+      }
+    };
+    widget.addEventListener('statechange', onState);
+    container.appendChild(widget);
+    return () => {
+      widget.removeEventListener('statechange', onState);
+      widget.remove();
+    };
+  }, []);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -21,7 +47,7 @@ export default function LoginForm() {
       setError(lang === 'ms' ? 'Isi no. matrik dan kata laluan.' : 'Enter matric no. and password.');
       return;
     }
-    await login(userId.trim(), password, false);
+    await login(userId.trim(), password, false, altchaPayloadRef.current);
   };
 
   const handleDemoClick = async () => {
@@ -166,6 +192,8 @@ export default function LoginForm() {
               </button>
             </div>
           </div>
+
+          <div ref={altchaRef} className="flex justify-center" />
 
           <button
             type="submit"
