@@ -48,6 +48,14 @@ jobs:
             echo "ready=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Deploy ALTCHA replay guard
+        if: steps.cf.outputs.ready == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config cloudflare/altcha-replay-guard/wrangler.toml
+
       - name: Publish to Cloudflare Pages
         if: steps.cf.outputs.ready == 'true'
         uses: cloudflare/wrangler-action@v3

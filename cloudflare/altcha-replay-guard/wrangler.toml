@@ -1,0 +1,11 @@
+name = "usas-altcha-replay-guard"
+main = "src/index.js"
+compatibility_date = "2026-10-13"
+
+[[durable_objects.bindings]]
+name = "ALTCHA_REPLAY_GUARD"
+class_name = "AltchaReplayGuard"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["AltchaReplayGuard"]
