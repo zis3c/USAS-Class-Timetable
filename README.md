@@ -47,7 +47,7 @@ USAS Class Timetable is a modern, client-side academic schedule portal designed 
 Because the portal processes student academic schedules, security and privacy are implemented at every layer:
 
 * **Stateless API Proxy**: Requests pass through a Cloudflare Pages Function to `https://mobile.usas.edu.my`. The app code does not write credentials or sessions to a project database or function logs.
-* **Stateless API Proxy**: Login and API requests pass through a Cloudflare Pages Function that enforces an endpoint allowlist and request-size limits. Add Cloudflare Rate Limiting on the login endpoint for abuse protection.
+* **Stateless API Proxy & Anti-Bot**: Login and API requests pass through a Cloudflare Pages Function that enforces an endpoint allowlist and request-size limits. Login is protected by a self-hosted [ALTCHA](https://altcha.org) proof-of-work challenge (no third party, works on iOS/Safari).
 * **Content Security Policy (CSP)**: Restricts script, frame, and connection sources to reduce injection and framing risks.
 * **Browser Storage**: The session is kept in `sessionStorage`; the timetable cache and preferences use `localStorage`. These remain on the device until logout or browser storage is cleared. See the [Privacy Notice](docs/PRIVACY.md).
 
