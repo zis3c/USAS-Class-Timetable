@@ -382,6 +382,8 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
         nativeZoomRef.current = caps.zoom;
         setSupportsNativeZoom(true);
         setMaxZoom(Math.max(3, Math.round(caps.zoom.max)));
+        type ZoomConstraint = MediaTrackConstraintSet & { zoom: number };
+        void track.applyConstraints({ advanced: [{ zoom: caps.zoom.min } as ZoomConstraint] }).catch(() => {});
       } else {
         nativeZoomRef.current = null;
         setSupportsNativeZoom(false);
@@ -637,10 +639,10 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
         )}
 
         {scanState === 'idle' && (
-          <button type="button" onClick={startCamera} className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-1 bg-[#0a1428] px-6 text-white/60">
+          <button type="button" onClick={startCamera} className={`absolute inset-0 z-10 flex flex-col items-center justify-center gap-1 px-6 ${isLight ? 'bg-slate-100 text-slate-500' : 'bg-[#0a1428] text-white/60'}`}>
             <Camera className="mb-1 h-9 w-9" />
-            <p className="text-sm font-semibold text-white">{t(scanHintKey)}</p>
-            <span className="mt-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-xs font-semibold text-white">{t('compareScanBtn')}</span>
+            <p className={`text-sm font-semibold ${isLight ? 'text-slate-800' : 'text-white'}`}>{t(scanHintKey)}</p>
+            <span className={`mt-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold ${isLight ? 'bg-white text-slate-700' : 'bg-white/10 text-white'}`}>{t('compareScanBtn')}</span>
           </button>
         )}
       </div>
