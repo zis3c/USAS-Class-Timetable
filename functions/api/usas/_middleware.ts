@@ -1,13 +1,10 @@
 import { getUsasProxyPath, isAllowedUsasMethod } from '../../../src/shared/lib/usasProxy';
 
 const API_ORIGIN = 'https://mobile.usas.edu.my/umc_v2';
-const LOGIN_PATH = '/student/login_student.php';
-const TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 const MAX_BODY_BYTES = 64 * 1024;
 // Client-supplied network/proxy headers are dropped before forwarding so they
 // cannot spoof the upstream caller identity.
 const STRIPPED_UPSTREAM_HEADERS = [
-  'x-turnstile-token',
   'cf-connecting-ip',
   'cf-connecting-ipv6',
   'cf-ipcountry',
@@ -21,7 +18,6 @@ const STRIPPED_UPSTREAM_HEADERS = [
 
 type PagesContext = {
   request: Request;
-  env?: { TURNSTILE_SECRET_KEY?: string };
 };
 
 function buildUpstreamUrl(request: Request): string | null {
@@ -40,27 +36,6 @@ function jsonResponse(body: unknown, status: number): Response {
       'x-content-type-options': 'nosniff',
     },
   });
-}
-
-async function verifyTurnstileToken(token: string, secret: string, ip?: string): Promise<{ ok: boolean; codes?: string[] }> {
-  if (!token) return { ok: false, codes: ['missing-input-response'] };
-  try {
-    const form = new FormData();
-    form.append('secret', secret);
-    form.append('response', token);
-    if (ip) form.append('remoteip', ip);
-
-    const res = await fetch(TURNSTILE_VERIFY_URL, { method: 'POST', body: form });
-    if (!res.ok) return { ok: false, codes: [`http-${res.status}`] };
-
-    const data = (await res.json()) as { success?: boolean; 'error-codes'?: string[] };
-    return {
-      ok: data?.success === true,
-      codes: Array.isArray(data?.['error-codes']) ? data['error-codes'] : [],
-    };
-  } catch {
-    return { ok: false, codes: ['verification-request-failed'] };
-  }
 }
 
 async function buildErrorPage(request: Request, status: 500 | 502 | 503 | 504): Promise<Response> {
@@ -94,37 +69,8 @@ export async function onRequest(context: PagesContext) {
     return jsonResponse({ success: false, error: 'Not found.' }, 404);
   }
 
-  const ip = context.request.headers.get('cf-connecting-ip') || 'unknown';
-
   if (Number(context.request.headers.get('content-length') || '0') > MAX_BODY_BYTES) {
     return jsonResponse({ success: false, error: 'Payload too large.' }, 413);
-  }
-
-  // Fail closed: without the Turnstile secret, login protection is off, so refuse.
-  if (cleanPath === LOGIN_PATH) {
-    const secret = context.env?.TURNSTILE_SECRET_KEY;
-    if (!secret) {
-      console.error('usas-proxy: TURNSTILE_SECRET_KEY missing; refusing login.');
-      return jsonResponse({ success: false, error: 'Perkhidmatan log masuk tidak tersedia.' }, 503);
-    }
-    const token = context.request.headers.get('x-turnstile-token') || '';
-    const verification = await verifyTurnstileToken(token, secret, ip === 'unknown' ? undefined : ip);
-    if (!verification.ok) {
-      console.warn('usas-proxy captcha rejected', {
-        ip,
-        path: cleanPath,
-        codes: verification.codes,
-        hostname: url.hostname,
-      });
-      return jsonResponse(
-        {
-          success: false,
-          error: 'Pengesahan captcha gagal. Sila cuba lagi.',
-          'error-codes': verification.codes,
-        },
-        403,
-      );
-    }
   }
 
   const upstreamUrl = buildUpstreamUrl(context.request);

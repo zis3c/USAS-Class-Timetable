@@ -47,35 +47,21 @@ describe('loginStudentAPI network handling', () => {
   it('returns a friendly error when the network is unreachable', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
 
-    const res = await loginStudentAPI('I24107504', 'secret', false, 'token');
+    const res = await loginStudentAPI('I24107504', 'secret', false);
 
     expect(res.success).toBe(false);
     if (res.success === false) expect(res.error).toMatch(/Tidak dapat hubungi/);
   });
 
-  it('surfaces the captcha gate error from a 403 response', async () => {
+  it('surfaces a gate error envelope instead of a USAS response', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
-      errorResponse(403, { success: false, error: 'Pengesahan captcha gagal. Sila cuba lagi.', 'error-codes': ['invalid-input-secret'] }),
+      errorResponse(403, { success: false, error: 'Akses disekat.' }),
     ));
 
-    const res = await loginStudentAPI('I24107504', 'secret', false, 'bad-token');
+    const res = await loginStudentAPI('I24107504', 'secret', false);
 
     expect(res.success).toBe(false);
-    if (res.success === false) expect(res.error).toMatch(/captcha/i);
-  });
-
-  it('includes Turnstile error codes when the proxy omits a message', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
-      errorResponse(403, { success: false, 'error-codes': ['invalid-input-secret'] }),
-    ));
-
-    const res = await loginStudentAPI('I24107504', 'secret', false, 'bad-token');
-
-    expect(res.success).toBe(false);
-    if (res.success === false) {
-      expect(res.error).toMatch(/captcha/i);
-      expect(res.error).toMatch(/invalid-input-secret/);
-    }
+    if (res.success === false) expect(res.error).toMatch(/Akses disekat/);
   });
 
   it('returns a session on a successful login', async () => {
@@ -83,7 +69,7 @@ describe('loginStudentAPI network handling', () => {
       server_response: [{ status: 1, sid_1: 's1', sid_2: 's2', sid_3: 's3' }],
     })));
 
-    const res = await loginStudentAPI('I24107504', 'secret', false, 'token');
+    const res = await loginStudentAPI('I24107504', 'secret', false);
 
     expect(res.success).toBe(true);
     if (res.success) expect(res.data.sid_1).toBe('s1');

@@ -2,7 +2,6 @@ import { useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useLanguage } from '@/app/providers/LanguageProvider';
 import { useTheme, THEMES } from '@/app/providers/ThemeProvider';
-import TurnstileCaptcha from './TurnstileCaptcha';
 import { Lock, User, Fingerprint, ShieldCheck, ArrowRight, XCircle, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginForm() {
@@ -13,8 +12,6 @@ export default function LoginForm() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isFocused, setIsFocused] = useState<string | null>(null);
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
-  const [captchaResetKey, setCaptchaResetKey] = useState(0);
 
   const isLight = theme === THEMES.LIGHT;
 
@@ -24,15 +21,7 @@ export default function LoginForm() {
       setError(lang === 'ms' ? 'Isi no. matrik dan kata laluan.' : 'Enter matric no. and password.');
       return;
     }
-    if (!captchaToken) {
-      setError(lang === 'ms' ? 'Sila selesaikan captcha dahulu.' : 'Please complete the captcha first.');
-      return;
-    }
-    const ok = await login(userId.trim(), password, false, captchaToken);
-    if (!ok) {
-      setCaptchaToken(null);
-      setCaptchaResetKey((k) => k + 1);
-    }
+    await login(userId.trim(), password, false);
   };
 
   const handleDemoClick = async () => {
@@ -177,14 +166,6 @@ export default function LoginForm() {
               </button>
             </div>
           </div>
-
-          <TurnstileCaptcha
-            key={captchaResetKey}
-            onVerify={(token) => setCaptchaToken(token)}
-            onExpire={() => setCaptchaToken(null)}
-            onError={() => setCaptchaToken(null)}
-            theme={isLight ? 'light' : 'dark'}
-          />
 
           <button
             type="submit"
