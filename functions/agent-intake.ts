@@ -6,6 +6,8 @@ type AgentIntakePayload = {
   notes?: string;
 };
 
+const MAX_INTAKE_BYTES = 8 * 1024;
+
 function escapeHtml(value: unknown): string {
   return String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -198,6 +200,18 @@ async function readPayload(request: Request): Promise<AgentIntakePayload | null>
 
 export async function onRequest(context: { request: Request }) {
   const { request } = context;
+
+  if (Number(request.headers.get('content-length') || '0') > MAX_INTAKE_BYTES) {
+    return new Response(JSON.stringify({ ok: false, error: 'Payload too large.' }), {
+      status: 413,
+      headers: {
+        'content-type': 'application/json; charset=utf-8',
+        'cache-control': 'no-store',
+        'x-content-type-options': 'nosniff',
+      },
+    });
+  }
+
   const payload = request.method === 'POST' ? await readPayload(request) : null;
 
   console.warn('agent-intake', {

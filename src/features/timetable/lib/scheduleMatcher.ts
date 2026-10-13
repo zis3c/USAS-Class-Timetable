@@ -9,6 +9,11 @@ export type FreeSlot = {
   endMins: number;
 };
 
+// Caps on untrusted compare payloads (from QR or pasted links) so a crafted
+// string cannot expand into a large allocation.
+const MAX_DECOMPRESSED_CHARS = 200_000;
+const MAX_COMPARE_ROWS = 2000;
+
 // Day ints align with Date.getDay() (AHAD = 0).
 const dayMap: Record<string, number> = {
   'ISNIN': 1, 'SELASA': 2, 'RABU': 3, 'KHAMIS': 4, 'JUMAAT': 5, 'SABTU': 6, 'AHAD': 0
@@ -55,9 +60,9 @@ export function compressTimetable(timetable: TimetableItem[], studentName: strin
 export function decompressTimetable(compressed: string): { studentName: string; studentId: string; timetable: TimetableItem[] } | null {
   try {
     const jsonStr = LZString.decompressFromEncodedURIComponent(compressed);
-    if (!jsonStr) return null;
+    if (!jsonStr || jsonStr.length > MAX_DECOMPRESSED_CHARS) return null;
     const payload = JSON.parse(jsonStr);
-    if (!payload || !Array.isArray(payload.t)) return null;
+    if (!payload || !Array.isArray(payload.t) || payload.t.length > MAX_COMPARE_ROWS) return null;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const items: TimetableItem[] = payload.t.map((arr: any) => {

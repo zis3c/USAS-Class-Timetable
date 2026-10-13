@@ -43,11 +43,16 @@ export default function TurnstileCaptcha({
   onExpire,
   onError,
   theme = 'auto',
-  siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA',
+  siteKey,
   className = '',
   size = 'flexible',
   appearance = 'always',
 }: TurnstileCaptchaProps) {
+  // Never fall back to Cloudflare's always-pass test key in production: a missing
+  // site key must fail closed, not silently disable the check.
+  const resolvedSiteKey = siteKey
+    || import.meta.env.VITE_TURNSTILE_SITE_KEY
+    || (import.meta.env.DEV ? '1x00000000000000000000AA' : '');
   const containerRef = useRef<HTMLDivElement | null>(null);
   const widgetIdRef = useRef<string | null>(null);
   const onVerifyRef = useRef(onVerify);
@@ -95,6 +100,10 @@ export default function TurnstileCaptcha({
 
   useEffect(() => {
     if (!isScriptReady || !containerRef.current || !window.turnstile) return;
+    if (!resolvedSiteKey) {
+      onErrorRef.current?.();
+      return;
+    }
 
     if (widgetIdRef.current) {
       try {
@@ -106,7 +115,7 @@ export default function TurnstileCaptcha({
 
     try {
       const widgetId = window.turnstile.render(containerRef.current, {
-        sitekey: siteKey,
+        sitekey: resolvedSiteKey,
         theme: themeRef.current,
         size,
         appearance,
@@ -136,7 +145,7 @@ export default function TurnstileCaptcha({
         widgetIdRef.current = null;
       }
     };
-  }, [isScriptReady, siteKey, size, appearance]);
+  }, [isScriptReady, resolvedSiteKey, size, appearance]);
 
   return (
     <div className={`w-full flex items-center justify-center my-1.5 min-h-[65px] ${className || ''}`}>

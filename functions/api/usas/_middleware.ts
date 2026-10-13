@@ -3,6 +3,21 @@ import { getUsasProxyPath, isAllowedUsasMethod } from '../../../src/shared/lib/u
 const API_ORIGIN = 'https://mobile.usas.edu.my/umc_v2';
 const LOGIN_PATH = '/student/login_student.php';
 const TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
+const MAX_BODY_BYTES = 64 * 1024;
+// Client-supplied network/proxy headers are dropped before forwarding so they
+// cannot spoof the upstream caller identity.
+const STRIPPED_UPSTREAM_HEADERS = [
+  'x-turnstile-token',
+  'cf-connecting-ip',
+  'cf-connecting-ipv6',
+  'cf-ipcountry',
+  'cf-ray',
+  'x-forwarded-for',
+  'x-forwarded-proto',
+  'x-forwarded-host',
+  'x-real-ip',
+  'forwarded',
+];
 
 type PagesContext = {
   request: Request;
@@ -81,28 +96,34 @@ export async function onRequest(context: PagesContext) {
 
   const ip = context.request.headers.get('cf-connecting-ip') || 'unknown';
 
-  // Verify Turnstile on login before proxying upstream; skipped when the secret is unset (local dev).
+  if (Number(context.request.headers.get('content-length') || '0') > MAX_BODY_BYTES) {
+    return jsonResponse({ success: false, error: 'Payload too large.' }, 413);
+  }
+
+  // Fail closed: without the Turnstile secret, login protection is off, so refuse.
   if (cleanPath === LOGIN_PATH) {
     const secret = context.env?.TURNSTILE_SECRET_KEY;
-    if (secret) {
-      const token = context.request.headers.get('x-turnstile-token') || '';
-      const verification = await verifyTurnstileToken(token, secret, ip === 'unknown' ? undefined : ip);
-      if (!verification.ok) {
-        console.warn('usas-proxy captcha rejected', {
-          ip,
-          path: cleanPath,
-          codes: verification.codes,
-          hostname: url.hostname,
-        });
-        return jsonResponse(
-          {
-            success: false,
-            error: 'Pengesahan captcha gagal. Sila cuba lagi.',
-            'error-codes': verification.codes,
-          },
-          403,
-        );
-      }
+    if (!secret) {
+      console.error('usas-proxy: TURNSTILE_SECRET_KEY missing; refusing login.');
+      return jsonResponse({ success: false, error: 'Perkhidmatan log masuk tidak tersedia.' }, 503);
+    }
+    const token = context.request.headers.get('x-turnstile-token') || '';
+    const verification = await verifyTurnstileToken(token, secret, ip === 'unknown' ? undefined : ip);
+    if (!verification.ok) {
+      console.warn('usas-proxy captcha rejected', {
+        ip,
+        path: cleanPath,
+        codes: verification.codes,
+        hostname: url.hostname,
+      });
+      return jsonResponse(
+        {
+          success: false,
+          error: 'Pengesahan captcha gagal. Sila cuba lagi.',
+          'error-codes': verification.codes,
+        },
+        403,
+      );
     }
   }
 
@@ -111,9 +132,10 @@ export async function onRequest(context: PagesContext) {
     return jsonResponse({ success: false, error: 'Not found.' }, 404);
   }
 
-  // Never forward the one-time captcha token upstream.
   const upstreamRequest = new Request(upstreamUrl, context.request);
-  upstreamRequest.headers.delete('x-turnstile-token');
+  for (const header of STRIPPED_UPSTREAM_HEADERS) {
+    upstreamRequest.headers.delete(header);
+  }
 
   try {
     const upstreamResponse = await fetch(upstreamRequest);
