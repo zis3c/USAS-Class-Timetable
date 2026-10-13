@@ -819,7 +819,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
           ) : scanState !== 'success' ? (
             <div className="flex flex-col overflow-y-auto usas-scrollbar touch-pan-y overscroll-contain pr-2">
               <div className="my-auto flex w-full flex-col items-center gap-3 py-1">
-              <canvas ref={canvasRef} className="hidden" />
+              <canvas ref={canvasRef} className="pointer-events-none absolute -left-[9999px] top-0 h-px w-px opacity-0" aria-hidden="true" />
 
               {participantsBar}
 
