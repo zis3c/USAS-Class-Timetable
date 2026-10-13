@@ -160,22 +160,21 @@ async function captureElement(
         });
       }
 
-      if (!isApple || isWallpaper) {
-        const textNodes = clonedRoot.querySelectorAll(isWallpaper ? '[data-export-time-label]' : 'span, h1, h2, p');
-        textNodes.forEach((node) => {
-          const el = node as HTMLElement;
-          if (el.tagName.toLowerCase() === 'span') {
-            const isBlock = el.classList.contains('block') || el.classList.contains('inline-block') || el.style.display === 'block';
-            if (!isBlock) {
-              el.style.display = 'inline-block';
-              el.style.verticalAlign = 'middle';
-            }
+      // Apply the html2canvas baseline offset on every platform, iOS formal included.
+      const textNodes = clonedRoot.querySelectorAll(isWallpaper ? '[data-export-time-label]' : 'span, h1, h2, p');
+      textNodes.forEach((node) => {
+        const el = node as HTMLElement;
+        if (el.tagName.toLowerCase() === 'span') {
+          const isBlock = el.classList.contains('block') || el.classList.contains('inline-block') || el.style.display === 'block';
+          if (!isBlock) {
+            el.style.display = 'inline-block';
+            el.style.verticalAlign = 'middle';
           }
-          const fontSize = parseFloat(view.getComputedStyle(el).fontSize) || 12;
-          const shift = Math.max(1, Math.round(fontSize * (isWallpaper ? (isAndroid ? 0.25 : isApple ? 0.55 : 0.62) : 0.36))) + (isAndroid && isWallpaper ? 2.5 : 0);
-          el.style.transform = `translateY(-${shift}px)`;
-        });
-      }
+        }
+        const fontSize = parseFloat(view.getComputedStyle(el).fontSize) || 12;
+        const shift = Math.max(1, Math.round(fontSize * (isWallpaper ? (isAndroid ? 0.25 : isApple ? 0.55 : 0.62) : 0.36))) + (isAndroid && isWallpaper ? 2.5 : 0);
+        el.style.transform = `translateY(-${shift}px)`;
+      });
 
       if (exportRootId === 'wallpaper-export-root') {
         const wallpaperGrid = clonedRoot.querySelector<HTMLElement>('[data-wallpaper-grid]');
