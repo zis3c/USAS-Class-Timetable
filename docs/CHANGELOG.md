@@ -5,6 +5,27 @@ All notable changes to this project (developed by the USAS STEM Club) will be do
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.10] - 2026-10-13
+
+Security hardening and UI polish after the first release.
+
+### Security
+* Login proxy now fails closed: if `TURNSTILE_SECRET_KEY` is not configured, login is refused instead of skipping captcha verification.
+* The client no longer falls back to Cloudflare's always-pass test site key in production builds.
+* Content-Security-Policy no longer allows inline scripts; `img-src` was narrowed to `'self' data: blob:`.
+* Sentry strips query strings from error events and breadcrumbs so shared timetable payloads are not sent to a third party.
+* Compare-schedule payload decompression is size-capped, and `/agent-intake` plus the API proxy enforce request-size limits.
+* The proxy drops client-supplied network headers (spoofable IP/proxy headers) before forwarding upstream.
+
+### Changed
+* The project is clearly marked as an **unofficial, independent STEM USAS project** (README, page metadata, landing footer, and login screen); the login screen also shows a privacy note and "not an official USAS portal".
+* Attendance QR scanning now rejects invalid codes with a localized message and error styling instead of showing the server's message in a success (green) box.
+* The compare/share scan hint now states what to do, and differs between adding the first friend and adding more friends.
+
+### Fixed
+* The compare/share schedule scroll area no longer hugs the scrollbar.
+* The prayer-times modal is more compact on mobile.
+
 ## [1.0.9] - 2026-10-13
 
 First public release of the USAS Class Timetable portal.
@@ -106,5 +127,6 @@ First public release of the USAS Class Timetable portal.
 * The compare Share tab now shows an empty-state message instead of generating a useless QR code when the timetable has not loaded yet.
 * `decompressTimetable` now validates that the payload contains a timetable array and sanitises the embedded student name.
 
+[1.0.10]: https://github.com/zis3c/USAS-Class-Timetable/releases/tag/v1.0.10
 [1.0.9]: https://github.com/zis3c/USAS-Class-Timetable/releases/tag/v1.0.9
 
