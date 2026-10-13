@@ -749,7 +749,7 @@ export default function PdfExportModal({ isOpen, onClose }: PdfExportModalProps)
       </div>
 
       {exporting && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-md rounded-xl overflow-hidden">
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-md">
           <div className={`p-6 rounded-2xl border flex flex-col items-center justify-center gap-4 text-center max-w-xs w-full shadow-2xl transition-all duration-300 ${isLight
               ? 'bg-white/95 border-slate-200 text-slate-900 shadow-slate-900/10'
               : 'bg-[#0A1428]/95 border-white/10 text-white shadow-black/40'
