@@ -31,7 +31,6 @@ jobs:
 
       - name: Build
         env:
-          VITE_TURNSTILE_SITE_KEY: ${{ secrets.VITE_TURNSTILE_SITE_KEY }}
           VITE_GIT_COMMIT: ${{ github.sha }}
         run: npm run build
 

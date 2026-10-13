@@ -244,7 +244,6 @@ export async function loginStudentAPI(
   userId: string,
   password: string,
   isDemo = false,
-  captchaToken?: string,
 ): Promise<ApiResponse<StudentSession>> {
   if (isDemo || userId.toLowerCase() === 'demo') {
     return {
@@ -277,11 +276,7 @@ export async function loginStudentAPI(
     platform: PLATFORM
   };
 
-  const outcome = await postUSASOutcome(
-    '/student/login_student.php',
-    payload,
-    captchaToken ? { 'x-turnstile-token': captchaToken } : {},
-  );
+  const outcome = await postUSASOutcome('/student/login_student.php', payload);
 
   if (!outcome.ok) {
     return {
@@ -294,16 +289,14 @@ export async function loginStudentAPI(
 
   const result = outcome.data;
 
-  // Gate error envelope (e.g. Turnstile captcha rejection), not a USAS response.
-  const gateResult = result as { success?: boolean; error?: unknown; 'error-codes'?: unknown } | null;
+  // A gate/proxy error envelope instead of a normal USAS response.
+  const gateResult = result as { success?: boolean; error?: unknown } | null;
   if (gateResult && gateResult.success === false) {
-    if (typeof gateResult.error === 'string' && gateResult.error.trim()) {
-      return { success: false, error: sanitizeSingleLine(gateResult.error, 160) };
-    }
-    const codes = Array.isArray(gateResult['error-codes']) ? gateResult['error-codes'].join(', ') : '';
     return {
       success: false,
-      error: `Pengesahan captcha gagal. Sila cuba lagi.${codes ? ` [${sanitizeSingleLine(codes, 80)}]` : ''}`,
+      error: typeof gateResult.error === 'string' && gateResult.error.trim()
+        ? sanitizeSingleLine(gateResult.error, 160)
+        : 'Pelayan USAS tidak memberi respons yang sah. Sila cuba lagi sebentar.',
     };
   }
 
