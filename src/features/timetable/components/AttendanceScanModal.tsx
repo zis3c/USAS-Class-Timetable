@@ -132,9 +132,11 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
 
   const mountedRef = useRef(true);
   const activeRef = useRef(false);
+  const cameraStartIdRef = useRef(0);
   const processingRef = useRef(false);
   const streamRef = useRef<MediaStream | null>(null);
   const loopRef = useRef<number | null>(null);
+  const scanAttemptsRef = useRef(0);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -178,6 +180,7 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
   };
 
   const stopCamera = () => {
+    cameraStartIdRef.current += 1;
     activeRef.current = false;
     processingRef.current = false;
 
@@ -288,17 +291,15 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
         inversionAttempts: 'attemptBoth',
       });
 
-      const firstValue = code?.data?.trim();
+      scanAttemptsRef.current += 1;
+      const firstValue = code?.data?.trim() || (scanAttemptsRef.current % 5 === 0 ? decodeQrFromImage(video, [1200])?.trim() : '');
       if (firstValue) {
         processingRef.current = true;
         await submitQrValue(firstValue);
         return;
       }
     } catch {
-      setScanState('error');
-      setStatusMessage(copy.error);
-      stopCamera();
-      return;
+      // A transient bad frame should not end the whole camera scan.
     }
 
     scheduleLoop();
@@ -315,6 +316,7 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
     }
 
     activeRef.current = true;
+    const cameraStartId = ++cameraStartIdRef.current;
     setScanState('starting');
     setStatusMessage(copy.starting);
 
@@ -329,6 +331,7 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
         streamRef.current = null;
       }
       processingRef.current = false;
+      scanAttemptsRef.current = 0;
       const existingVideo = videoRef.current;
       if (existingVideo) {
         existingVideo.pause();
@@ -344,7 +347,7 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
         audio: false,
       });
 
-      if (!mountedRef.current || !activeRef.current) {
+      if (cameraStartId !== cameraStartIdRef.current || !mountedRef.current || !activeRef.current) {
         stream.getTracks().forEach((track) => track.stop());
         return;
       }
@@ -377,7 +380,9 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
       setStatusMessage(copy.ready);
       scheduleLoop();
     } catch {
+      if (cameraStartId !== cameraStartIdRef.current) return;
       activeRef.current = false;
+      setIsFullscreen(false);
       setScanState('error');
       setStatusMessage(copy.error);
       stopCamera();
@@ -447,13 +452,13 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
 
   if (!shouldRender) return null;
 
-  const showCamera = scanState !== 'unsupported';
+  const showCamera = scanState !== 'unsupported' && scanState !== 'error';
 
   // backdrop-blur/transform on the modal traps fixed children into a thin strip; portal the fullscreen scanner to <body> to escape.
   const scannerViewport = showCamera ? (
     <div className={isFullscreen
       ? 'fixed inset-0 z-[100] bg-black flex items-center justify-center'
-      : `flex-shrink-0 rounded-2xl border overflow-hidden ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-black/40 border-white/10'}`
+      : `relative w-full max-w-sm shrink-0 overflow-hidden rounded-2xl border ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-black/40 border-white/10'}`
     }>
       <div className={`relative bg-black flex items-center justify-center overflow-hidden ${isFullscreen ? 'w-full h-full' : 'h-48 sm:h-56 w-full'}`}>
         <video
@@ -471,11 +476,45 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
         <button
           type="button"
           onClick={() => setIsFullscreen((v) => !v)}
-          className="absolute top-2 right-2 p-2 rounded-lg bg-black/50 text-white/80 hover:text-white hover:bg-black/70 backdrop-blur-sm transition-colors"
+          className="absolute top-2 right-2 z-20 p-2 rounded-lg bg-black/50 text-white/80 hover:text-white hover:bg-black/70 backdrop-blur-sm transition-colors"
           aria-label={isFullscreen ? (lang === 'ms' ? 'Keluar skrin penuh' : 'Exit fullscreen') : (lang === 'ms' ? 'Skrin penuh' : 'Fullscreen')}
         >
           {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
         </button>
+
+        {(scanState === 'scanning' || scanState === 'starting') && (
+          <button
+            type="button"
+            data-testid="attendance-scan-toggle"
+            onClick={() => {
+              stopCamera();
+              setScanState('idle');
+              setStatusMessage(copy.desc);
+            }}
+            aria-label={copy.stop}
+            className="absolute top-2 left-2 z-20 inline-flex items-center gap-1.5 rounded-lg bg-rose-600/80 px-3 py-2 text-xs font-semibold text-white shadow backdrop-blur-sm"
+          >
+            <Square className="w-3 h-3 fill-current" /> {copy.stop}
+          </button>
+        )}
+
+        {scanState === 'processing' && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+          </div>
+        )}
+
+        {(scanState === 'idle' || scanState === 'success') && (
+          <button
+            type="button"
+            onClick={() => void startCamera()}
+            className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-1 bg-[#0a1428] px-6 text-white/60"
+          >
+            <Camera className="mb-1 h-9 w-9" />
+            <p className="text-sm font-semibold text-white">{copy.desc}</p>
+            <span className="mt-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-xs font-semibold text-white">{copy.startCamera}</span>
+          </button>
+        )}
 
         {(scanState === 'scanning' || scanState === 'starting') && (
           <div className={`absolute left-0 right-0 flex items-center gap-2 px-3 ${isFullscreen ? 'bottom-5' : 'bottom-2'}`}>
@@ -579,6 +618,19 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
             </div>
 
             <div className="flex gap-2 pt-1">
+              {scanState === 'error' && (
+                <button
+                  type="button"
+                  onClick={() => void startCamera()}
+                  className={`inline-flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-xs font-bold transition-colors ${isLight
+                      ? 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                      : 'border-white/10 bg-white/[0.04] text-white/80 hover:bg-white/[0.08]'
+                    }`}
+                >
+                  <ScanLine className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span className="truncate">{copy.startCamera}</span>
+                </button>
+              )}
               <button
                 data-testid="attendance-scan-upload"
                 onClick={() => fileInputRef.current?.click()}
@@ -589,30 +641,6 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
               >
                 <Upload className="w-3.5 h-3.5 flex-shrink-0" />
                 <span className="truncate">{copy.uploadImg}</span>
-              </button>
-
-              <button
-                data-testid="attendance-scan-toggle"
-                onClick={() => {
-                  if (scanState === 'scanning' || scanState === 'starting') {
-                    stopCamera();
-                    setScanState('idle');
-                    setStatusMessage(copy.ready);
-                    return;
-                  }
-                  void startCamera();
-                }}
-                className={`inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-lg px-2 sm:px-3 py-2 text-xs font-bold transition-colors border flex-1 min-w-0 ${scanState === 'scanning' || scanState === 'starting'
-                    ? isLight
-                      ? 'bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-700'
-                      : 'bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/20 text-rose-400'
-                    : isLight
-                      ? 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
-                      : 'bg-white/[0.04] hover:bg-white/[0.08] border-white/10 text-white/80'
-                  }`}
-              >
-                {scanState === 'scanning' || scanState === 'starting' ? <Square className="w-3 h-3 fill-current flex-shrink-0" /> : <Camera className="w-3.5 h-3.5 flex-shrink-0" />}
-                <span className="truncate">{scanState === 'scanning' || scanState === 'starting' ? copy.stop : copy.startCamera}</span>
               </button>
             </div>
           </div>
