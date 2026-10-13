@@ -158,8 +158,8 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
         img.src = objUrl;
       });
 
-      const canvas = canvasRef.current;
-      if (!canvas) return;
+      // Decode on its own canvas so the camera scan loop can't overwrite the frame.
+      const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d', { willReadFrequently: true });
       if (!context) return;
 
