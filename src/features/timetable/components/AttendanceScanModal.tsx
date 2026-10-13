@@ -317,17 +317,36 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
   };
 
   const startCamera = async () => {
+    // Guard against concurrent starts: a second call while one is pending would
+    // open a second stream and leak the first, hitting the device's stream limit.
+    if (activeRef.current) return;
     if (!navigator.mediaDevices?.getUserMedia) {
       setScanState('unsupported');
       setStatusMessage(copy.unsupported);
       return;
     }
 
+    activeRef.current = true;
     setScanState('starting');
     setStatusMessage(copy.starting);
 
     try {
-      stopCamera();
+      // Release any previous loop/stream without clearing activeRef.
+      if (loopRef.current !== null) {
+        window.clearTimeout(loopRef.current);
+        loopRef.current = null;
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+      processingRef.current = false;
+      const existingVideo = videoRef.current;
+      if (existingVideo) {
+        existingVideo.pause();
+        existingVideo.srcObject = null;
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: 'environment' },
@@ -337,13 +356,12 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
         audio: false,
       });
 
-      if (!mountedRef.current) {
+      if (!mountedRef.current || !activeRef.current) {
         stream.getTracks().forEach((track) => track.stop());
         return;
       }
 
       streamRef.current = stream;
-      activeRef.current = true;
 
       setZoom(1);
       zoomRef.current = 1;
@@ -366,11 +384,12 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
         await video.play();
       }
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || !activeRef.current) return;
       setScanState('scanning');
       setStatusMessage(copy.ready);
       scheduleLoop();
     } catch {
+      activeRef.current = false;
       setScanState('error');
       setStatusMessage(copy.error);
       stopCamera();
