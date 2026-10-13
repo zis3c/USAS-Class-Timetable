@@ -842,14 +842,14 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-center">
                 <div className="flex w-full items-center justify-center gap-2 sm:w-auto sm:shrink-0">
                   {scanState === 'error' && (
-                    <button onClick={startCamera} className={`flex-1 sm:flex-none px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${isLight ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' : 'bg-white/10 hover:bg-white/20 text-white'}`}>
+                    <button onClick={startCamera} className={`flex-1 sm:flex-none whitespace-nowrap px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${isLight ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' : 'bg-white/10 hover:bg-white/20 text-white'}`}>
                       <ScanLine className="w-4 h-4 inline-block mr-1.5" /> {t('compareScanRetry')}
                     </button>
                   )}
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className={`flex-1 sm:flex-none px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${isLight ? 'bg-blue-50 hover:bg-blue-100 text-blue-700' : 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-300'}`}
+                    className={`flex-1 sm:flex-none whitespace-nowrap px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${isLight ? 'bg-blue-50 hover:bg-blue-100 text-blue-700' : 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-300'}`}
                   >
                     <Upload className="w-4 h-4 inline-block mr-1.5" /> {t('compareUploadBtn')}
                   </button>
