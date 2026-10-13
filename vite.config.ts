@@ -2,6 +2,8 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { createChallenge } from 'altcha-lib';
+import { deriveKey } from 'altcha-lib/algorithms/pbkdf2';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
@@ -28,6 +30,29 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(appVersion),
   },
   plugins: [
+    // Serve an ALTCHA challenge in `npm run dev` so the login widget works locally
+    // (production is served by the Pages Function at functions/api/altcha.ts).
+    {
+      name: 'altcha-dev-challenge',
+      configureServer(server) {
+        server.middlewares.use('/api/altcha', async (_req, res) => {
+          try {
+            const challenge = await createChallenge({
+              algorithm: 'PBKDF2/SHA-256',
+              cost: 5000,
+              deriveKey,
+              hmacSignatureSecret: 'dev-only-secret',
+            });
+            res.setHeader('content-type', 'application/json');
+            res.setHeader('cache-control', 'no-store');
+            res.end(JSON.stringify(challenge));
+          } catch {
+            res.statusCode = 500;
+            res.end('{"error":"challenge failed"}');
+          }
+        });
+      },
+    },
     react(),
     tailwindcss(),
     VitePWA({
