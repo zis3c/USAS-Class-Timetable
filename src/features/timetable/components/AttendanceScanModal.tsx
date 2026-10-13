@@ -8,6 +8,7 @@ import { useTheme } from '@/app/providers/ThemeProvider';
 import { useModalA11y } from '@/shared/lib/useModalA11y';
 import { scanAttendanceQrAPI } from '@/services/usas/Api';
 import { sanitizeSingleLine } from '@/shared/lib/security';
+import { decodeQrFromImage } from '@/shared/lib/qrDecode';
 
 type AttendanceScanModalProps = {
   isOpen: boolean;
@@ -158,22 +159,9 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
         img.src = objUrl;
       });
 
-      // Decode on its own canvas so the camera scan loop can't overwrite the frame.
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d', { willReadFrequently: true });
-      if (!context) return;
-
-      canvas.width = img.width;
-      canvas.height = img.height;
-      context.drawImage(img, 0, 0);
       URL.revokeObjectURL(objUrl);
 
-      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-      const code = jsQR(imageData.data, imageData.width, imageData.height, {
-        inversionAttempts: 'attemptBoth',
-      });
-
-      const firstValue = code?.data?.trim();
+      const firstValue = decodeQrFromImage(img);
 
       if (firstValue) {
         await submitQrValue(firstValue);
@@ -350,8 +338,8 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: 'environment' },
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
         },
         audio: false,
       });

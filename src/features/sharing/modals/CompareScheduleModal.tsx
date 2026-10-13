@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import jsQR from 'jsqr';
 import QRCode from 'qrcode';
 import { copyTextToClipboard, sanitizeTextForShare, openExternalUrl } from '@/shared/lib/security';
+import { decodeQrFromImage } from '@/shared/lib/qrDecode';
 import { compressTimetable } from '@/features/timetable/lib/scheduleMatcher';
 import { buildFullShareText } from '@/features/export/lib/shareText';
 import { Camera, ScanLine, X, Upload, FileText, Calendar, AlertTriangle, ArrowLeft, Copy, Check, Users, Plus, Maximize, Minimize, ZoomIn, ZoomOut, Link2 } from 'lucide-react';
@@ -43,40 +44,6 @@ function extractCompareData(data: string): string | null {
     // Not a URL: treat as raw payload.
     return trimmed;
   }
-}
-
-// Retry at smaller scales; full-size phone photos can exceed mobile canvas limits and decode blank.
-// Uses its own canvas so a running camera scan loop can never overwrite the frame mid-decode.
-function decodeQrFromImage(img: HTMLImageElement): string | null {
-  const canvas = document.createElement('canvas');
-  const context = canvas.getContext('2d', { willReadFrequently: true });
-  if (!context) return null;
-  const nativeW = img.naturalWidth || img.width;
-  const nativeH = img.naturalHeight || img.height;
-  if (!nativeW || !nativeH) return null;
-
-  const longest = Math.max(nativeW, nativeH);
-  const attempted = new Set<number>();
-  // Ascending sizes: a moderate size decodes fast in the common case; escalate only if it fails.
-  for (const cap of [1200, 2000, 3000]) {
-    const width = Math.max(1, Math.round(nativeW * Math.min(1, cap / longest)));
-    if (attempted.has(width)) continue;
-    attempted.add(width);
-    const height = Math.max(1, Math.round(nativeH * (width / nativeW)));
-    canvas.width = width;
-    canvas.height = height;
-    context.clearRect(0, 0, width, height);
-    context.drawImage(img, 0, 0, width, height);
-    let imageData: ImageData;
-    try {
-      imageData = context.getImageData(0, 0, width, height);
-    } catch {
-      continue;
-    }
-    const code = jsQR(imageData.data, width, height, { inversionAttempts: 'attemptBoth' });
-    if (code?.data) return code.data;
-  }
-  return null;
 }
 
 type CompareScheduleModalProps = {
@@ -380,7 +347,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
       setScanState('scanning');
       setStatusMessage(t(scanHintKey));
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
         audio: false,
       });
       // Abort if unmounted, cancelled (e.g. tab switched while the permission prompt was open), or already captured.
