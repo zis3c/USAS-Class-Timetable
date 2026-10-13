@@ -38,6 +38,7 @@ const getCopy = (lang: string) => {
       close: 'Tutup',
       stop: 'Henti kamera',
       empty: 'Masukkan nilai QR dahulu.',
+      invalid: 'Kod QR kehadiran tidak sah.',
       qrBotHintTitle: 'Tiada nilai QR?',
     };
   }
@@ -60,6 +61,7 @@ const getCopy = (lang: string) => {
       close: '关闭',
       stop: '停止摄像头',
       empty: '请先输入二维码值。',
+      invalid: '考勤二维码无效。',
       qrBotHintTitle: '没有二维码值？',
     };
   }
@@ -82,6 +84,7 @@ const getCopy = (lang: string) => {
       close: 'மூடு',
       stop: 'கேமராவை நிறுத்து',
       empty: 'முதலில் QR மதிப்பை உள்ளிடவும்.',
+      invalid: 'செல்லாத வருகை QR குறியீடு.',
       qrBotHintTitle: 'QR மதிப்பு இல்லையா?',
     };
   }
@@ -102,8 +105,9 @@ const getCopy = (lang: string) => {
     submit: 'Send QR',
     close: 'Close',
     stop: 'Stop camera',
-    empty: 'Paste a QR value first.',
-    qrBotHintTitle: 'No QR value?',
+      empty: 'Paste a QR value first.',
+      invalid: 'Invalid attendance QR code.',
+      qrBotHintTitle: 'No QR value?',
   };
 };
 
@@ -232,9 +236,21 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
     if (!mountedRef.current) return;
 
     if (result.success) {
-      const message = sanitizeSingleLine(result.data.alert || result.data.message || copy.success, 240);
+      const alertText = sanitizeSingleLine(result.data.alert || result.data.message || '', 240);
+      const status = result.data.status;
+      const statusKnown = status !== undefined && status !== null;
+      // The official UMC app only reads `.alert` and never checks a status. Prefer
+      // the status when present; otherwise fall back to the server message wording.
+      const failed = statusKnown
+        ? status !== 1 && status !== '1'
+        : /tidak sah|gagal|invalid/i.test(alertText);
+      if (failed) {
+        setScanState('error');
+        setStatusMessage(copy.invalid);
+        return;
+      }
       setScanState('success');
-      setStatusMessage(message || copy.success);
+      setStatusMessage(alertText || copy.success);
       await refreshTimetable().catch(() => {});
       onSuccessfulScan?.();
       return;
