@@ -1,10 +1,7 @@
 import type { TimetableItem } from '@/shared/types/usas';
 import { extractDayName } from '@/shared/lib/dayFormat';
 
-/**
- * Generates an iCalendar (.ics) file for Google Calendar, Apple iCal, and Outlook.
- * Creates recurring weekly events for all enrolled student courses.
- */
+// Exports the timetable as a weekly recurring iCalendar (.ics) file.
 
 type IcsTimeInput = string | undefined;
 
@@ -29,7 +26,7 @@ export function sanitizeFileNameSegment(value: unknown): string {
 }
 
 export function formatICSDatetime(dayName: string | undefined, timeStr: IcsTimeInput): string {
-  // Map day names to day offset (Monday = 1, Friday = 5)
+  // Sunday = 0 to match Date.getDay().
   const dayOffsets: Record<string, number> = {
     'ISNIN': 1, 'MONDAY': 1, 'MON': 1,
     'SELASA': 2, 'TUESDAY': 2, 'TUE': 2,
@@ -42,7 +39,6 @@ export function formatICSDatetime(dayName: string | undefined, timeStr: IcsTimeI
 
   const dayIndex = dayOffsets[extractDayName(dayName)] ?? 1;
 
-  // Calculate next occurrence of this day
   const now = new Date();
   const currentDayIndex = now.getDay();
   let daysUntil = (dayIndex - currentDayIndex + 7) % 7;
@@ -51,7 +47,6 @@ export function formatICSDatetime(dayName: string | undefined, timeStr: IcsTimeI
   const targetDate = new Date(now);
   targetDate.setDate(now.getDate() + daysUntil);
 
-  // Parse time (e.g. "08:30 AM" or "14:00")
   let hours = 9;
   let minutes = 0;
 
@@ -76,7 +71,6 @@ export function formatICSDatetime(dayName: string | undefined, timeStr: IcsTimeI
     }
   }
 
-  // Format as YYYYMMDDTHHMMSSZ
   const year = targetDate.getUTCFullYear();
   const month = String(targetDate.getUTCMonth() + 1).padStart(2, '0');
   const date = String(targetDate.getUTCDate()).padStart(2, '0');
@@ -103,8 +97,7 @@ export async function exportTimetableICS(timetable: TimetableItem[] = [], studen
   ];
 
   timetable.forEach((course, idx) => {
-    // A valid calendar event needs a start time; skip rows without one rather
-    // than inventing a default time.
+    // Skip rows without a start time rather than inventing a default.
     if (!course.start_time) return;
 
     const startIso = formatICSDatetime(course.day, course.start_time);

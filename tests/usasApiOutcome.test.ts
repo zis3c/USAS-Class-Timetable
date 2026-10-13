@@ -20,6 +20,14 @@ const session: StudentSession = {
 const jsonResponse = (body: unknown) => ({
   ok: true,
   status: 200,
+  headers: { get: () => 'application/json' },
+  text: async () => JSON.stringify(body),
+});
+
+const errorResponse = (status: number, body: unknown) => ({
+  ok: false,
+  status,
+  headers: { get: () => 'application/json' },
   text: async () => JSON.stringify(body),
 });
 
@@ -46,16 +54,28 @@ describe('loginStudentAPI network handling', () => {
   });
 
   it('surfaces the captcha gate error from a 403 response', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: false,
-      status: 403,
-      text: async () => JSON.stringify({ success: false, error: 'Pengesahan captcha gagal.' }),
-    }));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      errorResponse(403, { success: false, error: 'Pengesahan captcha gagal. Sila cuba lagi.', 'error-codes': ['invalid-input-secret'] }),
+    ));
 
     const res = await loginStudentAPI('I24107504', 'secret', false, 'bad-token');
 
     expect(res.success).toBe(false);
     if (res.success === false) expect(res.error).toMatch(/captcha/i);
+  });
+
+  it('includes Turnstile error codes when the proxy omits a message', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      errorResponse(403, { success: false, 'error-codes': ['invalid-input-secret'] }),
+    ));
+
+    const res = await loginStudentAPI('I24107504', 'secret', false, 'bad-token');
+
+    expect(res.success).toBe(false);
+    if (res.success === false) {
+      expect(res.error).toMatch(/captcha/i);
+      expect(res.error).toMatch(/invalid-input-secret/);
+    }
   });
 
   it('returns a session on a successful login', async () => {

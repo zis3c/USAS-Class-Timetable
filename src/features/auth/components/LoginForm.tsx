@@ -47,7 +47,6 @@ export default function LoginForm() {
       'bg-[#060E1F]'
     }`}>
 
-      {/* Subtle dot grid background */}
       <div className="absolute inset-0 pointer-events-none" style={{
         backgroundImage: isLight 
           ? 'radial-gradient(circle, rgba(0,0,0,0.03) 1px, transparent 1px)' 
@@ -55,7 +54,6 @@ export default function LoginForm() {
         backgroundSize: '24px 24px'
       }} />
       
-      {/* Subtle ambient glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className={`absolute -top-40 left-1/2 -translate-x-1/2 h-80 w-80 rounded-full blur-[100px] opacity-40 transition-colors duration-500 ${
           isLight ? 'bg-amber-100' : 'bg-amber-400/10'
@@ -95,7 +93,6 @@ export default function LoginForm() {
             </div>
           )}
 
-          {/* User Matric */}
           <div className="text-slate-800 dark:text-slate-100">
             <label className={`block text-[11px] font-medium mb-1.5 ${
               isLight ? 'text-slate-600' : 'text-slate-400'
@@ -135,7 +132,6 @@ export default function LoginForm() {
             </div>
           </div>
 
-          {/* Password */}
           <div className="text-slate-800 dark:text-slate-100">
             <label className={`block text-[11px] font-medium mb-1.5 ${
               isLight ? 'text-slate-600' : 'text-slate-400'
@@ -182,7 +178,6 @@ export default function LoginForm() {
             </div>
           </div>
 
-          {/* Cloudflare Turnstile Captcha */}
           <TurnstileCaptcha
             key={captchaResetKey}
             onVerify={(token) => setCaptchaToken(token)}
@@ -191,7 +186,6 @@ export default function LoginForm() {
             theme={isLight ? 'light' : 'dark'}
           />
 
-          {/* Submit */}
           <button
             type="submit"
             disabled={loading}
@@ -217,14 +211,12 @@ export default function LoginForm() {
           </button>
         </form>
 
-        {/* Divider */}
         <div className="my-5 flex items-center gap-3">
           <div className={`h-px flex-1 ${isLight ? 'bg-slate-200' : 'bg-white/[0.06]'}`} />
           <span className={`text-[10px] font-medium ${isLight ? 'text-slate-400' : 'text-white/20'}`}>{lang === 'ms' ? 'atau' : 'or'}</span>
           <div className={`h-px flex-1 ${isLight ? 'bg-slate-200' : 'bg-white/[0.06]'}`} />
         </div>
 
-        {/* Demo Mode */}
         <button
           onClick={handleDemoClick}
           disabled={loading}
@@ -240,7 +232,6 @@ export default function LoginForm() {
 
       </div>
 
-      {/* Privacy — outside the card */}
       <div className="mt-5 flex flex-wrap items-center justify-center gap-1.5 text-[10px] text-center text-slate-500">
         <ShieldCheck className="w-3 h-3 text-emerald-500/60 flex-shrink-0" />
         <span className="max-w-full">{t('privacyNote')}</span>

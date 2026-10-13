@@ -1,9 +1,12 @@
 import { useState } from 'react';
-import { Download, ExternalLink, Play, Send, ShieldAlert } from 'lucide-react';
+import { Download, ExternalLink, Send, ShieldAlert } from 'lucide-react';
 import type { LanguageCode, ThemeName } from '@/shared/types/usas';
 import { THEMES } from '@/app/providers/ThemeProvider';
 import { usePwaInstall } from '@/features/pwa/hooks/usePwaInstall';
 import type { LandingCopy } from '../data/landingCopy';
+import VideoTutorialPlayer from './VideoTutorialPlayer';
+
+const GUIDE_VIDEO_SRC = '/videos/usas-timetable-guide.mp4';
 
 type LandingSecondarySectionsProps = {
   copy: LandingCopy;
@@ -33,7 +36,6 @@ export default function LandingSecondarySections({ copy, isLight, lang, theme }:
 
   return (
     <>
-        {/* Install App (PWA) Suggestion Section */}
         <div className={`mt-24 rounded-2xl border p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-6 justify-between text-center sm:text-left transition-all hover:shadow-lg ${
           isLight
             ? 'bg-gradient-to-br from-amber-50 to-white border-amber-200/60 shadow-sm'
@@ -66,36 +68,15 @@ export default function LandingSecondarySections({ copy, isLight, lang, theme }:
           </div>
         </div>
 
-        {/* Video Tutorial Walkthrough Section */}
         <div id="guide-video" className="mt-24 max-w-2xl mx-auto space-y-6 scroll-mt-24">
           <div className="text-center md:text-left space-y-1">
             <h3 className="text-lg font-black tracking-tight text-amber-500">{copy.videoTitle}</h3>
             <p className="text-xs opacity-75">{copy.videoDesc}</p>
           </div>
 
-          <div
-            className={`group rounded-2xl border p-4 transition-all duration-300 relative overflow-hidden aspect-[4/3] sm:aspect-video min-h-[220px] sm:min-h-0 flex items-center justify-center cursor-pointer shadow-md ${isLight
-              ? 'bg-slate-100/50 border-slate-200'
-              : 'bg-white/[0.015] border-white/[0.04] hover:border-white/[0.1] hover:bg-white/[0.025]'
-              }`}
-          >
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity z-0" />
-
-            <div className="h-16 w-16 rounded-full bg-[#0A1428]/80 backdrop-blur border border-white/20 flex items-center justify-center text-amber-400 group-hover:scale-110 group-hover:text-amber-300 transition-all duration-300 shadow-xl z-10">
-              <Play className="w-6 h-6 fill-amber-400 group-hover:fill-amber-300 translate-x-[1px]" />
-            </div>
-
-            <div className="absolute bottom-3 left-4 right-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[8px] tracking-widest font-mono text-white/50 z-10 select-none">
-              <span>0:00 / 0:59</span>
-              <div className="flex-1 mx-3 h-[2px] rounded-full bg-white/20 overflow-hidden">
-                <div className="w-[18%] h-full bg-amber-500 rounded-full" />
-              </div>
-              <span>1080P HD</span>
-            </div>
-          </div>
+          <VideoTutorialPlayer src={GUIDE_VIDEO_SRC} lang={lang} isLight={isLight} />
         </div>
 
-        {/* Previous STEM Projects */}
         <div className="mt-24 max-w-2xl mx-auto space-y-6">
           <div className="text-center md:text-left space-y-1">
             <h3 className="text-lg font-black tracking-tight text-amber-500">{copy.botsTitle}</h3>
@@ -132,7 +113,6 @@ export default function LandingSecondarySections({ copy, isLight, lang, theme }:
           </div>
         </div>
 
-        {/* Join STEM USAS Membership Card */}
         <div className="mt-24 max-w-2xl mx-auto">
           <div className={`rounded-2xl border p-6 flex flex-col sm:flex-row items-center justify-between gap-5 relative overflow-hidden transition-all duration-300 hover:shadow-xl ${isLight
             ? 'bg-white border-slate-200 shadow-sm'
@@ -167,7 +147,6 @@ export default function LandingSecondarySections({ copy, isLight, lang, theme }:
           </div>
         </div>
 
-        {/* Security & Data Privacy Disclaimer Card */}
         <div className={`mt-12 border rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row items-center sm:items-start gap-4 max-w-2xl mx-auto ${isLight
           ? 'bg-amber-50/40 border-amber-200/50 text-amber-900 shadow-sm'
           : 'bg-amber-500/[0.02] border-amber-500/10 text-slate-300'
@@ -194,7 +173,6 @@ export default function LandingSecondarySections({ copy, isLight, lang, theme }:
           </div>
         </div>
 
-        {/* Technical Helpdesk Section */}
         <div className="mt-12 max-w-2xl mx-auto text-slate-800 dark:text-slate-100">
           <div className={`rounded-2xl border p-6 flex flex-col md:flex-row items-stretch justify-between gap-6 relative overflow-hidden transition-all duration-300 hover:shadow-xl ${
             isLight
@@ -206,7 +184,6 @@ export default function LandingSecondarySections({ copy, isLight, lang, theme }:
                   : 'bg-gradient-to-br from-amber-500/[0.02] to-transparent border-white/[0.05] hover:border-white/[0.08]'
           }`}>
 
-            {/* Left Column: Helpdesk Information */}
             <div className="flex-1 flex flex-col justify-between text-left space-y-4">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
@@ -244,7 +221,6 @@ export default function LandingSecondarySections({ copy, isLight, lang, theme }:
               </div>
             </div>
 
-            {/* Right Column: CTA Block */}
             <div className="flex-1 flex flex-col justify-center items-stretch">
               <a
                 href="https://t.me/STEMUSAS"

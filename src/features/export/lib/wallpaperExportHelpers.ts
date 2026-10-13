@@ -2,11 +2,11 @@ import { extractDayName } from '@/shared/lib/dayFormat';
 import { getOwnRecordValue } from '@/shared/lib/security';
 import { formatTimeFromMinutes, getShortTimeRange } from '@/shared/lib/timetableTime';
 
-export type WallpaperPreset = 'phone' | 'android' | 'tablet' | 'desktop' | 'square';
+export type WallpaperPreset = 'phone-small' | 'phone-tall' | 'tablet' | 'desktop' | 'square';
 
-// Android wallpapers are just a taller phone, so they share the phone layout.
-export const getLayoutPreset = (preset: WallpaperPreset): Exclude<WallpaperPreset, 'android'> =>
-  preset === 'android' ? 'phone' : preset;
+// The taller phone ratio shares the small-phone layout.
+export const getLayoutPreset = (preset: WallpaperPreset): Exclude<WallpaperPreset, 'phone-tall'> =>
+  preset === 'phone-tall' ? 'phone-small' : preset;
 export type ContentDetail = 'CODE' | 'DETAILS';
 export type WallpaperDesign = 'GRID' | 'MINIMAL' | 'GLASS';
 export type ExportTheme = 'light' | 'dark' | 'emerald' | 'oled' | 'warm';
@@ -61,13 +61,13 @@ export const getModalDayColors = (day: string | undefined, theme: ExportTheme) =
     'AHAD': { bg: 'bg-zinc-900/80', border: 'border-zinc-500/60', text: 'text-zinc-300 font-bold' },
   };
   const lightColors = {
-    'ISNIN': { bg: 'bg-emerald-100/80', border: 'border-emerald-300', text: 'text-emerald-800 font-bold' },
-    'SELASA': { bg: 'bg-blue-100/80', border: 'border-blue-300', text: 'text-blue-800 font-bold' },
-    'RABU': { bg: 'bg-amber-100/90', border: 'border-amber-350', text: 'text-amber-800 font-bold' },
-    'KHAMIS': { bg: 'bg-purple-100/80', border: 'border-purple-300', text: 'text-purple-800 font-bold' },
-    'JUMAAT': { bg: 'bg-rose-100/80', border: 'border-rose-300', text: 'text-rose-800 font-bold' },
-    'SABTU': { bg: 'bg-orange-100/80', border: 'border-orange-300', text: 'text-orange-800 font-bold' },
-    'AHAD': { bg: 'bg-slate-200/80', border: 'border-slate-300', text: 'text-slate-800 font-bold' },
+    'ISNIN': { bg: 'bg-emerald-200/90', border: 'border-emerald-400', text: 'text-emerald-950 font-bold' },
+    'SELASA': { bg: 'bg-blue-200/90', border: 'border-blue-400', text: 'text-blue-950 font-bold' },
+    'RABU': { bg: 'bg-amber-200/90', border: 'border-amber-400', text: 'text-amber-950 font-bold' },
+    'KHAMIS': { bg: 'bg-purple-200/90', border: 'border-purple-400', text: 'text-purple-950 font-bold' },
+    'JUMAAT': { bg: 'bg-rose-200/90', border: 'border-rose-400', text: 'text-rose-950 font-bold' },
+    'SABTU': { bg: 'bg-orange-200/90', border: 'border-orange-400', text: 'text-orange-950 font-bold' },
+    'AHAD': { bg: 'bg-slate-300/90', border: 'border-slate-400', text: 'text-slate-950 font-bold' },
   };
 
   const map = theme === 'emerald'
@@ -95,7 +95,7 @@ export const getLockscreenThemeConfig = (theme: ExportTheme) => {
         gridBg: 'bg-slate-50 border-slate-200',
         headerBorder: 'border-slate-200',
         headerText: 'text-slate-700',
-        dayText: 'text-slate-400',
+        dayText: 'text-slate-600',
         cellBorder: 'border-slate-200/60',
         isLight: true,
       };
@@ -155,8 +155,8 @@ export type LockscreenThemeConfig = ReturnType<typeof getLockscreenThemeConfig>;
 
 export const getPresetStyle = (wallpaperPreset: WallpaperPreset, detail: ContentDetail = 'DETAILS'): WallpaperPresetStyle => {
   const preset = getLayoutPreset(wallpaperPreset);
-  const base: Record<Exclude<WallpaperPreset, 'android'>, WallpaperPresetStyle> = {
-    phone: {
+  const base: Record<Exclude<WallpaperPreset, 'phone-tall'>, WallpaperPresetStyle> = {
+    'phone-small': {
       tableFontSize: 'text-[5.75px]',
       thPadding: 'p-0.5',
       tdPadding: 'p-0.5',
@@ -204,44 +204,57 @@ export const getPresetStyle = (wallpaperPreset: WallpaperPreset, detail: Content
 
   const detailTweaks: Record<ContentDetail, Partial<Record<WallpaperPreset, Partial<WallpaperPresetStyle>>>> = {
     CODE: {
-      phone: { minH: 'min-h-[24px]', courseTitleSize: 'text-[7.2px] font-black leading-none text-center tracking-tight', durationSize: 'text-[4px] leading-none text-center font-semibold' },
+      'phone-small': { minH: 'min-h-[24px]', courseTitleSize: 'text-[7.2px] font-black leading-none text-center tracking-tight', durationSize: 'text-[4px] leading-none text-center font-semibold' },
       square: { minH: 'min-h-[32px]', courseTitleSize: 'text-[8.4px] font-black leading-none text-center tracking-tight', durationSize: 'text-[4.6px] leading-none text-center font-semibold' },
       tablet: { minH: 'min-h-[38px]', courseTitleSize: 'text-[10px] font-black leading-none text-center tracking-tight', durationSize: 'text-[5.2px] leading-none text-center font-semibold' },
       desktop: { minH: 'min-h-[44px]', courseTitleSize: 'text-[11.8px] font-black leading-none text-center tracking-tight', durationSize: 'text-[5.8px] leading-none text-center font-semibold' },
     },
     DETAILS: {
-      phone: { minH: 'min-h-[26px]', courseTitleSize: 'text-[6.8px] font-black leading-none text-center tracking-tight', courseLocSize: 'text-[3.8px] leading-none text-center font-medium', durationSize: 'text-[3.8px] leading-none text-center font-semibold' },
+      'phone-small': { minH: 'min-h-[26px]', courseTitleSize: 'text-[6.8px] font-black leading-none text-center tracking-tight', courseLocSize: 'text-[3.8px] leading-none text-center font-medium', durationSize: 'text-[3.8px] leading-none text-center font-semibold' },
       square: { minH: 'min-h-[34px]', courseTitleSize: 'text-[8px] font-black leading-none text-center tracking-tight', courseLocSize: 'text-[4.5px] leading-none text-center font-medium', durationSize: 'text-[4.5px] leading-none text-center font-semibold' },
       tablet: { minH: 'min-h-[40px]', courseTitleSize: 'text-[9.4px] font-black leading-none text-center tracking-tight', courseLocSize: 'text-[5.1px] leading-none text-center font-medium', durationSize: 'text-[5px] leading-none text-center font-semibold' },
       desktop: { minH: 'min-h-[46px]', courseTitleSize: 'text-[10.8px] font-black leading-none text-center tracking-tight', courseLocSize: 'text-[5.8px] leading-none text-center font-medium', durationSize: 'text-[5.8px] leading-none text-center font-semibold' },
     },
   };
 
-  const presetBase = getOwnRecordValue<WallpaperPresetStyle>(base, preset) ?? base.phone;
+  const presetBase = getOwnRecordValue<WallpaperPresetStyle>(base, preset) ?? base['phone-small'];
   const detailConfig = getOwnRecordValue<Partial<Record<WallpaperPreset, Partial<WallpaperPresetStyle>>>>(detailTweaks, detail);
   const presetTweaks = detailConfig && getOwnRecordValue<Partial<WallpaperPresetStyle>>(detailConfig, preset);
   return { ...presetBase, ...(presetTweaks || {}) };
 };
 
 export const WALLPAPER_PRESET_SIZES = new Map<WallpaperPreset, { width: number; height: number }>([
-  ['phone', { width: 360, height: 640 }],
-  ['android', { width: 360, height: 800 }],
+  ['phone-small', { width: 360, height: 640 }],
+  ['phone-tall', { width: 360, height: 800 }],
   ['tablet', { width: 520, height: 640 }],
   ['square', { width: 480, height: 480 }],
   ['desktop', { width: 780, height: 480 }],
 ]);
 
-// Measures the real rendered width of bold text so the wallpaper can shrink the
-// course code to exactly fit a narrow (single-period) cell.
+// Locale-independent filename segment; the 9:20 preset reads "PHONE", the 9:16 "SMALL_PHONE".
+export const getWallpaperPresetFileLabel = (preset: WallpaperPreset): string => {
+  const labels: Record<WallpaperPreset, string> = {
+    'phone-tall': 'PHONE',
+    'phone-small': 'SMALL_PHONE',
+    tablet: 'TABLET',
+    desktop: 'DESKTOP',
+    square: 'SQUARE',
+  };
+  return getOwnRecordValue<string>(labels, preset) ?? 'PHONE';
+};
+
+// Measure rendered text width; the PNG renderer can't ellipsize, so callers shrink/trim to fit.
 let codeMeasureCanvas: HTMLCanvasElement | null = null;
-export const measureBoldTextWidth = (text: string, fontSizePx: number): number | null => {
+export const measureTextWidth = (text: string, font: string): number | null => {
   if (typeof document === 'undefined' || !text) return null;
   if (!codeMeasureCanvas) codeMeasureCanvas = document.createElement('canvas');
   const ctx = codeMeasureCanvas.getContext('2d');
   if (!ctx) return null;
-  ctx.font = `900 ${fontSizePx}px Inter, Arial, sans-serif`;
+  ctx.font = font;
   return ctx.measureText(text).width || null;
 };
+export const measureBoldTextWidth = (text: string, fontSizePx: number): number | null =>
+  measureTextWidth(text, `900 ${fontSizePx}px Inter, Arial, sans-serif`);
 
 export const parseTimeToMinutes = (timeStr?: string) => {
   if (!timeStr) return null;

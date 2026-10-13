@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useState, useEffect } from 'react';
+import React, { Suspense, lazy, useState, useEffect, useRef } from 'react';
 import Lenis from 'lenis';
 import { AuthProvider, useAuth } from '@/app/providers/AuthProvider';
 import { LanguageProvider } from '@/app/providers/LanguageProvider';
@@ -13,6 +13,7 @@ import { PrayerTimesNotifier } from '@/features/timetable/components/PrayerTimes
 import ErrorScreen from '@/app/shell/ErrorScreen';
 import ErrorBoundary from '@/app/shell/ErrorBoundary';
 import { AlertTriangle, RefreshCw, X } from 'lucide-react';
+import { savePendingCompareData } from '@/features/sharing/lib/pendingCompare';
 const LogoutModal = lazy(() => import('@/features/auth/modals/LogoutModal'));
 import PwaInstallPrompt from '@/features/pwa/components/PwaInstallPrompt';
 const PdfExportModal = lazy(() => import('@/features/export/modals/PdfExportModal'));
@@ -69,7 +70,7 @@ function removeStructuredData(id: string) {
 }
 
 function MainContent() {
-  const { session, timetableData, login, logout, error, setError, refreshTimetable } = useAuth();
+  const { session, timetableData, login, logout, error, setError, refreshTimetable, pendingCompareData, consumePendingCompareData, clearPendingCompare } = useAuth();
   const { theme } = useTheme();
   const { lang } = useLanguage();
   const [pathname, setPathname] = useState(() => window.location.pathname || '/');
@@ -90,26 +91,37 @@ function MainContent() {
   const [isCompareScheduleOpen, setIsCompareScheduleOpen] = useState(false);
   const [initialCompareData, setInitialCompareData] = useState<string | null>(null);
 
-  // Auto-login to demo account if URL has ?demo=true, and check for compare_schedule
+  const demoHandledRef = useRef(false);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const isDemo = params.get('demo') === 'true';
     const compareData = params.get('compare_schedule');
-    
-    if (isDemo && !session) {
-      login('AI210042', 'demo123', true).then(() => {
-        if (!compareData) window.history.replaceState({}, '', '/app');
-      }).catch(console.error);
-    }
-    
-    if (compareData && session) {
-      setInitialCompareData(compareData);
-      setIsCompareScheduleOpen(true);
-      window.history.replaceState({}, '', '/app');
-    }
-  }, [session, login]);
 
-  // Update document title, meta tags, and structured data
+    // Strip the shared payload from the URL but persist it, so it survives nav to
+    // /login and the login round-trip for a signed-out recipient.
+    if (compareData) {
+      savePendingCompareData(compareData);
+      params.delete('compare_schedule');
+      const cleanQuery = params.toString();
+      const cleanUrl = `${window.location.pathname}${cleanQuery ? `?${cleanQuery}` : ''}`;
+      window.history.replaceState({}, '', cleanUrl);
+    }
+
+    if (isDemo && !demoHandledRef.current) {
+      demoHandledRef.current = true;
+      login('AI210042', 'demo123', true).catch(console.error);
+    }
+  }, [login]);
+
+  useEffect(() => {
+    if (!session || !pendingCompareData) return;
+    const data = consumePendingCompareData();
+    if (!data) return;
+    setInitialCompareData(data);
+    setIsCompareScheduleOpen(true);
+    if (window.location.pathname !== '/app') window.history.replaceState({}, '', '/app');
+  }, [session, pendingCompareData, consumePendingCompareData]);
+
   useEffect(() => {
     const title = view === 'login'
       ? 'Login | USAS Class Timetable'
@@ -188,7 +200,6 @@ function MainContent() {
     const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
     
     if (view !== 'landing' || isTouchDevice) {
-      // Ensure any lingering Lenis instance is removed when not on landing page or on mobile
       const lenisWindow = window as unknown as Window & { usasLenis?: Lenis };
       if (lenisWindow.usasLenis) {
         lenisWindow.usasLenis.destroy();
@@ -322,7 +333,6 @@ function MainContent() {
       <Suspense fallback={null}>
         {session && <PrayerToast />}
         
-        {/* Tools Drawer — houses ALL secondary actions */}
         <ToolsDrawer
           isOpen={isToolsOpen}
           onClose={() => setIsToolsOpen(false)}
@@ -335,7 +345,6 @@ function MainContent() {
           onOpenLogout={() => { setIsLogoutModalOpen(true); }}
         />
 
-        {/* Modals */}
         <PdfExportModal isOpen={isPdfModalOpen} onClose={() => setIsPdfModalOpen(false)} />
         <PrayerTimesModal isOpen={isPrayerTimesOpen} onClose={() => setIsPrayerTimesOpen(false)} />
         <ExamScheduleModal isOpen={isExamModalOpen} onClose={() => setIsExamModalOpen(false)} courses={timetableData?.timetable || []} />
@@ -346,7 +355,11 @@ function MainContent() {
         />
         <CompareScheduleModal
           isOpen={isCompareScheduleOpen}
-          onClose={() => { setIsCompareScheduleOpen(false); setInitialCompareData(null); }}
+          onClose={() => {
+            setIsCompareScheduleOpen(false);
+            setInitialCompareData(null);
+            clearPendingCompare();
+          }}
           initialSharedData={initialCompareData}
         />
         <GpaCalculatorModal isOpen={isGpaModalOpen} onClose={() => setIsGpaModalOpen(false)} courses={timetableData?.timetable || []} />

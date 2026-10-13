@@ -67,18 +67,18 @@ export default function WallpaperPreview({
     const timeInfoFontSize = Math.max(3.6, Math.min(5, (cellWidthPx - 8) / (Math.max(startTimeLabel.length, endTimeLabel?.length || 0) * 0.58)));
     const timeInfo = (
       <>
-        {startTimeLabel && <span data-export-course-time="start" title={duration} className={`absolute left-0.5 top-0.5 z-20 whitespace-nowrap font-semibold leading-none ${isLightMode ? 'text-slate-600' : 'text-white/70'}`} style={{ fontSize: `${timeInfoFontSize}px` }}>{startTimeLabel}</span>}
-        {endTimeLabel && <span data-export-course-time="end" title={duration} className={`absolute right-0.5 bottom-0.5 z-20 whitespace-nowrap font-semibold leading-none ${isLightMode ? 'text-slate-600' : 'text-white/70'}`} style={{ fontSize: `${timeInfoFontSize}px` }}>{endTimeLabel}</span>}
+        {startTimeLabel && <span data-export-course-time="start" title={duration} className={`absolute left-0.5 top-0.5 z-20 whitespace-nowrap font-semibold leading-none ${isLightMode ? 'text-slate-700' : 'text-white/70'}`} style={{ fontSize: `${timeInfoFontSize}px` }}>{startTimeLabel}</span>}
+        {endTimeLabel && <span data-export-course-time="end" title={duration} className={`absolute right-0.5 bottom-0.5 z-20 whitespace-nowrap font-semibold leading-none ${isLightMode ? 'text-slate-700' : 'text-white/70'}`} style={{ fontSize: `${timeInfoFontSize}px` }}>{endTimeLabel}</span>}
       </>
     );
     const durationInfo = shortDuration && (
-      <div data-export-course-duration className={`w-full text-center ${style.durationSize} leading-normal font-bold ${isLightMode ? 'text-slate-500' : 'text-white/60'}`}>
+      <div data-export-course-duration className={`w-full text-center ${style.durationSize} leading-normal font-bold ${isLightMode ? 'text-slate-700' : 'text-white/60'}`}>
         {shortDuration}
       </div>
     );
     const codeOnlyFontSize = (() => {
       const baseSize = (() => {
-        if (layoutPreset === 'phone') {
+        if (layoutPreset === 'phone-small') {
           if (code.length > 8) return 7.5;
           if (code.length > 6) return 8.2;
           if (code.length > 4) return 9.0;
@@ -105,8 +105,7 @@ export default function WallpaperPreview({
       return baseSize;
     })();
 
-    // Shrink the course code so it always fits the cell width — critical for
-    // narrow single-period columns — using the measured glyph width.
+    // Shrink code to fit cell width (critical for narrow single-period columns) using measured glyph width.
     const fitFontSize = (() => {
       if (!cellWidthPx || cellWidthPx <= 0 || !code) return codeOnlyFontSize;
       const availableWidth = Math.max(6, cellWidthPx - 6);
@@ -137,7 +136,7 @@ export default function WallpaperPreview({
                 {code}
               </span>
             </div>
-            <div className={`w-full text-center ${style.courseLocSize} leading-normal font-semibold ${isLightMode ? 'text-slate-500' : 'text-white/60'}`}>
+            <div className={`w-full text-center ${style.courseLocSize} leading-normal font-semibold ${isLightMode ? 'text-slate-700' : 'text-white/60'}`}>
               <span data-export-course-location className="break-words whitespace-normal text-center" title={loc}>{loc}</span>
             </div>
           </div>
@@ -190,7 +189,7 @@ export default function WallpaperPreview({
                   {renderFloatingZoomWidget(lockscreenConfig.isLight)}
                 </div>
                 {(() => {
-                  const { width: w, height: h } = WALLPAPER_PRESET_SIZES.get(wallpaperPreset) ?? WALLPAPER_PRESET_SIZES.get('phone')!;
+                  const { width: w, height: h } = WALLPAPER_PRESET_SIZES.get(wallpaperPreset) ?? WALLPAPER_PRESET_SIZES.get('phone-small')!;
                   return (
                     <div
                       style={{
@@ -211,7 +210,7 @@ export default function WallpaperPreview({
                           height: `${h}px`,
                           transform: `scale(${userZoom})`,
                           fontFamily: 'Inter, Arial, sans-serif',
-                          padding: layoutPreset === 'phone' ? '12px' : layoutPreset === 'square' ? '14px' : '16px',
+                          padding: layoutPreset === 'phone-small' ? '12px' : layoutPreset === 'square' ? '14px' : '16px',
                           backgroundColor: lockscreenConfig.bg,
                           borderColor: lockscreenConfig.borderColor,
                           color: lockscreenConfig.textColor
@@ -228,7 +227,7 @@ export default function WallpaperPreview({
                         )}
                         {wallpaperDesign === 'MINIMAL' || wallpaperDesign === 'GLASS' ? (
                           <>
-                            {/* Clock and photo stay visible above a compact week card */}
+                            {/* Spacer keeps clock and photo visible above the compact week card */}
                             <div className="relative z-10 flex-1 min-h-0" />
                             <MinimalWeekCard
                               courses={allCourses}
@@ -240,22 +239,20 @@ export default function WallpaperPreview({
                               t={t}
                               glass={wallpaperDesign === 'GLASS'}
                               glassTheme={exportTheme}
-                              width={w - 2 * (layoutPreset === 'phone' ? 12 : layoutPreset === 'square' ? 14 : 16)}
+                              width={w - 2 * (layoutPreset === 'phone-small' ? 12 : layoutPreset === 'square' ? 14 : 16)}
                               background={wallpaperBackgroundBlurred ? {
                                 url: wallpaperBackgroundBlurred,
                                 rootWidth: w,
                                 rootHeight: h,
-                                left: (layoutPreset === 'phone' ? 12 : layoutPreset === 'square' ? 14 : 16) + 1,
-                                bottom: (layoutPreset === 'phone' ? 12 : layoutPreset === 'square' ? 14 : 16) + currentSpacers.bottom + 1,
+                                left: (layoutPreset === 'phone-small' ? 12 : layoutPreset === 'square' ? 14 : 16) + 1,
+                                bottom: (layoutPreset === 'phone-small' ? 12 : layoutPreset === 'square' ? 14 : 16) + currentSpacers.bottom + 1,
                               } : undefined}
                             />
                           </>
                         ) : (
                         <>
-                        {/* Top Reserved Clock Area */}
                         <div style={{ height: `${currentSpacers.top}px` }} className="relative z-10 flex-shrink-0" />
 
-                        {/* Lock Screen Matrix Grid */}
                         <div
                           data-wallpaper-grid
                           data-wallpaper-grid-radius="12px"
@@ -291,17 +288,16 @@ export default function WallpaperPreview({
                               />
                             </>
                           )}
-                          {/* DYNAMIC SCALING WALLPAPER GRID VIEW TABLE */}
                           {(() => {
                             const style = getPresetStyle(wallpaperPreset, contentDetail);
-                            const wallpaperPadding = layoutPreset === 'phone' ? 12 : layoutPreset === 'square' ? 14 : 16;
-                            const headerHeightPx = layoutPreset === 'phone' ? 14 : layoutPreset === 'square' ? 16 : layoutPreset === 'tablet' ? 20 : 18;
+                            const wallpaperPadding = layoutPreset === 'phone-small' ? 12 : layoutPreset === 'square' ? 14 : 16;
+                            const headerHeightPx = layoutPreset === 'phone-small' ? 14 : layoutPreset === 'square' ? 16 : layoutPreset === 'tablet' ? 20 : 18;
                             const gridHeightPx = h - (wallpaperPadding * 2) - 20 - currentSpacers.top - currentSpacers.bottom;
                             const rowHeightPx = Math.max(1, (gridHeightPx - 4 - headerHeightPx) / daysList.length);
                             const gridInnerWidth = w - (wallpaperPadding * 2) - 2;
 
-                            // Skip hours with no classes. Dense schedules group active hours into wider periods.
-                            const maxColumns = layoutPreset === 'phone' ? 8 : layoutPreset === 'square' ? 9 : layoutPreset === 'tablet' ? 10 : 12;
+                            // Skip empty hours; dense schedules group active hours into wider periods.
+                            const maxColumns = layoutPreset === 'phone-small' ? 8 : layoutPreset === 'square' ? 9 : layoutPreset === 'tablet' ? 10 : 12;
                             const slots = buildWallpaperGridSlots(allCourses.flatMap((course) => {
                               const start = parseTimeToMinutes(course.start_time || course.jadual || '');
                               if (start == null) return [];

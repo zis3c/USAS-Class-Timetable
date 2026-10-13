@@ -50,7 +50,7 @@ export default [
       'react-hooks/set-state-in-effect': 'off',
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrors: 'none' }],
       'no-unused-vars': 'off',
-      // React Compiler rules: warn only — useful but too strict to block CI here.
+      // React Compiler rules: warn-only; too strict to gate CI.
       'react-hooks/preserve-manual-memoization': 'warn',
       'react-hooks/immutability': 'warn',
     },
@@ -77,8 +77,7 @@ export default [
     },
   },
   {
-    // Providers intentionally colocate their context hook/constants with the
-    // provider component, so React Fast Refresh cannot split them.
+    // Providers colocate context hook/constants with the component; Fast Refresh can't split them.
     files: ['src/app/providers/**/*.{ts,tsx}', 'src/features/timetable/components/PrayerTimesWidget.tsx'],
     rules: {
       'react-refresh/only-export-components': 'off',

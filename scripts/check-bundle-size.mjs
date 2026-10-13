@@ -1,5 +1,4 @@
-// Reports the size of the built JavaScript bundles and fails when the
-// gzipped total exceeds BUNDLE_BUDGET_KB (default 600 KB).
+// Fails when the built JS bundle's gzipped total exceeds BUNDLE_BUDGET_KB (default 600 KB).
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { join } from 'node:path';

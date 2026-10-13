@@ -58,7 +58,7 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
       localStorage.setItem('usas_prayer_auto_notify', String(nextState));
     } catch (e) {}
     
-    // Dispatch event so PrayerTimesNotifier picks it up
+    // Notify PrayerTimesNotifier of the change.
     window.dispatchEvent(new Event('usas-prayer-auto-notify-changed'));
     
     if (nextState) {
@@ -109,11 +109,13 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
   let ongoingClass: NextClassItem | null = null;
   let nextClass: NextClassItem | null = null;
   let minDiff = Infinity;
+  let hasClassToday = false;
 
   if (Array.isArray(timetable) && timetable.length > 0) {
     for (const item of timetable) {
       const isToday = extractDayName(item.day) === currentDayName || item.day?.toUpperCase() === currentDayName;
       if (!isToday) continue;
+      hasClassToday = true;
 
       const startMin = parseTimeToMinutes(item.start_time);
       const endMin = item.end_time ? parseTimeToMinutes(item.end_time) : startMin + 120;
@@ -149,7 +151,6 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
 
   if (!timetable || timetable.length === 0) return null;
 
-  /* ── No more classes today ─────────────────────────────────────────── */
   if (!ongoingClass && !nextClass) {
     return (
       <>
@@ -164,7 +165,9 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
           <CheckCircle2 className="w-3 h-3" />
         </div>
         <span className="font-semibold tracking-wide truncate flex-1 min-w-0">
-          {t('noClassRemaining')} ({t(`days.${currentDayName}`) || currentDayName})
+          {hasClassToday
+            ? `${t('noClassRemaining')} (${t(`days.${currentDayName}`) || currentDayName})`
+            : `${t('noClassesOnDay')} (${t(`days.${currentDayName}`) || currentDayName})`}
         </span>
         <button
           onClick={toggleAutoNotify}
@@ -188,14 +191,12 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
     );
   }
 
-  /* ── Ongoing or next class ─────────────────────────────────────────── */
   const activeCourse = ongoingClass || nextClass;
 
   return (
     <div className={`py-2 px-3 rounded-lg border flex items-center gap-2 text-xs transition-colors duration-150 ${
       isLight ? 'bg-white border-slate-200 text-slate-700' : 'bg-white/[0.03] border-white/[0.05] text-slate-100'
     }`}>
-      {/* Icon */}
       <div className={`w-7 h-7 rounded-md border flex items-center justify-center flex-shrink-0 ${
         ongoingClass
           ? (isLight
@@ -208,7 +209,6 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
         <Clock className="w-3.5 h-3.5" />
       </div>
 
-      {/* Course info — all inline, truncated */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-x-1.5 flex-wrap leading-none">
           <span className={`text-[9px] font-bold uppercase tracking-wider flex-shrink-0 ${
@@ -234,7 +234,6 @@ export default function LiveNextClassWidget({ timetable = [] }: LiveNextClassWid
         </div>
       </div>
 
-      {/* Bell button */}
       <button
         onClick={toggleAutoNotify}
         className={`p-1 rounded flex-shrink-0 transition-colors ${

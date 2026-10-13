@@ -1,7 +1,7 @@
 import LZString from 'lz-string';
 import type { TimetableItem } from '@/shared/types/usas';
 import { extractDayName } from '@/shared/lib/dayFormat';
-import { getOwnRecordValue } from '@/shared/lib/security';
+import { getOwnRecordValue, sanitizeSingleLine } from '@/shared/lib/security';
 
 export type FreeSlot = {
   dayStr: string;
@@ -9,7 +9,7 @@ export type FreeSlot = {
   endMins: number;
 };
 
-// Map Malay day names to integers (1 = ISNIN, 5 = JUMAAT)
+// Day ints align with Date.getDay() (AHAD = 0).
 const dayMap: Record<string, number> = {
   'ISNIN': 1, 'SELASA': 2, 'RABU': 3, 'KHAMIS': 4, 'JUMAAT': 5, 'SABTU': 6, 'AHAD': 0
 };
@@ -17,7 +17,6 @@ export const reverseDayMap = ['AHAD', 'ISNIN', 'SELASA', 'RABU', 'KHAMIS', 'JUMA
 
 export function parseTimeStr(timeStr: string | undefined): [number, number] | null {
   if (!timeStr) return null;
-  // Format: "10:00 AM - 12:00 PM"
   const parts = timeStr.split(' - ');
   if (parts.length !== 2) return null;
 
@@ -35,30 +34,31 @@ export function parseTimeStr(timeStr: string | undefined): [number, number] | nu
   return [toMins(parts[0]), toMins(parts[1])];
 }
 
-/**
- * Minifies a timetable into a highly compressed base64 URI-safe string.
- * Format: [[dayInt, startMins, endMins, "Code"], ...]
- */
-export function compressTimetable(timetable: TimetableItem[], studentName: string): string {
+/** Compresses a timetable to a URI-safe string, minifying keys to keep the payload small. */
+export function compressTimetable(timetable: TimetableItem[], studentName: string, studentId?: string): string {
   const minified = timetable.map(item => {
     const dayInt = getOwnRecordValue<number>(dayMap, extractDayName(item.day)) ?? 1;
     const times = parseTimeStr(`${item.start_time || ''} - ${item.end_time || ''}`);
     const code = item.course_id || item.kod_kursus || 'Class';
     return [dayInt, times?.[0] || 0, times?.[1] || 0, code];
   });
-  const payload = { n: studentName, t: minified };
+  const payload: { n: string; i?: string; t: (string | number)[][] } = {
+    n: sanitizeSingleLine(studentName, 80) || 'Student',
+    t: minified,
+  };
+  const safeId = sanitizeSingleLine(studentId || '', 32);
+  if (safeId) payload.i = safeId;
   return LZString.compressToEncodedURIComponent(JSON.stringify(payload));
 }
 
-/**
- * Decompresses the URI-safe string back into basic timetable items
- */
-export function decompressTimetable(compressed: string): { studentName: string; timetable: TimetableItem[] } | null {
+/** Reverses compressTimetable; returns null on invalid input. */
+export function decompressTimetable(compressed: string): { studentName: string; studentId: string; timetable: TimetableItem[] } | null {
   try {
     const jsonStr = LZString.decompressFromEncodedURIComponent(compressed);
     if (!jsonStr) return null;
     const payload = JSON.parse(jsonStr);
-    
+    if (!payload || !Array.isArray(payload.t)) return null;
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const items: TimetableItem[] = payload.t.map((arr: any) => {
       const [dayInt, startMins, endMins, code] = arr;
@@ -82,29 +82,28 @@ export function decompressTimetable(compressed: string): { studentName: string; 
       } as TimetableItem;
     });
 
-    return { studentName: payload.n || 'Student', timetable: items };
+    return {
+      studentName: sanitizeSingleLine(payload.n, 80) || 'Student',
+      studentId: sanitizeSingleLine(payload.i, 32),
+      timetable: items,
+    };
   } catch {
     return null;
   }
 }
 
-/**
- * Calculates overlapping free slots between two schedules.
- * Considers standard hours: 8:00 AM (480) to 5:00 PM (1020).
- * Checks Monday to Friday only.
- */
-export function calculateOverlappingFreeTime(myTimetable: TimetableItem[], friendTimetable: TimetableItem[]): FreeSlot[] {
-  const WORK_START = 8 * 60;  // 8:00 AM
-  const WORK_END = 17 * 60;   // 5:00 PM
-  
-  const allClasses = [...myTimetable, ...friendTimetable];
+/** Free slots common to every timetable, 8:00 AM to midnight, Monday to Friday. */
+export function calculateCommonFreeTime(timetables: TimetableItem[][]): FreeSlot[] {
+  const WORK_START = 8 * 60;
+  const WORK_END = 24 * 60;
+
+  const allClasses = timetables.flat();
   const freeSlots: FreeSlot[] = [];
 
   for (let dayInt = 1; dayInt <= 5; dayInt++) {
     const dayStr = reverseDayMap.at(dayInt);
     if (!dayStr) continue;
-    
-    // Get all busy blocks for this day
+
     const busyBlocks = allClasses
       .filter(c => extractDayName(c.day) === dayStr)
       .map(c => {
@@ -114,7 +113,6 @@ export function calculateOverlappingFreeTime(myTimetable: TimetableItem[], frien
       .filter(b => b.start < b.end)
       .sort((a, b) => a.start - b.start);
 
-    // Merge overlapping busy blocks
     const mergedBusy: {start: number, end: number}[] = [];
     for (const block of busyBlocks) {
       if (mergedBusy.length === 0) {
@@ -129,7 +127,6 @@ export function calculateOverlappingFreeTime(myTimetable: TimetableItem[], frien
       }
     }
 
-    // Invert busy blocks to find free blocks
     let currentTime = WORK_START;
     for (const busy of mergedBusy) {
       if (currentTime < busy.start) {
@@ -137,11 +134,16 @@ export function calculateOverlappingFreeTime(myTimetable: TimetableItem[], frien
       }
       currentTime = Math.max(currentTime, busy.end);
     }
-    
+
     if (currentTime < WORK_END) {
       freeSlots.push({ dayStr, startMins: currentTime, endMins: WORK_END });
     }
   }
 
   return freeSlots;
+}
+
+/** Free slots when both schedules are free. */
+export function calculateOverlappingFreeTime(myTimetable: TimetableItem[], friendTimetable: TimetableItem[]): FreeSlot[] {
+  return calculateCommonFreeTime([myTimetable, friendTimetable]);
 }

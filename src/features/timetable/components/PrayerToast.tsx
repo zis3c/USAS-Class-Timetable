@@ -18,7 +18,6 @@ export default function PrayerToast() {
   const [completedLabel, setCompletedLabel] = useState<string | null>(null);
   const [isCompleted, setIsCompleted] = useState(false);
 
-  // TEST MODE
   const [testMode, setTestMode] = useState(false);
   const [testSeconds, setTestSeconds] = useState(10);
 
@@ -36,7 +35,6 @@ export default function PrayerToast() {
     return () => window.removeEventListener('test-prayer-toast', handleTest);
   }, []);
 
-  // Normal mode: detect the moment a prayer time is reached
   useEffect(() => {
     if (testMode || !currentPrayer) return;
     if (secondsSinceCurrent < 0 || secondsSinceCurrent > 5) return;
@@ -75,7 +73,6 @@ export default function PrayerToast() {
     }, 500);
   };
 
-  // Test mode: countdown
   useEffect(() => {
     if (!testMode) return;
 
@@ -90,7 +87,6 @@ export default function PrayerToast() {
     }
   }, [testMode, testSeconds, isCompleted]);
 
-  // Auto-close after 5 seconds of being completed
   useEffect(() => {
     if (!isCompleted) return;
     const timer = setTimeout(() => {
@@ -153,7 +149,6 @@ export default function PrayerToast() {
             : 'bg-[#0A1428]/40 border-white/10 text-white')
     }`}>
       <div className="p-3.5 flex items-center gap-3 relative">
-        {/* Icon */}
         <div className={`flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center border ${
           isCompleted 
             ? (isLight ? 'bg-emerald-600/20 border-emerald-500/30 text-emerald-700' : 'bg-emerald-500/30 border-emerald-400/50 text-emerald-300')
@@ -162,7 +157,6 @@ export default function PrayerToast() {
           <Moon className="w-4 h-4" />
         </div>
 
-        {/* Content */}
         <div className="flex-1 min-w-0 pr-6">
           <h4 className={`text-sm font-bold truncate ${isCompleted ? 'text-current' : (isLight ? 'text-slate-900' : 'text-white')}`}>
             {isCompleted ? currentPrayerLabel : `Azan ${currentPrayerLabel}`}
@@ -175,7 +169,6 @@ export default function PrayerToast() {
           </p>
         </div>
 
-        {/* Close Button */}
         <button 
           onClick={handleDismiss}
           className={`absolute top-2 right-2 p-1.5 rounded-lg transition-colors ${
@@ -188,7 +181,6 @@ export default function PrayerToast() {
         </button>
       </div>
 
-      {/* Progress Bar (Only show during countdown) */}
       {!isCompleted && (
         <div className={`h-1.5 w-[calc(100%-1.5rem)] mx-auto mb-3 rounded-full relative overflow-hidden ${isLight ? 'bg-slate-200/50' : 'bg-white/10'}`}>
           <div 

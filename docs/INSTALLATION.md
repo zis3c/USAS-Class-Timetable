@@ -85,6 +85,34 @@ Open your browser at `http://localhost:5173`.
 | `npm run test:strict` | Runs linter, typecheck, unit tests, and production build in sequence. |
 | `npm run test:all` | Runs the full strict suite followed by Playwright end-to-end tests. |
 
+## Landing Page Media Assets
+
+The landing page plays a tutorial video from `public/videos/usas-timetable-guide.mp4`. It is a plain static file that ships inside the repository, so keep it small.
+
+### Replacing the video
+
+Drop the new clip at the same path (or update `GUIDE_VIDEO_SRC` in `src/features/landing/components/LandingSecondarySections.tsx`). Prefer an **H.264 / AAC MP4** so every modern browser can play it, and keep 1080p as the maximum resolution — the player renders at roughly 672 px wide on the landing page.
+
+### Compressing with FFmpeg
+
+Recorded clips are often far larger than needed. Downscale to 1080p and re-encode with a quality target (`-crf`) to shrink them dramatically:
+
+```bash
+ffmpeg -i input.mp4 \
+  -vf "scale='min(1920,iw)':-2:flags=lanczos" \
+  -c:v libx264 -preset slow -crf 28 -pix_fmt yuv420p \
+  -profile:v high -level 4.1 \
+  -c:a aac -b:a 128k \
+  -movflags +faststart \
+  public/videos/usas-timetable-guide.mp4
+```
+
+- `-movflags +faststart` moves the `moov` atom to the front so the browser can start playing before the whole file is downloaded.
+- Increase `-crf` (e.g. 30–32) for a smaller file, or lower it (e.g. 23–25) for higher quality.
+
+> [!NOTE]
+> The tutorial video is intentionally **not** precached by the service worker (`public/sw.js` / the VitePWA `globPatterns` in `vite.config.ts`), so it is only downloaded on demand. Any large media you add to `public/` should follow the same rule.
+
 ---
 
 ## Production Deployment

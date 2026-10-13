@@ -11,7 +11,6 @@ export default function AttendanceMeter({ percentStr }: AttendanceMeterProps) {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
-  // Check if a real percentage was supplied
   const cleanStr = String(percentStr ?? '').trim();
   const hasValidValue = cleanStr.length > 0 && /\d/.test(cleanStr);
   const parsedNum = hasValidValue ? parseInt(cleanStr.replace(/[^0-9]/g, ''), 10) : null;
@@ -30,7 +29,6 @@ export default function AttendanceMeter({ percentStr }: AttendanceMeterProps) {
             </span>
           </span>
         </div>
-        {/* Subtle empty progress track */}
         <div className={`w-full h-1 rounded-full overflow-hidden ${isLight ? 'bg-slate-100' : 'bg-white/[0.06]'}`}>
           <div className="h-full rounded-full w-0" />
         </div>
@@ -71,7 +69,6 @@ export default function AttendanceMeter({ percentStr }: AttendanceMeterProps) {
         )}
       </div>
 
-      {/* Progress Bar */}
       <div className={`w-full h-1 rounded-full overflow-hidden ${isLight ? 'bg-slate-100' : 'bg-white/[0.06]'}`}>
         <div 
           className="h-full rounded-full transition-all duration-500"

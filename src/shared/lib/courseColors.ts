@@ -1,12 +1,7 @@
 import type { TimetableItem } from '../types/usas';
 
-// Each distinct course is assigned one colour slot so the same course keeps the
-// same colour across the card view, the matrix grid and the wallpaper export.
-//
-// The slots reuse the palette keys already defined by each view's day-colour
-// map (ISNIN = emerald, SELASA = blue, RABU = amber, KHAMIS = purple,
-// JUMAAT = rose, SABTU = orange, AHAD = slate), so no new colour classes are
-// needed.
+// One colour slot per course so a course keeps its colour across card view, grid and
+// wallpaper. Slots reuse each view's day-colour palette keys.
 export const COURSE_COLOR_SLOTS = ['ISNIN', 'SELASA', 'RABU', 'KHAMIS', 'JUMAAT', 'SABTU', 'AHAD'] as const;
 export type CourseColorSlot = typeof COURSE_COLOR_SLOTS[number];
 

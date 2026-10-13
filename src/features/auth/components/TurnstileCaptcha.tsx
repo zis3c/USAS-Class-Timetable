@@ -11,7 +11,11 @@ declare global {
           callback?: (token: string) => void;
           'expired-callback'?: () => void;
           'error-callback'?: () => void;
+          'timeout-callback'?: () => void;
           size?: 'normal' | 'compact' | 'flexible';
+          appearance?: 'always' | 'execute' | 'interaction-only';
+          retry?: 'auto' | 'never';
+          'refresh-expired'?: 'auto' | 'manual' | 'never';
         }
       ) => string;
       reset: (widgetId: string) => void;
@@ -29,6 +33,9 @@ interface TurnstileCaptchaProps {
   siteKey?: string;
   className?: string;
   size?: 'normal' | 'compact' | 'flexible';
+  // 'always' keeps the widget visible; 'interaction-only' can leave users stuck
+  // with a "complete the captcha" prompt when no widget renders.
+  appearance?: 'always' | 'execute' | 'interaction-only';
 }
 
 export default function TurnstileCaptcha({
@@ -39,12 +46,15 @@ export default function TurnstileCaptcha({
   siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA',
   className = '',
   size = 'flexible',
+  appearance = 'always',
 }: TurnstileCaptchaProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const widgetIdRef = useRef<string | null>(null);
   const onVerifyRef = useRef(onVerify);
   const onExpireRef = useRef(onExpire);
   const onErrorRef = useRef(onError);
+  // Theme fixed at mount; re-rendering on theme change would restart the challenge.
+  const themeRef = useRef(theme);
   const [isScriptReady, setIsScriptReady] = useState(() => typeof window !== 'undefined' && !!window.turnstile);
 
   useEffect(() => {
@@ -86,12 +96,10 @@ export default function TurnstileCaptcha({
   useEffect(() => {
     if (!isScriptReady || !containerRef.current || !window.turnstile) return;
 
-    // Clean up existing widget if theme or props change
     if (widgetIdRef.current) {
       try {
         window.turnstile.remove(widgetIdRef.current);
       } catch {
-        // Ignore cleanup errors
       }
       widgetIdRef.current = null;
     }
@@ -99,8 +107,11 @@ export default function TurnstileCaptcha({
     try {
       const widgetId = window.turnstile.render(containerRef.current, {
         sitekey: siteKey,
-        theme,
+        theme: themeRef.current,
         size,
+        appearance,
+        retry: 'auto',
+        'refresh-expired': 'auto',
         callback: (token: string) => {
           onVerifyRef.current(token);
         },
@@ -121,15 +132,14 @@ export default function TurnstileCaptcha({
         try {
           window.turnstile.remove(widgetIdRef.current);
         } catch {
-          // Ignore cleanup errors
         }
         widgetIdRef.current = null;
       }
     };
-  }, [isScriptReady, theme, siteKey, size]);
+  }, [isScriptReady, siteKey, size, appearance]);
 
   return (
-    <div className={`w-full flex items-center my-2 min-h-[65px] ${className || 'justify-center'}`}>
+    <div className={`w-full flex items-center justify-center my-1.5 min-h-[65px] ${className || ''}`}>
       <div ref={containerRef} />
     </div>
   );

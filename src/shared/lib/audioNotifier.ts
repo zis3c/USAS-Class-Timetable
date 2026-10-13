@@ -1,8 +1,4 @@
-/**
- * Class-chime notifier and PWA app-badge helper for USAS students.
- * Plays a three-tone campus chime (C5 -> E5 -> G5) through the Web Audio API
- * and manages the mobile app badge count (navigator.setAppBadge).
- */
+/** Class-chime and PWA app-badge helpers (Web Audio + navigator.setAppBadge). */
 
 let notificationAudioContext: AudioContext | undefined;
 
@@ -23,7 +19,7 @@ export function playClassChime(): void {
     const ctx = getNotificationAudioContext();
     if (!ctx) return;
 
-    // 3-tone campus chime sequence: C5 (523.25 Hz) -> E5 (659.25 Hz) -> G5 (783.99 Hz)
+    // Campus chime: C5 -> E5 -> G5.
     const tones = [523.25, 659.25, 783.99];
 
     tones.forEach((freq, idx) => {
@@ -33,7 +29,6 @@ export function playClassChime(): void {
       osc.type = 'sine';
       osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.15);
 
-      // Volume envelope for smooth chime decay
       gain.gain.setValueAtTime(0, ctx.currentTime + idx * 0.15);
       gain.gain.linearRampToValueAtTime(0.2, ctx.currentTime + idx * 0.15 + 0.03);
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.15 + 0.4);
@@ -52,7 +47,7 @@ export function playPrayerChime(): void {
     const ctx = getNotificationAudioContext();
     if (!ctx) return;
 
-    // Deep, softer echoing tone for prayer: A3 -> D4 -> A4
+    // Prayer tone: A3 -> D4 -> A4, deeper and softer.
     const tones = [220.00, 293.66, 440.00];
 
     tones.forEach((freq, idx) => {
@@ -62,7 +57,7 @@ export function playPrayerChime(): void {
       osc.type = 'sine';
       osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.4);
 
-      // Slower attack and longer decay for a more spiritual, calming sound
+      // Slower attack, longer decay for a calm feel.
       gain.gain.setValueAtTime(0, ctx.currentTime + idx * 0.4);
       gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + idx * 0.4 + 0.1);
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.4 + 1.2);
@@ -93,7 +88,6 @@ export function updateAppBadge(count = 1): void {
 }
 
 export function sendPushNotification(title: string, body: string): void {
-  // Trigger mobile badge count bubble on device
   updateAppBadge(1);
 
   if (!('Notification' in window)) return;

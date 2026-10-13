@@ -16,6 +16,7 @@ import {
   restoreTimetableFromCache,
 } from '@/shared/lib/cache';
 import { useRef } from 'react';
+import { clearPendingCompareData, readPendingCompareData } from '@/features/sharing/lib/pendingCompare';
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
@@ -57,6 +58,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [pendingCompareData, setPendingCompareData] = useState<string | null>(() => readPendingCompareData());
   const [timeFormat, setTimeFormatState] = useState<TimeFormat>(() => readTimeFormat(session?.user_id));
   const loginRequestRef = useRef(0);
   const refreshRequestRef = useRef(0);
@@ -85,8 +87,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const readThrottleState = () => {
-    try {
+  const consumePendingCompareData = (): string | null => {
+    const value = readPendingCompareData();
+    if (value) {
+      clearPendingCompareData();
+      setPendingCompareData(null);
+    }
+    return value;
+  };
+
+  const clearPendingCompare = () => {
+    clearPendingCompareData();
+    setPendingCompareData(null);
+  };
+
+  const readThrottleState = () => {    try {
       const cached = sessionStorage.getItem(CACHE_KEY_LOGIN_THROTTLE);
       if (!cached) return getEmptyThrottleState();
       return restoreThrottleState(cached) || getEmptyThrottleState();
@@ -103,7 +118,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  // Track network status for PWA offline mode
   useEffect(() => {
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
@@ -196,6 +210,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setSession(null);
     setTimetableData(null);
     setError(null);
+    clearPendingCompare();
     try {
       sessionStorage.removeItem(CACHE_KEY_SESSION);
       sessionStorage.removeItem(CACHE_KEY_LOGIN_THROTTLE);
@@ -231,8 +246,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  // A restored session may come with a stale cached timetable (e.g. missing
-  // group_id or attendance data), so refresh once from the API on first load.
+  // Restored session may have a stale cached timetable (missing group_id/attendance), so refresh once on first load.
   const didAutoRefreshRef = useRef(false);
   useEffect(() => {
     if (didAutoRefreshRef.current) return;
@@ -254,7 +268,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       login,
       logout,
       refreshTimetable,
-      setError
+      setError,
+      pendingCompareData,
+      consumePendingCompareData,
+      clearPendingCompare,
     }}>
       {children}
     </AuthContext.Provider>

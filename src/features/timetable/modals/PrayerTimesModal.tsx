@@ -143,14 +143,12 @@ export default function PrayerTimesModal({ isOpen, onClose }: PrayerTimesModalPr
     }
   }, [isOpen]);
 
-  // Update current time every second
   useEffect(() => {
     if (!isOpen) return;
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, [isOpen]);
 
-  // Fetch data
   useEffect(() => {
     if (!isOpen) return;
     let active = true;
@@ -160,7 +158,6 @@ export default function PrayerTimesModal({ isOpen, onClose }: PrayerTimesModalPr
       if (active && res?.success && res.data?.prayers) {
         const todayDate = new Date().getDate();
         
-        // Find today's prayer object from the month's array
         const todayPrayers = res.data.prayers.find((p: WaktuSolatPrayer) => p.day === todayDate);
         
         if (todayPrayers) {
@@ -179,7 +176,6 @@ export default function PrayerTimesModal({ isOpen, onClose }: PrayerTimesModalPr
             { id: 'isha', label: 'Isyak', unix: todayPrayers.isha },
           ];
 
-          // Determine passed and next
           const currentUnix = Math.floor(Date.now() / 1000);
           let foundNext = false;
           
@@ -206,7 +202,6 @@ export default function PrayerTimesModal({ isOpen, onClose }: PrayerTimesModalPr
     return () => { active = false; };
   }, [isOpen, session, zone]);
 
-  // Recalculate passed/next dynamically based on current `now`
   const dynamicPrayers = React.useMemo(() => {
     const currentUnix = Math.floor(now.getTime() / 1000);
     const nextIndex = prayers.findIndex(p => p.unix > currentUnix);
@@ -235,19 +230,18 @@ export default function PrayerTimesModal({ isOpen, onClose }: PrayerTimesModalPr
             : 'bg-[#0A1428]/95 border-white/10 text-white shadow-2xl'
         }`}
       >
-        {/* Modal Header */}
-        <div className={`p-4 sm:p-5 border-b flex items-start sm:items-center justify-between gap-3 flex-shrink-0 ${
+        <div className={`p-4 sm:p-5 border-b flex items-center justify-between gap-3 flex-shrink-0 ${
           isLight ? 'border-slate-200 bg-slate-50/50' : 'border-white/[0.06] bg-[#0A1428]/95'
         }`}>
-          <div className="flex items-start sm:items-center gap-3 min-w-0">
+          <div className="flex items-center gap-3 min-w-0">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border ${
               isLight ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-amber-400/10 border-amber-400/20 text-amber-400'
             }`}>
               <Moon className="w-5 h-5" />
             </div>
             <div className="text-left min-w-0 flex-1">
-              <h3 className={`text-sm sm:text-base font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>{t('prayerTitle')}</h3>
-              <p className={`text-[11px] sm:text-xs font-semibold truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>
+              <h3 className={`text-sm sm:text-base font-bold leading-tight truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>{t('prayerTitle')}</h3>
+              <p className={`text-[11px] sm:text-xs font-semibold leading-tight truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>
                 {t('prayerSubtitle')}
               </p>
             </div>
@@ -277,7 +271,6 @@ export default function PrayerTimesModal({ isOpen, onClose }: PrayerTimesModalPr
         </div>
 
         <div data-lenis-prevent className="p-4 sm:p-6 space-y-5 flex-1 overflow-y-auto usas-scrollbar touch-pan-y overscroll-contain">
-          {/* Header Info - ALWAYS SHOW */}
           <div className="flex items-center justify-between gap-2">
             <PrayerZoneDropdown value={zone} onChange={setZone} isLight={isLight} />
             <div className={`flex items-center gap-1.5 text-[10px] font-medium ${isLight ? 'text-slate-500' : 'text-white/50'}`}>
@@ -294,7 +287,6 @@ export default function PrayerTimesModal({ isOpen, onClose }: PrayerTimesModalPr
           ) : (
             <div className="space-y-4">
               
-              {/* Hero Countdown */}
               <div className={`p-5 rounded-xl border flex flex-col justify-center gap-1 shadow-sm text-center ${
                 isLight 
                   ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200/50 shadow-amber-900/5' 
@@ -308,7 +300,6 @@ export default function PrayerTimesModal({ isOpen, onClose }: PrayerTimesModalPr
                 </div>
               </div>
 
-              {/* Minimalist Prayer Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
                 {dynamicPrayers.map((prayer) => (
                   <div 

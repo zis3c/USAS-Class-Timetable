@@ -43,12 +43,27 @@ https://mobile.usas.edu.my/umc_v2   (official USAS UMC API)
 - Providers: `ThemeProvider`, `AuthProvider`, `NotificationProvider`, `LanguageProvider`.
 - `AuthProvider` owns the session, the cached timetable, the login throttle and connectivity (`isOffline`).
 
+## Timetable views
+
+- The Grid (matrix) view builds **adaptive time slots** (`src/shared/lib/adaptiveTimeGrid.ts`) that compress empty hours while keeping dense ranges grouped; slots become columns and days become rows.
+- Course blocks are positioned as a percentage of the time axis, so each session aligns to the minute regardless of column width.
+- The grid fits the desktop viewport (no horizontal scroll); on small screens it keeps a minimum column width and scrolls horizontally. Card text scales with the **row height** via container query units (`cqh`) so every block renders at a consistent, readable size.
+
 ## Wallpaper exports
 
 - The lockscreen exporter supports the standard grid, Minimal weekly-card and Liquid Glass weekly-card layouts.
-- Minimal and Liquid Glass share `MinimalWeekCard`; Liquid Glass applies a theme-specific translucent surface and course colors.
+- Minimal and Liquid Glass share `MinimalWeekCard`; Liquid Glass applies a theme-specific translucent surface and course colors. Long chip details are shortened to the available width so they never overflow into neighbouring chips.
+- An optional custom background image can be supplied for the lockscreen; its blur is adjustable with a slider and re-rendered on change.
 - Wallpaper layout controls position the timetable at the bottom of the lockscreen so the device clock area stays clear.
 - PNG rendering is performed in the browser with `html2canvas`; platform-specific clone adjustments keep exported text aligned with the preview.
+- Because `html2canvas` strips CSS `filter` during capture, the background blur is **baked into a canvas bitmap** (with an SVG `feGaussianBlur` fallback) rather than applied as a live CSS filter.
+
+## Landing experience & video tutorial
+
+- `LandingPage` composes the public (unauthenticated) marketing view: a hero area, a 3D tilt timetable mockup and a bento feature grid.
+- The landing content is driven by `src/features/landing/data/landingCopy.ts`, localised across all four supported languages.
+- The video walkthrough lives in `src/features/landing/components/VideoTutorialPlayer.tsx` and plays `/videos/usas-timetable-guide.mp4` from `public/videos/`. It is a self-contained HTML5 `<video>` player with custom play/pause, seek, mute and fullscreen controls; it loads only metadata until the user presses play.
+- The tutorial asset is a plain static file served from the public directory. It is intentionally excluded from the PWA precache (see `public/sw.js` and the VitePWA `globPatterns`) so the service worker never downloads the media file, and `media-src 'self'` in the Content Security Policy allows same-origin playback.
 
 ## Third parties
 
@@ -73,4 +88,5 @@ src/shared/           i18n, types, and reusable libraries (security, cache, time
 src/styles/           Tailwind entry & global styles
 scripts/              Tooling (e.g. schema monitor)
 tests/                Vitest unit suites & Playwright e2e specs
+public/videos/        Landing page tutorial media (served as a static asset)
 ```

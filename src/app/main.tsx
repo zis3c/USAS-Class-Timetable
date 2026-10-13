@@ -3,10 +3,12 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import '@/styles/index.css'
 import { initMonitoring } from '@/shared/lib/monitoring'
+import { logConsoleBanner } from '@/shared/lib/consoleBanner'
 
 import { registerSW } from 'virtual:pwa-register'
 
 initMonitoring()
+logConsoleBanner()
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Missing root element');

@@ -26,13 +26,12 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Disable tap highlight color on mobile */
+  /* Suppress mobile tap highlight. */
   *, *::before, *::after {
     -webkit-tap-highlight-color: transparent;
   }
 }
 
-/* ───── Glass Card (USAS themed) ───── */
 .glass-card {
   background: rgba(255, 255, 255, 0.025);
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -46,12 +45,66 @@
   border-color: rgba(255, 255, 255, 0.1);
 }
 
-/* ───── Navbar ───── */
+/* Size-query container; text scales with row height so every block matches. */
+.matrix-course-card {
+  container-type: size;
+  gap: 4px;
+  padding: 6px 8px;
+}
+
+.matrix-course-summary {
+  line-height: 1.1;
+}
+
+/* cqh = 1% of card height; taller rows (smaller timetable) get larger text. */
+.matrix-course-code {
+  font-size: clamp(10px, 13cqh, 14.5px);
+  line-height: 1.1;
+}
+
+.matrix-course-duration {
+  font-size: clamp(7px, 7.5cqh, 9.5px);
+  line-height: 1.1;
+}
+
+.matrix-course-time {
+  font-size: clamp(9px, 10.5cqh, 12px);
+  line-height: 1.1;
+}
+
+.matrix-course-lecturer {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: clamp(8px, 9.5cqh, 11px);
+  line-height: 1.15;
+}
+
+.matrix-course-title {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: clamp(9px, 12cqh, 13.5px);
+  line-height: 1.2;
+}
+
+.matrix-course-test-label {
+  opacity: 0;
+  font-size: 7px;
+}
+
+/* Desktop fits the grid to screen; small screens keep min-width and scroll. */
+@media (min-width: 1024px) {
+  .matrix-grid-viewport {
+    min-width: 0 !important;
+  }
+}
+
 .navbar-border {
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-/* ───── Animations ───── */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -74,7 +127,6 @@
 .animate-slide-in-right { animation: slideInRight 0.2s cubic-bezier(0.4, 0, 0.2, 1) both; }
 .animate-slide-in-left  { animation: slideInLeft 0.25s ease both; }
 
-/* Stagger */
 .stagger-1 { animation-delay: 0.02s; }
 .stagger-2 { animation-delay: 0.04s; }
 .stagger-3 { animation-delay: 0.06s; }
@@ -84,7 +136,6 @@
 .stagger-7 { animation-delay: 0.14s; }
 .stagger-8 { animation-delay: 0.16s; }
 
-/* ───── Scrollbar ───── */
 .usas-scrollbar::-webkit-scrollbar {
   width: 4px;
   height: 4px;
@@ -126,7 +177,6 @@
 .theme-oled ::-webkit-scrollbar-thumb:hover,
 .theme-emerald ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
 
-/* Login autofill */
 .login-input,
 .login-input:focus,
 .login-input:hover {
@@ -168,23 +218,19 @@
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* ───── Button Glow ───── */
 .btn-glow {
   position: relative;
   overflow: hidden;
 }
 
-/* ───── Print ───── */
 @media print {
   body { background: white !important; color: black !important; overflow: visible !important; }
 }
 
-/* ───── Mobile ───── */
 @media (max-width: 768px) {
   .glass-card-hover:hover { transform: none; }
 }
 
-/* ───── Scroll Down Mouse Indicator ───── */
 @keyframes scrollWheel {
   0% { transform: translateY(0); opacity: 1; }
   50% { transform: translateY(6px); opacity: 0.3; }
@@ -195,7 +241,6 @@
   animation: scrollWheel 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
-/* Lockscreen spacing slider */
 .usas-range {
   appearance: none;
   -webkit-appearance: none;
@@ -253,7 +298,66 @@
   box-shadow: 0 0 0 2px #0a1428;
 }
 
-/* View Transition API */
+.video-seek {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 16px;
+  outline: none;
+  background: transparent;
+}
+
+.video-seek::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    #f59e0b 0%,
+    #f59e0b var(--seek-progress, 0%),
+    rgba(255, 255, 255, 0.25) var(--seek-progress, 0%),
+    rgba(255, 255, 255, 0.25) 100%
+  );
+}
+
+.video-seek::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.video-seek::-moz-range-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: #f59e0b;
+}
+
+.video-seek::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: -4px;
+  border-radius: 999px;
+  border: 0;
+  background: #f59e0b;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.video-seek:hover::-webkit-slider-thumb,
+.video-seek:focus-visible::-webkit-slider-thumb {
+  opacity: 1;
+}
+
+.video-seek::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 0;
+  border-radius: 999px;
+  background: #f59e0b;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
+}
+
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation: none;
@@ -267,14 +371,18 @@
   will-change: clip-path;
 }
 
-/* ───── Accessibility ───── */
-/* Visible keyboard focus for all interactive elements. */
 :where(a, button, input, select, textarea, summary, [role="button"], [tabindex]:not([tabindex="-1"])):focus-visible {
   outline: 2px solid #f59e0b;
   outline-offset: 2px;
 }
 
-/* Re-enable a visible ring on the login inputs (their base rule hides outlines). */
+/* Inputs inside a bordered pill skip the global outline; the wrapper shows focus. */
+.inline-input:focus,
+.inline-input:focus-visible {
+  outline: none;
+}
+
+/* Re-add the focus ring on login inputs; their base rule hides outlines. */
 .login-input:focus-visible {
   outline: 2px solid #f59e0b !important;
   outline-offset: 2px !important;

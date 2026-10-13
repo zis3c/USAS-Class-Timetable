@@ -18,7 +18,7 @@ type LookupStatus = 'idle' | 'loading' | 'found' | 'notfound' | 'error' | 'unava
 const TITLE_PREFIX = /^(PM\.?\s*DR\.?|DR\.?|PROF\.?|EN\.?|PN\.?|USTAZAH|USTAZ|HAJI|HAJAH)\s+/i;
 const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
-// In-memory cache so re-opening the same lecturer does not hit the API again.
+// Cache so reopening the same lecturer skips the API.
 const directoryCache = new Map<string, LecturerDirectoryEntry | null>();
 
 function stripTitlePrefix(value: string): string {
@@ -109,8 +109,7 @@ export default function LecturerModal({ lecturerName, isOpen, onClose }: Lecture
     return () => clearTimeout(timer);
   }, [isOpen]);
 
-  // Resolve the real lecturer record (email, position, extension) from the
-  // official USAS staff directory instead of deriving it from the name.
+  // Look up the real record in the official USAS staff directory rather than deriving from the name.
   useEffect(() => {
     if (!isOpen || !cachedName) return;
 
@@ -183,9 +182,8 @@ export default function LecturerModal({ lecturerName, isOpen, onClose }: Lecture
           ? 'bg-white border-slate-200 shadow-xl text-slate-800' 
           : 'bg-[#0A1428]/95 border-white/10 text-white shadow-2xl'
       }`}>
-        {/* Left-Aligned Icon Modal Header */}
-        <div className="flex items-start sm:items-center justify-between gap-3 pt-0 flex-shrink-0">
-          <div className="flex items-start sm:items-center gap-3 min-w-0">
+        <div className="flex items-center justify-between gap-3 pt-0 flex-shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
             <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md border ${
               isLight ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-amber-400/10 border-amber-400/20 text-amber-400'
             }`}>
@@ -193,7 +191,7 @@ export default function LecturerModal({ lecturerName, isOpen, onClose }: Lecture
             </div>
             <div className="text-left min-w-0">
               <h3 className={`text-sm sm:text-base font-bold leading-tight truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>{sanitizeTextForShare(cachedName, 160)}</h3>
-              <p className={`text-[11px] sm:text-xs font-semibold truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>
+              <p className={`text-[11px] sm:text-xs font-semibold leading-tight truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>
                 {hasPosition ? entry?.position : t('lecturerGenericRole')}
               </p>
             </div>

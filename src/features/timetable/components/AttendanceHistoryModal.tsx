@@ -51,8 +51,7 @@ export default function AttendanceHistoryModal({ isOpen, onClose, course, refres
     let active = true;
 
     const loadHistory = async () => {
-      // Prefer the real numeric group_id. If it's missing (e.g. a stale cached
-      // timetable), resolve it from senarai_kursus before calling the report.
+      // Prefer the real group_id; a stale cache may omit it, so resolve from senarai_kursus.
       let effectiveGroup = course?.group_id || '';
       if (!effectiveGroup && course) {
         effectiveGroup = (await resolveGroupIdForCourseAPI(
@@ -61,8 +60,7 @@ export default function AttendanceHistoryModal({ isOpen, onClose, course, refres
         )) || '';
       }
 
-      // Never fall back to another group: only query the report when a real
-      // group_id was resolved, otherwise show the empty state.
+      // Never fall back to another group; without a resolved group_id show the empty state.
       if (!effectiveGroup) {
         if (!active) return;
         setHistory([]);
@@ -106,19 +104,18 @@ export default function AttendanceHistoryModal({ isOpen, onClose, course, refres
           ? 'bg-white border-slate-200 shadow-xl text-slate-800'
           : 'bg-[#0A1428]/95 border-white/10 text-white shadow-2xl'
         }`}>
-        {/* Left-Aligned Icon Modal Header */}
-        <div className="flex items-start sm:items-center justify-between gap-3 pt-0 flex-shrink-0">
-          <div className="flex items-start sm:items-center gap-3 min-w-0">
+        <div className="flex items-center justify-between gap-3 pt-0 flex-shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md border ${isLight ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-amber-400/10 border-amber-400/20 text-amber-400'
               }`}>
               <CalendarCheck className="w-5 h-5" />
             </div>
             <div className="text-left min-w-0">
-              <h3 className={`text-sm sm:text-base font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>
+              <h3 className={`text-sm sm:text-base font-bold leading-tight truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>
                 <span className="sm:hidden">{t('attendanceHistoryTitle')}</span>
                 <span className="hidden sm:inline">{t('attendanceHistoryTitleLong')}</span>
               </h3>
-              <p className={`text-[11px] sm:text-xs font-semibold truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>
+              <p className={`text-[11px] sm:text-xs font-semibold leading-tight truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>
                 {course.course_id || course.kod_kursus} ({groupDisplay}): {course.course_name || course.kursus}
               </p>
             </div>
@@ -132,7 +129,6 @@ export default function AttendanceHistoryModal({ isOpen, onClose, course, refres
           </button>
         </div>
 
-        {/* Attendance List (uses themed custom-scrollbar) */}
         {loading ? (
           <div className={`py-12 text-center text-xs space-y-2 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
             <RotateCw className={`w-6 h-6 animate-spin mx-auto ${isLight ? 'text-amber-600' : 'text-amber-400'}`} />

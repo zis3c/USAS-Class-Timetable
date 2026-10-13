@@ -1,17 +1,81 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import jsQR from 'jsqr';
 import QRCode from 'qrcode';
 import { copyTextToClipboard, sanitizeTextForShare, openExternalUrl } from '@/shared/lib/security';
 import { compressTimetable } from '@/features/timetable/lib/scheduleMatcher';
 import { buildFullShareText } from '@/features/export/lib/shareText';
-import { Camera, ScanLine, X, Upload, FileText, Calendar, AlertTriangle, ArrowLeft, Copy, Check, Users } from 'lucide-react';
+import { Camera, ScanLine, X, Upload, FileText, Calendar, AlertTriangle, ArrowLeft, Copy, Check, Users, Plus, Maximize, Minimize, ZoomIn, ZoomOut, Link2 } from 'lucide-react';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { formatTimeFromMinutes } from '@/shared/lib/timetableTime';
+import { extractDayName } from '@/shared/lib/dayFormat';
 import { useLanguage } from '@/app/providers/LanguageProvider';
 import { useTheme } from '@/app/providers/ThemeProvider';
 import { useModalA11y } from '@/shared/lib/useModalA11y';
-import { decompressTimetable, calculateOverlappingFreeTime, reverseDayMap, type FreeSlot } from '@/features/timetable/lib/scheduleMatcher';
+import { decompressTimetable, calculateCommonFreeTime, parseTimeStr, reverseDayMap } from '@/features/timetable/lib/scheduleMatcher';
+import { getCardColorByScheme } from '@/shared/lib/courseCardColors';
 import type { TimetableItem } from '@/shared/types/usas';
+
+type Participant = { id: string; name: string; timetable: TimetableItem[] };
+type MergedClass = { startMins: number; endMins: number; code: string; owner: string };
+const WEEK_ORDER = ['ISNIN', 'SELASA', 'RABU', 'KHAMIS', 'JUMAAT', 'SABTU', 'AHAD'];
+// Friend colours; amber (me) and emerald (common free time) are reserved.
+const FRIEND_SCHEMES = ['blue', 'purple', 'rose', 'teal', 'indigo', 'cyan', 'fuchsia', 'lime'];
+
+// Compact clock label; drops trailing ":00" and the space before AM/PM so ranges stay short on mobile.
+const formatCompactTime = (minutes: number, timeFormat: '12h' | '24h') =>
+  formatTimeFromMinutes(minutes, timeFormat)
+    .replace(/:00(?=\s|$)/, '')
+    .replace(/\s+([AP]M)$/, '$1');
+
+// 12h reads best as "8AM - 10AM"; 24h stays tight as "8–10".
+const formatCompactRange = (startMins: number, endMins: number, timeFormat: '12h' | '24h') =>
+  `${formatCompactTime(startMins, timeFormat)}${timeFormat === '12h' ? ' - ' : '–'}${formatCompactTime(endMins, timeFormat)}`;
+
+// Extracts the shared payload from a QR string; accepts the old ?compare_schedule= URL and the raw form.
+function extractCompareData(data: string): string | null {
+  const trimmed = String(data ?? '').trim();
+  if (!trimmed) return null;
+  try {
+    const param = new URL(trimmed).searchParams.get('compare_schedule');
+    return param || null;
+  } catch {
+    // Not a URL: treat as raw payload.
+    return trimmed;
+  }
+}
+
+// Retry at smaller scales; full-size phone photos can exceed mobile canvas limits and decode blank.
+function decodeQrFromImage(img: HTMLImageElement, canvas: HTMLCanvasElement): string | null {
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  if (!context) return null;
+  const nativeW = img.naturalWidth || img.width;
+  const nativeH = img.naturalHeight || img.height;
+  if (!nativeW || !nativeH) return null;
+
+  const longest = Math.max(nativeW, nativeH);
+  const attempted = new Set<number>();
+  // Ascending sizes: a moderate size decodes fast in the common case; escalate only if it fails.
+  for (const cap of [1200, 2000, 3000]) {
+    const width = Math.max(1, Math.round(nativeW * Math.min(1, cap / longest)));
+    if (attempted.has(width)) continue;
+    attempted.add(width);
+    const height = Math.max(1, Math.round(nativeH * (width / nativeW)));
+    canvas.width = width;
+    canvas.height = height;
+    context.clearRect(0, 0, width, height);
+    context.drawImage(img, 0, 0, width, height);
+    let imageData: ImageData;
+    try {
+      imageData = context.getImageData(0, 0, width, height);
+    } catch {
+      continue;
+    }
+    const code = jsQR(imageData.data, width, height, { inversionAttempts: 'attemptBoth' });
+    if (code?.data) return code.data;
+  }
+  return null;
+}
 
 type CompareScheduleModalProps = {
   isOpen: boolean;
@@ -38,8 +102,14 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
   const [myQrUrl, setMyQrUrl] = useState('');
   const [scanState, setScanState] = useState<ScanState>('idle');
   const [statusMessage, setStatusMessage] = useState(t('compareScanIdle'));
-  const [friendData, setFriendData] = useState<{ studentName: string; timetable: TimetableItem[] } | null>(null);
-  const [freeSlots, setFreeSlots] = useState<FreeSlot[]>([]);
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [linkInput, setLinkInput] = useState('');
+  const [linkError, setLinkError] = useState<'' | 'invalid' | 'self'>('');
+  const [scanHint, setScanHint] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const [maxZoom, setMaxZoom] = useState(4);
+  const [supportsNativeZoom, setSupportsNativeZoom] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const mountedRef = useRef(true);
   const activeRef = useRef(false);
@@ -48,23 +118,121 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const loopRef = useRef<number | null>(null);
   const copiedTimerRef = useRef<number | null>(null);
+  const scanStateRef = useRef<ScanState>('idle');
+  const prevTabRef = useRef(activeTab);
+  const pendingScanRef = useRef(false);
+  const wasOpenRef = useRef(false);
+  const scanAttemptsRef = useRef(0);
+  const streamRef = useRef<MediaStream | null>(null);
+  const zoomRef = useRef(1);
+  const nativeZoomRef = useRef<{ min: number; max: number } | null>(null);
 
-  // Generate QR
+  const hasTimetable = myTimetable.length > 0;
+
+  // Free slots shared by the user and every added friend.
+  const freeSlots = useMemo(
+    () => calculateCommonFreeTime([timetableData?.timetable ?? [], ...participants.map((p) => p.timetable)]),
+    [timetableData, participants],
+  );
+
+  const mergedByDay = useMemo(() => {
+    const groups = new Map<string, MergedClass[]>();
+    const add = (items: TimetableItem[], owner: string) => {
+      items.forEach((item) => {
+        const dayKey = extractDayName(item.day);
+        if (!dayKey) return;
+        const times = parseTimeStr(`${item.start_time || ''} - ${item.end_time || ''}`);
+        if (!times) return;
+        const [startMins, endMins] = times;
+        if (endMins <= startMins) return;
+        const code = item.course_id || item.kod_kursus || 'Class';
+        const group = groups.get(dayKey) ?? [];
+        group.push({ startMins, endMins, code, owner });
+        groups.set(dayKey, group);
+      });
+    };
+    add(timetableData?.timetable ?? [], 'me');
+    participants.forEach((p) => add(p.timetable, p.id));
+    groups.forEach((group) => group.sort((a, b) => a.startMins - b.startMins));
+    return groups;
+  }, [timetableData, participants]);
+
+  const ownerScheme = (owner: string): string => {
+    if (owner === 'me') return 'amber';
+    const index = participants.findIndex((p) => p.id === owner);
+    return FRIEND_SCHEMES[(index < 0 ? 0 : index) % FRIEND_SCHEMES.length];
+  };
+  const ownerName = (owner: string): string => {
+    if (owner === 'me') return t('compareYou');
+    const name = participants.find((p) => p.id === owner)?.name?.trim();
+    return name ? name.split(/\s+/)[0] : t('compareFriend');
+  };
+
   useEffect(() => {
-    if (activeTab === 'share' && isOpen) {
+    scanStateRef.current = scanState;
+  }, [scanState]);
+
+  const isScanSuccess = (): boolean => scanStateRef.current === 'success';
+
+  // Reset scan state on close or Scan-tab exit so a fresh scan can always start.
+  useEffect(() => {
+    if (!isOpen) {
+      prevTabRef.current = activeTab;
+      return;
+    }
+    if (prevTabRef.current !== activeTab) {
       stopCamera();
+      setIsFullscreen(false);
+      prevTabRef.current = activeTab;
+      if (activeTab === 'scan' && participants.length > 0) {
+        // Returning to compare tab: show existing results.
+        setScanState('success');
+        scanStateRef.current = 'success';
+      } else {
+        setScanState('idle');
+        scanStateRef.current = 'idle';
+        setStatusMessage(t('compareScanIdle'));
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, isOpen]);
+
+  // Start camera after returning to scanner; the video element is remounted by add/remove friend.
+  useEffect(() => {
+    if (!isOpen || activeTab !== 'scan') return;
+    if (pendingScanRef.current) {
+      pendingScanRef.current = false;
+      void startCamera();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scanState, activeTab, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      wasOpenRef.current = false;
+      return;
+    }
+    // On first open the tab may still be 'scan' before switching to 'share'; starting the camera there races and shows a bogus error.
+    const justOpened = !wasOpenRef.current;
+    wasOpenRef.current = true;
+    if (activeTab === 'share') {
+      stopCamera();
+      if (!hasTimetable) {
+        setMyQrUrl('');
+        return;
+      }
       const safeName = sanitizeTextForShare(timetableData?.studentName || 'Pelajar', 80);
-      const data = compressTimetable(myTimetable, safeName);
-      const url = `${window.location.origin}/?compare_schedule=${data}`;
-      QRCode.toDataURL(url, {
-        width: 250, margin: 2,
+      const data = compressTimetable(myTimetable, safeName, session?.user_id);
+      // Raw payload (no URL) with low error correction keeps the QR sparse and easier to scan; the scanner accepts both forms.
+      QRCode.toDataURL(data, {
+        width: 512, margin: 4, errorCorrectionLevel: 'L',
         color: { dark: isLight ? '#0f172a' : '#ffffff', light: isLight ? '#ffffff' : '#0a1428' }
       }).then(setMyQrUrl).catch(() => setMyQrUrl(''));
-    } else if (activeTab === 'scan' && isOpen && scanState !== 'success') {
+    } else if (activeTab === 'scan' && !justOpened && !isScanSuccess()) {
       startCamera();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, isOpen, isLight]);
+  }, [activeTab, isOpen, isLight, hasTimetable]);
 
   useEffect(() => {
     if (isOpen) {
@@ -82,7 +250,6 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
       } else {
         setActiveTab('share');
         setScanState('idle');
-        setFriendData(null);
       }
 
       return () => {
@@ -92,6 +259,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
       };
     } else {
       stopCamera();
+      setIsFullscreen(false);
       setAnimate(false);
       const timer = setTimeout(() => setShouldRender(false), 200);
       return () => clearTimeout(timer);
@@ -99,46 +267,149 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, initialSharedData]);
 
+  // Fullscreen portals remount the <video> and drop its stream; reattach on toggle.
+  useEffect(() => {
+    const video = videoRef.current;
+    const stream = streamRef.current;
+    if (video && stream && video.srcObject !== stream) {
+      video.srcObject = stream;
+      void video.play().catch(() => {});
+    }
+  }, [isFullscreen]);
+
+  function addParticipant(data: { studentName: string; studentId: string; timetable: TimetableItem[] }): boolean {
+    if (data.studentId && session?.user_id && data.studentId === session.user_id) return false;
+    const id = data.studentId || `friend-${Math.random().toString(36).slice(2, 8)}`;
+    const entry: Participant = { id, name: (data.studentName || '').trim() || t('compareFriend'), timetable: data.timetable };
+    setParticipants((prev) => (prev.some((p) => p.id === id) ? prev.map((p) => (p.id === id ? entry : p)) : [...prev, entry]));
+    return true;
+  }
+
   function processSharedData(compressedData: string) {
     setScanState('processing');
     setStatusMessage(t('compareScanAnalyzingData'));
     setTimeout(() => {
       if (!mountedRef.current) return;
       const data = decompressTimetable(compressedData);
-      if (data && data.timetable.length > 0) {
-        setFriendData(data);
-        setFreeSlots(calculateOverlappingFreeTime(myTimetable, data.timetable));
-        setScanState('success');
-        stopCamera();
-      } else {
+      if (!data || data.timetable.length === 0) {
+        setIsFullscreen(false);
         setScanState('error');
         setStatusMessage(t('compareScanInvalidQr'));
+        return;
       }
-    }, 400);
-  };
+      if (data.studentId && session?.user_id && data.studentId === session.user_id) {
+        setIsFullscreen(false);
+        setScanState('error');
+        setStatusMessage(t('compareScanSelf'));
+        stopCamera();
+        return;
+      }
+      addParticipant(data);
+      setIsFullscreen(false);
+      setScanState('success');
+      scanStateRef.current = 'success';
+      stopCamera();
+    }, 300);
+  }
+
+  function addMoreFriends() {
+    stopCamera();
+    setScanState('idle');
+    scanStateRef.current = 'idle';
+    setStatusMessage(t('compareScanReady'));
+    pendingScanRef.current = true;
+  }
+
+  function removeParticipant(id: string) {
+    const next = participants.filter((p) => p.id !== id);
+    setParticipants(next);
+    // Last friend removed returns to a live scanner, not the idle prompt.
+    if (next.length === 0 && scanStateRef.current === 'success') {
+      setScanState('idle');
+      scanStateRef.current = 'idle';
+      setStatusMessage(t('compareScanReady'));
+      pendingScanRef.current = true;
+    }
+  }
+
+  function addFromLink() {
+    const raw = linkInput.trim();
+    if (!raw) return;
+    const payload = extractCompareData(raw);
+    const data = payload ? decompressTimetable(payload) : null;
+    if (!data || data.timetable.length === 0) {
+      setLinkError('invalid');
+      return;
+    }
+    // Same matric means the link is the user's own schedule.
+    if (data.studentId && session?.user_id && data.studentId === session.user_id) {
+      setLinkError('self');
+      return;
+    }
+    if (!addParticipant(data)) {
+      setLinkError('invalid');
+      return;
+    }
+    setLinkInput('');
+    setLinkError('');
+    stopCamera();
+    setScanState('success');
+    scanStateRef.current = 'success';
+  }
 
   async function startCamera() {
-    if (scanState === 'success') return;
+    if (isScanSuccess()) return;
+    // Already scanning; avoid a second stream that leaks the previous one.
+    if (activeRef.current) return;
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setScanState('error');
+      setStatusMessage(t('compareScanDenied'));
+      return;
+    }
+    activeRef.current = true;
+    scanAttemptsRef.current = 0;
+    setScanHint(false);
     try {
       setScanState('scanning');
       setStatusMessage(t('compareScanReady'));
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      if (!mountedRef.current) {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
+      });
+      // Abort if unmounted, cancelled (e.g. tab switched while the permission prompt was open), or already captured.
+      const video = videoRef.current;
+      if (!mountedRef.current || !video || !activeRef.current || isScanSuccess()) {
+        // Never leave activeRef true; later startCamera() calls would bail and the scanner looks dead.
+        activeRef.current = false;
         stream.getTracks().forEach(t => t.stop());
         return;
       }
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.setAttribute('playsinline', 'true');
-        await videoRef.current.play();
-        activeRef.current = true;
-        scanLoop();
+      streamRef.current = stream;
+      setZoom(1);
+      zoomRef.current = 1;
+      const track = stream.getVideoTracks()[0];
+      const caps = track?.getCapabilities?.() as (MediaTrackCapabilities & { zoom?: { min: number; max: number } }) | undefined;
+      if (caps?.zoom && typeof caps.zoom.max === 'number' && caps.zoom.max > caps.zoom.min) {
+        nativeZoomRef.current = caps.zoom;
+        setSupportsNativeZoom(true);
+        setMaxZoom(Math.max(3, Math.round(caps.zoom.max)));
+      } else {
+        nativeZoomRef.current = null;
+        setSupportsNativeZoom(false);
+        setMaxZoom(4);
       }
+      video.srcObject = stream;
+      video.setAttribute('playsinline', 'true');
+      video.muted = true;
+      await video.play();
+      scanLoop();
     } catch (err) {
+      if (!activeRef.current) return;
+      activeRef.current = false;
       setScanState('error');
       setStatusMessage(t('compareScanDenied'));
     }
-  };
+  }
 
   function stopCamera() {
     activeRef.current = false;
@@ -153,35 +424,66 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
       stream?.getTracks().forEach(t => t.stop());
       video.srcObject = null;
     }
-  };
+    const tracked = streamRef.current;
+    if (tracked) {
+      tracked.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+  }
 
   function scanLoop() {
-    if (!activeRef.current || !mountedRef.current) return;
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (video && canvas && video.readyState === video.HAVE_ENOUGH_DATA) {
-      const context = canvas.getContext('2d', { willReadFrequently: true });
-      if (context) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
-        
-        if (code?.data) {
-          try {
-            const url = new URL(code.data);
-            const compareData = url.searchParams.get('compare_schedule');
+    if (!activeRef.current || !mountedRef.current || isScanSuccess()) return;
+    try {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      if (video && canvas && video.readyState === video.HAVE_ENOUGH_DATA && video.videoWidth > 0) {
+        const context = canvas.getContext('2d', { willReadFrequently: true });
+        if (context) {
+          // Zoom by cropping the centre; keeps full sensor detail so dense QRs decode better.
+          const z = nativeZoomRef.current ? 1 : zoomRef.current;
+          const srcW = video.videoWidth;
+          const srcH = video.videoHeight;
+          const cropW = Math.max(1, Math.round(srcW / z));
+          const cropH = Math.max(1, Math.round(srcH / z));
+          const sx = (srcW - cropW) / 2;
+          const sy = (srcH - cropH) / 2;
+          canvas.width = cropW;
+          canvas.height = cropH;
+          context.drawImage(video, sx, sy, cropW, cropH, 0, 0, cropW, cropH);
+          const imageData = context.getImageData(0, 0, cropW, cropH);
+          const code = jsQR(imageData.data, cropW, cropH, { inversionAttempts: 'attemptBoth' });
+          if (code?.data) {
+            const compareData = extractCompareData(code.data);
             if (compareData) {
               processSharedData(compareData);
               return;
             }
-          } catch {} // Not a valid URL, ignore
+            // Non-timetable QR read; surface it so "can't read" is distinct from "wrong QR".
+            setStatusMessage(t('compareScanNotTimetable'));
+          }
         }
       }
+    } catch {
+      // Skip bad frame; the loop must never die.
     }
-    loopRef.current = window.setTimeout(scanLoop, 300);
+    scanAttemptsRef.current += 1;
+    if (scanAttemptsRef.current === 24) setScanHint(true);
+    loopRef.current = window.setTimeout(scanLoop, 180);
   };
+
+  function applyZoom(value: number) {
+    const clamped = Math.min(maxZoom, Math.max(1, value));
+    setZoom(clamped);
+    zoomRef.current = clamped;
+    const native = nativeZoomRef.current;
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (native && track) {
+      const ratio = maxZoom > 1 ? (clamped - 1) / (maxZoom - 1) : 0;
+      const nativeValue = native.min + (native.max - native.min) * ratio;
+      type ZoomConstraint = MediaTrackConstraintSet & { zoom: number };
+      track.applyConstraints({ advanced: [{ zoom: nativeValue }] as ZoomConstraint[] }).catch(() => {});
+    }
+  }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -192,30 +494,25 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
       setStatusMessage(t('compareScanAnalyzingImg'));
       const img = new Image();
       const objUrl = URL.createObjectURL(file);
-      await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; img.src = objUrl; });
+      try {
+        await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; img.src = objUrl; });
+      } finally {
+        URL.revokeObjectURL(objUrl);
+      }
       const canvas = canvasRef.current;
-      if (!canvas) return;
-      const context = canvas.getContext('2d', { willReadFrequently: true });
-      if (!context) return;
-      canvas.width = img.width;
-      canvas.height = img.height;
-      context.drawImage(img, 0, 0);
-      URL.revokeObjectURL(objUrl);
-      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-      const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
-      
-      if (code?.data) {
-        try {
-          const url = new URL(code.data);
-          const compareData = url.searchParams.get('compare_schedule');
-          if (compareData) {
-            processSharedData(compareData);
-            return;
-          }
-        } catch {} // Not a valid URL
+      if (!canvas) {
+        setScanState('error');
+        setStatusMessage(t('compareScanReadFail'));
+        return;
+      }
+      const codeData = decodeQrFromImage(img, canvas);
+      const compareData = codeData ? extractCompareData(codeData) : null;
+      if (compareData) {
+        processSharedData(compareData);
+        return;
       }
       setScanState('error');
-      setStatusMessage(t('compareScanNoQr'));
+      setStatusMessage(codeData ? t('compareScanNotTimetable') : t('compareScanNoQr'));
     } catch (err) {
       setScanState('error');
       setStatusMessage(t('compareScanReadFail'));
@@ -261,29 +558,118 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
 
   if (!shouldRender) return null;
 
+  // Short tabs hug content to avoid an empty gap; longer views keep a fixed scrollable height.
+  const isCompactTab = activeTab === 'share' || (activeTab === 'scan' && scanState !== 'success');
+  const modalHeight = isCompactTab ? 'h-auto max-h-[min(34rem,88vh)]' : 'h-[85vh] sm:h-[34rem] max-h-[800px]';
+
+  const participantsBar = participants.length > 0 ? (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${isLight ? 'border-amber-300 bg-amber-100 text-amber-800' : 'border-amber-500/40 bg-amber-500/15 text-amber-300'}`}>
+        {t('compareYou')}
+      </span>
+      {participants.map((p) => {
+        const chipColor = getCardColorByScheme(ownerScheme(p.id), isLight);
+        return (
+          <span key={p.id} className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${chipColor.bg} ${chipColor.border} ${chipColor.text}`}>
+            <span className="max-w-[96px] truncate">{p.name}</span>
+            <button type="button" onClick={() => removeParticipant(p.id)} className="opacity-60 transition-opacity hover:opacity-100" aria-label={p.name}>
+              <X className="h-3 w-3" />
+            </button>
+          </span>
+        );
+      })}
+      <button type="button" onClick={addMoreFriends} className={`inline-flex items-center gap-1 rounded-full border border-dashed px-2.5 py-1 text-[10px] font-bold transition-colors ${isLight ? 'border-slate-300 text-slate-500 hover:bg-slate-50' : 'border-white/20 text-white/60 hover:bg-white/[0.06]'}`}>
+        <Plus className="h-3 w-3" /> {t('compareAddFriend')}
+      </button>
+    </div>
+  ) : null;
+
+  // backdrop-blur/transform makes the modal the containing block for `fixed` children, clipping the fullscreen scanner; portal to <body> escapes it.
+  const scannerViewport = (
+    <div className={isFullscreen
+      ? 'fixed inset-0 z-[100] flex items-center justify-center bg-black'
+      : `relative w-full max-w-sm shrink-0 overflow-hidden rounded-2xl border ${isLight ? 'border-slate-200 bg-slate-50' : 'border-white/10 bg-black/40'} ${scanState === 'error' ? 'hidden' : ''}`
+    }>
+      <div className={`relative flex items-center justify-center overflow-hidden bg-black ${isFullscreen ? 'h-full w-full' : 'h-48 w-full sm:h-56'}`}>
+        <video
+          ref={videoRef}
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-150 will-change-transform"
+          style={supportsNativeZoom ? undefined : { transform: `scale(${zoom})` }}
+          playsInline
+          muted
+        />
+        <div className="pointer-events-none absolute inset-0 bg-black/10" />
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4">
+          <div className={`rounded-xl border-2 border-dashed border-white/30 ${isFullscreen ? 'h-56 w-56 sm:h-64 sm:w-64' : 'h-32 w-32 sm:h-40 sm:w-40'}`} />
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsFullscreen((v) => !v)}
+          className="absolute right-2 top-2 rounded-lg bg-black/50 p-2 text-white/80 backdrop-blur-sm transition-colors hover:bg-black/70 hover:text-white"
+          aria-label={isFullscreen ? t('compareExitFullscreen') : t('compareFullscreen')}
+        >
+          {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+        </button>
+
+        {scanState === 'scanning' && (
+          <div className={`absolute left-0 right-0 flex items-center gap-2 px-3 ${isFullscreen ? 'bottom-5' : 'bottom-2'}`}>
+            <ZoomOut className="h-4 w-4 flex-shrink-0 text-white/70" />
+            <input
+              type="range"
+              min={1}
+              max={maxZoom}
+              step={0.1}
+              value={zoom}
+              onChange={(e) => applyZoom(parseFloat(e.target.value))}
+              className="h-1 flex-1 cursor-pointer accent-amber-400"
+              aria-label={t('compareZoom')}
+            />
+            <ZoomIn className="h-4 w-4 flex-shrink-0 text-white/70" />
+            <span className="w-8 flex-shrink-0 text-right font-mono text-[10px] text-white/70">{zoom.toFixed(1)}x</span>
+          </div>
+        )}
+
+        {scanState === 'processing' && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+          </div>
+        )}
+
+        {scanState === 'idle' && (
+          <button type="button" onClick={startCamera} className="absolute inset-0 flex flex-col items-center justify-center bg-[#0a1428] text-white/60">
+            <Camera className="mb-2 h-9 w-9" />
+            <p className="text-sm font-medium">{t('compareCameraReady')}</p>
+            <span className="mt-2 rounded-lg bg-white/10 px-3 py-1.5 text-xs font-semibold text-white">{t('compareScanBtn')}</span>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
   return (
-    <div ref={modalRef} role="dialog" aria-modal="true" aria-label="Banding Jadual" className={`fixed inset-0 z-[60] flex items-center justify-center p-4 backdrop-blur-md transition-all duration-200 touch-none ${
+    <div ref={modalRef} role="dialog" aria-modal="true" aria-label="Banding Jadual" className={`fixed inset-0 z-[60] flex items-center justify-center p-2.5 sm:p-4 backdrop-blur-md transition-all duration-200 touch-none ${
       animate ? 'bg-slate-900/30 opacity-100' : 'bg-slate-900/0 opacity-0 pointer-events-none'
     }`}>
       <div className="absolute inset-0" onClick={onClose} />
 
       <div 
-        className={`relative w-full max-w-2xl h-[85vh] sm:h-[34rem] max-h-[800px] rounded-2xl border shadow-2xl overflow-hidden flex flex-col transform transition-all duration-200 ${
-          animate ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
+        className={`${isFullscreen
+          ? 'flex flex-col w-full rounded-2xl border overflow-hidden min-h-0'
+          : `relative w-full max-w-2xl ${modalHeight} rounded-2xl border shadow-2xl overflow-hidden flex flex-col transition-all duration-200 ${animate ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`
         } ${
           isLight 
             ? 'bg-white border-slate-200 text-slate-800' 
             : 'bg-[#0A1428]/95 border-white/10 text-white'
         }`}
       >
-        {/* Header */}
-        <div className={`p-4 sm:p-5 border-b flex justify-between items-start sm:items-center gap-3 flex-shrink-0 ${isLight ? 'bg-slate-50/50 border-slate-200' : 'bg-[#0A1428]/95 border-white/[0.06]'}`}>
-          <div className="flex items-start sm:items-center gap-3 min-w-0">
+        <div className={`p-4 sm:p-5 border-b flex justify-between items-center gap-3 flex-shrink-0 ${isLight ? 'bg-slate-50/50 border-slate-200' : 'bg-[#0A1428]/95 border-white/[0.06]'}`}>
+          <div className="flex items-center gap-3 min-w-0">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border shadow-sm ${
               isLight ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
             }`}>
               {scanState === 'success' && activeTab === 'scan' ? (
-                <button onClick={() => { setFriendData(null); startCamera(); }} className="p-1 rounded-md transition-colors hover:bg-black/5 dark:hover:bg-white/5">
+                <button onClick={addMoreFriends} className="p-1 rounded-md transition-colors hover:bg-black/5 dark:hover:bg-white/5" aria-label={t('compareAddFriend')}>
                   <ArrowLeft className="w-5 h-5" />
                 </button>
               ) : (
@@ -291,10 +677,10 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
               )}
             </div>
             <div className="text-left min-w-0">
-              <h3 className={`text-sm sm:text-base font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>
+              <h3 className={`text-sm sm:text-base font-bold leading-tight truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>
                 {t('compareTitle')}
               </h3>
-              <p className={`text-[11px] sm:text-xs font-semibold truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>
+              <p className={`text-[11px] sm:text-xs font-semibold leading-tight truncate ${isLight ? 'text-slate-500' : 'text-white/40'}`}>
                 {t('compareDesc')}
               </p>
             </div>
@@ -341,8 +727,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
           </div>
         )}
 
-        {/* Content */}
-        <div className="flex-1 overflow-hidden p-4 sm:p-6 flex flex-col min-h-0">
+        <div className={`overflow-hidden p-4 sm:p-6 flex flex-col ${isCompactTab ? '' : 'flex-1 min-h-0'}`}>
           {activeTab === 'whatsapp' ? (
             <div className="flex flex-col space-y-4 py-2 w-full flex-1 min-h-0">
               <div data-lenis-prevent className={`flex-1 min-h-0 rounded-xl p-3 border overflow-y-auto text-left usas-scrollbar touch-pan-y overscroll-contain ${
@@ -385,112 +770,144 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
               </div>
             </div>
           ) : activeTab === 'share' ? (
-            <div className="flex flex-col items-center justify-center space-y-6 py-4 flex-1">
-              <div className="text-center w-full max-w-sm mx-auto">
-                <div className={`p-3.5 rounded-xl border inline-block shadow-inner ${isLight ? 'bg-slate-50 border-slate-200/80' : 'bg-white/[0.02] border-white/10'}`}>
-                  <div className="relative w-44 h-44 mx-auto">
-                    {myQrUrl ? (
-                      <img src={myQrUrl} alt="QR Code" className="w-full h-full object-contain rounded-lg" />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className={`w-8 h-8 border-2 border-t-transparent rounded-full animate-spin ${isLight ? 'border-amber-500' : 'border-amber-400'}`} />
-                      </div>
-                    )}
+            !hasTimetable ? (
+              <div className="flex flex-col items-center justify-center space-y-4 py-8 flex-1 text-center">
+                <div className={`w-14 h-14 rounded-full flex items-center justify-center ${isLight ? 'bg-slate-100 text-slate-400' : 'bg-white/[0.04] text-white/40'}`}>
+                  <Calendar className="w-7 h-7" />
+                </div>
+                <p className={`text-sm font-medium max-w-xs ${isLight ? 'text-slate-500' : 'text-white/50'}`}>{t('compareEmptyTimetable')}</p>
+              </div>
+            ) : (
+            <div data-lenis-prevent className="overflow-y-auto usas-scrollbar touch-pan-y overscroll-contain">
+              <div className="flex min-h-full flex-col items-center justify-center gap-4">
+                <div className="text-center w-full max-w-sm mx-auto">
+                  <div className={`p-3 rounded-xl border inline-block shadow-inner ${isLight ? 'bg-slate-50 border-slate-200/80' : 'bg-white/[0.02] border-white/10'}`}>
+                    <div className="relative w-52 h-52 sm:w-56 sm:h-56 mx-auto">
+                      {myQrUrl ? (
+                        <img src={myQrUrl} alt="QR Code" className="w-full h-full object-contain rounded-lg" />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className={`w-8 h-8 border-2 border-t-transparent rounded-full animate-spin ${isLight ? 'border-amber-500' : 'border-amber-400'}`} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-2.5">
+                    <h3 className={`text-sm font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>{timetableData?.studentName || 'Pelajar'}</h3>
+                    <p className={`text-xs font-semibold truncate mt-0.5 ${isLight ? 'text-blue-600' : 'text-blue-400'}`}>{t('compareShowFriend')}</p>
                   </div>
                 </div>
-                <div className="mt-4">
-                  <h3 className={`text-sm font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>{timetableData?.studentName || 'Pelajar'}</h3>
-                  <p className={`text-xs font-semibold truncate mt-1 ${isLight ? 'text-blue-600' : 'text-blue-400'}`}>{t('compareShowFriend')}</p>
-                </div>
+                <button
+                  onClick={handleCopyLink}
+                  className={`w-full max-w-sm flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all ${
+                    copied
+                      ? isLight ? 'bg-emerald-100 text-emerald-700' : 'bg-emerald-500/20 text-emerald-400'
+                      : isLight ? 'bg-blue-50 hover:bg-blue-100 text-blue-700' : 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-300'
+                  }`}
+                >
+                  {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  {copied ? t('compareLinkCopied') : t('compareCopyLink')}
+                </button>
               </div>
-              <button
-                onClick={handleCopyLink}
-                className={`w-full max-w-sm flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all ${
-                  copied
-                    ? isLight ? 'bg-emerald-100 text-emerald-700' : 'bg-emerald-500/20 text-emerald-400'
-                    : isLight ? 'bg-blue-50 hover:bg-blue-100 text-blue-700' : 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-300'
-                }`}
-              >
-                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                {copied ? t('compareLinkCopied') : t('compareCopyLink')}
-              </button>
             </div>
+            )
           ) : scanState !== 'success' ? (
-            <div className="flex flex-col items-center justify-center space-y-6 py-2 flex-1">
-              {/* Scanner UI */}
-              <div className="relative w-full max-w-sm h-64 rounded-2xl overflow-hidden bg-black flex items-center justify-center shadow-inner">
-                <canvas ref={canvasRef} className="hidden" />
-                <video ref={videoRef} className="absolute inset-0 h-full w-full object-cover" playsInline />
-                
-                {scanState === 'scanning' && (
-                  <div className="absolute inset-0 pointer-events-none">
-                    <div className="absolute inset-[15%] border-2 border-blue-500/50 rounded-xl" />
-                    <div className="absolute top-0 left-0 w-full h-[2px] bg-blue-400 shadow-[0_0_8px_2px_rgba(59,130,246,0.5)] animate-bounce" />
-                  </div>
-                )}
-                
-                {scanState === 'processing' && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-                    <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                  </div>
-                )}
+            <div className="flex flex-col overflow-y-auto usas-scrollbar touch-pan-y overscroll-contain">
+              <div className="my-auto flex w-full flex-col items-center gap-3 py-1">
+              <canvas ref={canvasRef} className="hidden" />
 
-                {(scanState === 'error' || scanState === 'idle') && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-white/50 bg-[#0a1428]">
-                    {scanState === 'error' ? <AlertTriangle className="w-10 h-10 mb-2 text-red-400" /> : <Camera className="w-10 h-10 mb-2" />}
-                    <p className="text-sm font-medium">{scanState === 'error' ? t('compareScanFailed') : t('compareCameraReady')}</p>
-                  </div>
-                )}
-              </div>
+              {participantsBar}
 
-              <div className="text-center space-y-3 max-w-sm mx-auto">
-                <p className={`text-sm font-medium ${scanState === 'error' ? 'text-red-500' : isLight ? 'text-slate-600' : 'text-white/60'}`}>{statusMessage}</p>
-                <div className="flex items-center justify-center gap-3 pt-2">
-                  <button onClick={startCamera} className={`px-4 py-2.5 rounded-xl text-xs font-semibold transition-colors ${isLight ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' : 'bg-white/10 hover:bg-white/20 text-white'}`}>
-                    <ScanLine className="w-4 h-4 inline-block mr-1.5" /> {t('compareScanBtn')}
-                  </button>
-                  <label className={`px-4 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-colors ${isLight ? 'bg-blue-50 hover:bg-blue-100 text-blue-700' : 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-300'}`}>
-                    <Upload className="w-4 h-4 inline-block mr-1.5" /> {t('compareUploadBtn')}
-                    <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
-                  </label>
+              {isFullscreen ? createPortal(scannerViewport, document.body) : scannerViewport}
+
+              {scanState === 'error' ? (
+                <div className="flex items-center justify-center gap-2 text-center">
+                  <AlertTriangle className="h-5 w-5 shrink-0 text-red-400" />
+                  <p className="text-xs font-medium text-red-500">{statusMessage}</p>
                 </div>
+              ) : (
+                <p className={`text-center text-xs font-medium ${isLight ? 'text-slate-600' : 'text-white/60'}`}>
+                  {statusMessage}
+                  {scanState === 'scanning' && scanHint && (
+                    <span className="mt-0.5 block text-[11px] font-semibold text-amber-500">{t('compareScanHint')}</span>
+                  )}
+                </p>
+              )}
+
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-center">
+                <div className="flex w-full items-center justify-center gap-2 sm:w-auto sm:shrink-0">
+                  {scanState === 'error' && (
+                    <button onClick={startCamera} className={`flex-1 sm:flex-none px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${isLight ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' : 'bg-white/10 hover:bg-white/20 text-white'}`}>
+                      <ScanLine className="w-4 h-4 inline-block mr-1.5" /> {t('compareScanRetry')}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`flex-1 sm:flex-none px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${isLight ? 'bg-blue-50 hover:bg-blue-100 text-blue-700' : 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-300'}`}
+                  >
+                    <Upload className="w-4 h-4 inline-block mr-1.5" /> {t('compareUploadBtn')}
+                  </button>
+                  <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
+                </div>
+
+                <div className={`mx-auto flex w-full min-w-0 items-center gap-1.5 rounded-xl border p-1 transition-colors sm:mx-0 sm:max-w-sm sm:flex-1 ${isLight ? 'border-slate-200 bg-white focus-within:border-amber-400' : 'border-white/[0.08] bg-white/[0.02] focus-within:border-amber-400/50'}`}>
+                  <Link2 className={`ml-1.5 h-3.5 w-3.5 shrink-0 ${isLight ? 'text-slate-400' : 'text-white/30'}`} />
+                  <input
+                    type="text"
+                    value={linkInput}
+                    onChange={(e) => { setLinkInput(e.target.value); setLinkError(''); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') addFromLink(); }}
+                    placeholder={t('comparePasteLinkPlaceholder')}
+                    className={`inline-input min-w-0 flex-1 bg-transparent px-0.5 py-1 text-[11px] ${isLight ? 'text-slate-800 placeholder-slate-400' : 'text-white placeholder-white/30'}`}
+                  />
+                  <button type="button" onClick={addFromLink} disabled={!linkInput.trim()} className={`shrink-0 rounded-lg px-3 py-1.5 text-[11px] font-bold transition-colors disabled:opacity-40 ${isLight ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-white/10 text-white hover:bg-white/20'}`}>
+                    {t('compareAdd')}
+                  </button>
+                </div>
+              </div>
+              {linkError && (
+                <p className="text-center text-[10px] font-semibold text-red-500">
+                  {linkError === 'self' ? t('compareScanSelf') : t('compareLinkInvalid')}
+                </p>
+              )}
               </div>
             </div>
           ) : (
-            <div className="space-y-6">
-              {/* Success Result View */}
-              <div className={`p-4 rounded-xl flex items-center gap-4 ${isLight ? 'bg-emerald-50 text-emerald-900 border border-emerald-100' : 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20'}`}>
-                <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
-                  <Users className="w-6 h-6 text-emerald-500" />
+            <div data-lenis-prevent className="flex-1 min-h-0 overflow-y-auto usas-scrollbar touch-pan-y overscroll-contain space-y-4 sm:space-y-5 pr-0.5 pl-0.5">
+              {participantsBar}
+
+              <div className={`p-3 rounded-xl flex items-center gap-3 ${isLight ? 'bg-emerald-50 text-emerald-900 border border-emerald-100' : 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20'}`}>
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-500/20">
+                  <Users className="h-4 w-4 text-emerald-500" />
                 </div>
-                <div>
-                  <div className="font-bold text-base">{t('compareMerged')}</div>
-                  <div className="text-sm opacity-80 mt-0.5">{t('compareWith')} <span className="font-bold text-emerald-600 dark:text-emerald-400">{friendData?.studentName}</span></div>
+                <div className="min-w-0">
+                  <div className="text-sm font-bold leading-tight">{t('compareMerged')}</div>
+                  <div className="mt-0.5 truncate text-xs opacity-80">
+                    {t('compareWith')} <span className="font-bold text-emerald-600 dark:text-emerald-400">{participants.map((p) => p.name).join(', ')}</span>
+                  </div>
                 </div>
               </div>
 
-              {/* Free Time Grid */}
-              <div className="space-y-4">
-                <h3 className="font-bold flex items-center gap-2 text-lg">
-                  <Calendar className="w-5 h-5 text-blue-500" /> {t('compareCommonFree')}
+              <div className="space-y-2">
+                <h3 className="flex items-center gap-2 text-sm font-bold">
+                  <Calendar className="h-4 w-4 text-emerald-500" /> {t('compareCommonFree')}
                 </h3>
-                
-                <div className="space-y-3">
+                <div className="space-y-1.5">
                   {reverseDayMap.filter(d => d !== 'SABTU' && d !== 'AHAD').map(dayStr => {
                     const daySlots = freeSlots.filter(s => s.dayStr === dayStr);
                     if (daySlots.length === 0) return null;
-                    
                     return (
-                      <div key={dayStr} className={`p-4 rounded-xl border ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-[#0f172a] border-white/10 shadow-lg'}`}>
-                        <div className="text-sm font-bold mb-3 opacity-60 uppercase tracking-widest">{dayStr}</div>
-                        <div className="flex flex-wrap gap-2">
+                      <div key={dayStr} className={`flex items-start gap-2 rounded-lg border px-2.5 py-2 sm:gap-3 sm:px-3 ${isLight ? 'bg-white border-slate-200' : 'bg-white/[0.02] border-white/[0.06]'}`}>
+                        <span className="w-11 shrink-0 pt-0.5 text-[9px] font-black uppercase tracking-widest opacity-55 sm:w-14 sm:text-[10px]">{dayStr}</span>
+                        <div className="flex flex-wrap gap-1.5">
                           {daySlots.map((slot, i) => {
                             const durationH = Math.round(((slot.endMins - slot.startMins) / 60) * 10) / 10;
                             return (
-                              <div key={i} className={`px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 ${isLight ? 'bg-blue-50 text-blue-700 border border-blue-100' : 'bg-blue-500/15 text-blue-300 border border-blue-500/30'}`}>
-                                <span>{formatTimeFromMinutes(slot.startMins, timeFormat)} - {formatTimeFromMinutes(slot.endMins, timeFormat)}</span>
-                                <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold ${isLight ? 'bg-blue-200 text-blue-800' : 'bg-blue-500/30 text-blue-100'}`}>{durationH}h</span>
-                              </div>
+                              <span key={i} className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-semibold sm:text-[11px] ${isLight ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/25'}`}>
+                                {formatCompactRange(slot.startMins, slot.endMins, timeFormat)}
+                                <span className={`rounded px-1 text-[9px] font-black ${isLight ? 'bg-emerald-200 text-emerald-800' : 'bg-emerald-500/30 text-emerald-100'}`}>{durationH}h</span>
+                              </span>
                             );
                           })}
                         </div>
@@ -498,9 +915,59 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
                     );
                   })}
                   {freeSlots.length === 0 && (
-                    <div className="text-center py-8 text-sm opacity-50 italic">
-                      {t('compareNoFree')}
-                    </div>
+                    <div className="py-6 text-center text-xs italic opacity-50">{t('compareNoFree')}</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Colour marks the owner */}
+              <div className="space-y-2">
+                <h3 className="flex items-center gap-2 text-sm font-bold">
+                  <Users className="h-4 w-4 text-amber-500" /> {t('compareClassSchedule')}
+                </h3>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-semibold opacity-70">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className={`h-2 w-2 rounded-full ${getCardColorByScheme('amber', isLight).dot}`} />
+                    {t('compareYou')}
+                  </span>
+                  {participants.map((p) => (
+                    <span key={p.id} className="inline-flex items-center gap-1.5">
+                      <span className={`h-2 w-2 rounded-full ${getCardColorByScheme(ownerScheme(p.id), isLight).dot}`} />
+                      {p.name.split(/\s+/)[0]}
+                    </span>
+                  ))}
+                </div>
+                <div className="space-y-2">
+                  {WEEK_ORDER.map(dayStr => {
+                    const classes = mergedByDay.get(dayStr);
+                    if (!classes || classes.length === 0) return null;
+                    return (
+                      <div key={dayStr} className={`overflow-hidden rounded-xl border ${isLight ? 'bg-white border-slate-200' : 'bg-white/[0.02] border-white/[0.06]'}`}>
+                        <div className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-widest ${isLight ? 'bg-slate-50 text-slate-500' : 'bg-white/[0.02] text-white/50'}`}>{dayStr}</div>
+                        <div className="space-y-1.5 p-2">
+                          {classes.map((cls, i) => {
+                            const cardColor = getCardColorByScheme(ownerScheme(cls.owner), isLight);
+                            return (
+                              <div
+                                key={i}
+                                className={`flex items-center gap-2 rounded-lg border border-l-[3px] px-2 py-1.5 shadow-sm sm:gap-2.5 sm:px-2.5 sm:py-2 ${cardColor.bg} ${cardColor.border} ${cardColor.accent}`}
+                              >
+                                <span className={`shrink-0 font-mono text-[10px] font-semibold tabular-nums sm:text-[11px] ${isLight ? 'text-slate-600' : 'text-white/70'}`}>
+                                  {formatCompactRange(cls.startMins, cls.endMins, timeFormat)}
+                                </span>
+                                <span className={`min-w-0 flex-1 truncate text-[11px] sm:text-xs ${cardColor.text}`}>{cls.code}</span>
+                                <span className={`shrink-0 whitespace-nowrap rounded px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-wide ${isLight ? 'bg-white/70 text-slate-700' : 'bg-black/25 text-white/80'}`}>
+                                  {ownerName(cls.owner)}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {mergedByDay.size === 0 && (
+                    <div className="py-6 text-center text-xs italic opacity-50">{t('compareNoClasses')}</div>
                   )}
                 </div>
               </div>
