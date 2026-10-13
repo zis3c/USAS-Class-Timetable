@@ -13,16 +13,17 @@ export default function LoginForm() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isFocused, setIsFocused] = useState<string | null>(null);
-  const altchaRef = useRef<HTMLDivElement | null>(null);
   const altchaPayloadRef = useRef('');
 
   const isLight = theme === THEMES.LIGHT;
 
-  // ALTCHA widget is a web component; mount it imperatively and capture the
-  // proof-of-work payload on verification.
+  // ALTCHA widget is a web component; mount it off-screen (invisible) and
+  // capture the proof-of-work payload on verification.
   useEffect(() => {
-    const container = altchaRef.current;
-    if (!container || container.childElementCount > 0) return;
+    const host = document.createElement('div');
+    host.setAttribute('aria-hidden', 'true');
+    host.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden;';
+    document.body.appendChild(host);
     const widget = document.createElement('altcha-widget');
     widget.setAttribute('challenge', '/api/altcha');
     widget.setAttribute('name', 'altcha');
@@ -35,10 +36,10 @@ export default function LoginForm() {
       }
     };
     widget.addEventListener('statechange', onState);
-    container.appendChild(widget);
+    host.appendChild(widget);
     return () => {
       widget.removeEventListener('statechange', onState);
-      widget.remove();
+      host.remove();
     };
   }, []);
 
@@ -193,8 +194,6 @@ export default function LoginForm() {
               </button>
             </div>
           </div>
-
-          <div ref={altchaRef} className="flex justify-center" />
 
           <button
             type="submit"
