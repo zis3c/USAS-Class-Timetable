@@ -130,7 +130,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
   }, []);
 
-  const login = async (userId: string, password: string, isDemo = false) => {
+  const login = async (userId: string, password: string, isDemo = false, altchaPayload?: string) => {
     const requestId = ++loginRequestRef.current;
     refreshRequestRef.current += 1;
     setLoading(true);
@@ -151,7 +151,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return false;
       }
 
-      const res = await loginStudentAPI(userId, password, isDemo);
+      const res = await loginStudentAPI(userId, password, isDemo, altchaPayload);
       if (loginRequestRef.current !== requestId) return false;
       if (res.success) {
         const safeSession = sanitizeSession(res.data);

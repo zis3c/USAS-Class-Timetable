@@ -1,10 +1,14 @@
 import { getUsasProxyPath, isAllowedUsasMethod } from '../../../src/shared/lib/usasProxy';
+import { verifySolution, type Challenge, type Solution } from 'altcha-lib';
+import { deriveKey } from 'altcha-lib/algorithms/pbkdf2';
 
 const API_ORIGIN = 'https://mobile.usas.edu.my/umc_v2';
+const LOGIN_PATH = '/student/login_student.php';
 const MAX_BODY_BYTES = 64 * 1024;
 // Client-supplied network/proxy headers are dropped before forwarding so they
 // cannot spoof the upstream caller identity.
 const STRIPPED_UPSTREAM_HEADERS = [
+  'x-altcha',
   'cf-connecting-ip',
   'cf-connecting-ipv6',
   'cf-ipcountry',
@@ -18,6 +22,7 @@ const STRIPPED_UPSTREAM_HEADERS = [
 
 type PagesContext = {
   request: Request;
+  env?: { ALTCHA_HMAC_KEY?: string };
 };
 
 function buildUpstreamUrl(request: Request): string | null {
@@ -71,6 +76,30 @@ export async function onRequest(context: PagesContext) {
 
   if (Number(context.request.headers.get('content-length') || '0') > MAX_BODY_BYTES) {
     return jsonResponse({ success: false, error: 'Payload too large.' }, 413);
+  }
+
+  // Verify the ALTCHA proof-of-work on login before proxying upstream.
+  if (cleanPath === LOGIN_PATH) {
+    const secret = context.env?.ALTCHA_HMAC_KEY;
+    if (secret) {
+      let verified: boolean;
+      try {
+        const token = context.request.headers.get('x-altcha') || '';
+        const decoded = JSON.parse(atob(token)) as { challenge: Challenge; solution: Solution };
+        const result = await verifySolution({
+          challenge: decoded.challenge,
+          solution: decoded.solution,
+          deriveKey,
+          hmacSignatureSecret: secret,
+        });
+        verified = result.verified === true;
+      } catch {
+        verified = false;
+      }
+      if (!verified) {
+        return jsonResponse({ success: false, error: 'Pengesahan keselamatan gagal. Sila cuba lagi.' }, 403);
+      }
+    }
   }
 
   const upstreamUrl = buildUpstreamUrl(context.request);

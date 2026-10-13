@@ -244,6 +244,7 @@ export async function loginStudentAPI(
   userId: string,
   password: string,
   isDemo = false,
+  altchaPayload?: string,
 ): Promise<ApiResponse<StudentSession>> {
   if (isDemo || userId.toLowerCase() === 'demo') {
     return {
@@ -276,7 +277,11 @@ export async function loginStudentAPI(
     platform: PLATFORM
   };
 
-  const outcome = await postUSASOutcome('/student/login_student.php', payload);
+  const outcome = await postUSASOutcome(
+    '/student/login_student.php',
+    payload,
+    altchaPayload ? { 'x-altcha': altchaPayload } : {},
+  );
 
   if (!outcome.ok) {
     return {

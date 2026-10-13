@@ -103,7 +103,7 @@ export interface AuthContextValue {
   isOffline: boolean;
   timeFormat: TimeFormat;
   setTimeFormat: (format: TimeFormat) => void;
-  login: (userId: string, password: string, isDemo?: boolean) => Promise<boolean>;
+  login: (userId: string, password: string, isDemo?: boolean, altchaPayload?: string) => Promise<boolean>;
   logout: () => void;
   refreshTimetable: () => Promise<void>;
   setError: Dispatch<SetStateAction<string | null>>;

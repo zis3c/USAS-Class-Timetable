@@ -28,6 +28,8 @@
   },
   "dependencies": {
     "@sentry/react": "^11.4.0",
+    "altcha": "^3.3.0",
+    "altcha-lib": "^2.6.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
     "jsqr": "^1.4.0",
