@@ -34,7 +34,15 @@ npm install
 
 ### 3. Environment Configuration
 
-No environment variables are required for demo mode. Optionally enable client error tracking by adding a Sentry DSN to a `.env` file in the project root:
+No environment variables are required for demo mode. For a real login, the Pages Function needs an ALTCHA HMAC secret: set **`ALTCHA_HMAC_KEY`** to a long random string. Generate one with `openssl rand -hex 32`. Without it, `/api/altcha` returns 503 and the server skips verification (local dev only).
+
+Locally create a `.dev.vars` file in the project root (gitignored) for `npm run dev:cf`:
+
+```env
+ALTCHA_HMAC_KEY=<random hex>
+```
+
+Optionally enable client error tracking by adding a Sentry DSN to a `.env` file in the project root:
 
 ```env
 VITE_SENTRY_DSN=https://<key>@<org>.ingest.sentry.io/<project>
@@ -117,7 +125,11 @@ The `/api/usas/*` proxy runs as a Cloudflare Pages Function, so Cloudflare Pages
 1. Connect your repository in the Cloudflare Pages dashboard (or deploy with `npm run deploy:cf`).
 2. Build command: `npm run build`.
 3. Output directory: `dist`.
-4. The included `public/_headers` file automatically configures Content Security Policy (CSP) and cache headers.
+4. Add the ALTCHA secret under **Settings → Environment variables** (Production and Preview), or as an encrypted secret:
+   ```bash
+   npx wrangler pages secret put ALTCHA_HMAC_KEY --project-name=<your-project>
+   ```
+5. The included `public/_headers` file automatically configures Content Security Policy (CSP) and cache headers.
 
 #### Automated deployment (GitHub Actions)
 
