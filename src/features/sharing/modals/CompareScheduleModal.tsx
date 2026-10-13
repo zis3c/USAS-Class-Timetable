@@ -46,7 +46,9 @@ function extractCompareData(data: string): string | null {
 }
 
 // Retry at smaller scales; full-size phone photos can exceed mobile canvas limits and decode blank.
-function decodeQrFromImage(img: HTMLImageElement, canvas: HTMLCanvasElement): string | null {
+// Uses its own canvas so a running camera scan loop can never overwrite the frame mid-decode.
+function decodeQrFromImage(img: HTMLImageElement): string | null {
+  const canvas = document.createElement('canvas');
   const context = canvas.getContext('2d', { willReadFrequently: true });
   if (!context) return null;
   const nativeW = img.naturalWidth || img.width;
@@ -504,13 +506,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
       } finally {
         URL.revokeObjectURL(objUrl);
       }
-      const canvas = canvasRef.current;
-      if (!canvas) {
-        setScanState('error');
-        setStatusMessage(t('compareScanReadFail'));
-        return;
-      }
-      const codeData = decodeQrFromImage(img, canvas);
+      const codeData = decodeQrFromImage(img);
       const compareData = codeData ? extractCompareData(codeData) : null;
       if (compareData) {
         processSharedData(compareData);
