@@ -1,3 +1,8 @@
 name = "usas-class-timetable"
 compatibility_date = "2026-08-05"
 pages_build_output_dir = "./dist"
+
+[[durable_objects.bindings]]
+name = "ALTCHA_REPLAY_GUARD"
+class_name = "AltchaReplayGuard"
+script_name = "usas-altcha-replay-guard"

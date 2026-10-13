@@ -106,7 +106,7 @@ Follow these quick steps to get a local development copy running.
    ```bash
    npm run dev
    ```
-   > **Real API login:** `npm run dev` serves the UI (and demo mode) only. The `/api/usas` proxy is a Cloudflare Pages Function, so run `npm run dev:cf` to exercise real USAS API calls locally.
+   > **Real API login:** `npm run dev` serves the UI (and demo mode) only. The `/api/usas` proxy is a Cloudflare Pages Function. For local API login, run `npx wrangler dev --config cloudflare/altcha-replay-guard/wrangler.toml` in one terminal, then `npm run dev:cf` in another.
 
 4. **Run unit tests and type checks**
    ```bash

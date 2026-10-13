@@ -5,6 +5,10 @@ import { useTheme, THEMES } from '@/app/providers/ThemeProvider';
 import { Lock, User, Fingerprint, ShieldCheck, ArrowRight, XCircle, Eye, EyeOff } from 'lucide-react';
 import 'altcha';
 
+type AltchaWidget = HTMLElement & {
+  verify: () => Promise<{ payload: string } | null>;
+};
+
 export default function LoginForm() {
   const { login, loading, error, setError } = useAuth();
   const { lang, t } = useLanguage();
@@ -14,6 +18,7 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isFocused, setIsFocused] = useState<string | null>(null);
   const altchaPayloadRef = useRef('');
+  const altchaWidgetRef = useRef<AltchaWidget | null>(null);
 
   const isLight = theme === THEMES.LIGHT;
 
@@ -25,6 +30,7 @@ export default function LoginForm() {
     host.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden;';
     document.body.appendChild(host);
     const widget = document.createElement('altcha-widget');
+    altchaWidgetRef.current = widget as AltchaWidget;
     widget.setAttribute('challenge', '/api/altcha');
     widget.setAttribute('name', 'altcha');
     widget.setAttribute('auto', 'onload');
@@ -39,6 +45,7 @@ export default function LoginForm() {
     host.appendChild(widget);
     return () => {
       widget.removeEventListener('statechange', onState);
+      altchaWidgetRef.current = null;
       host.remove();
     };
   }, []);
@@ -49,7 +56,20 @@ export default function LoginForm() {
       setError(lang === 'ms' ? 'Isi no. matrik dan kata laluan.' : 'Enter matric no. and password.');
       return;
     }
-    await login(userId.trim(), password, false, altchaPayloadRef.current);
+    let altchaPayload = altchaPayloadRef.current;
+    if (!altchaPayload) {
+      try {
+        altchaPayload = (await altchaWidgetRef.current?.verify())?.payload || altchaPayloadRef.current;
+      } catch {
+        altchaPayload = '';
+      }
+    }
+    if (!altchaPayload) {
+      setError(lang === 'ms' ? 'Pengesahan keselamatan gagal. Cuba lagi.' : 'Security check failed. Please try again.');
+      return;
+    }
+    altchaPayloadRef.current = '';
+    await login(userId.trim(), password, false, altchaPayload);
   };
 
   const handleDemoClick = async () => {

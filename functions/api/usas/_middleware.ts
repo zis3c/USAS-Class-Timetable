@@ -22,7 +22,13 @@ const STRIPPED_UPSTREAM_HEADERS = [
 
 type PagesContext = {
   request: Request;
-  env?: { ALTCHA_HMAC_KEY?: string };
+  env?: {
+    ALTCHA_HMAC_KEY?: string;
+    ALTCHA_REPLAY_GUARD?: {
+      idFromName: (name: string) => unknown;
+      get: (id: unknown) => { fetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response> };
+    };
+  };
 };
 
 function buildUpstreamUrl(request: Request): string | null {
@@ -81,23 +87,50 @@ export async function onRequest(context: PagesContext) {
   // Verify the ALTCHA proof-of-work on login before proxying upstream.
   if (cleanPath === LOGIN_PATH) {
     const secret = context.env?.ALTCHA_HMAC_KEY;
-    if (secret) {
-      let verified: boolean;
-      try {
-        const token = context.request.headers.get('x-altcha') || '';
-        const decoded = JSON.parse(atob(token)) as { challenge: Challenge; solution: Solution };
-        const result = await verifySolution({
-          challenge: decoded.challenge,
-          solution: decoded.solution,
-          deriveKey,
-          hmacSignatureSecret: secret,
-        });
-        verified = result.verified === true;
-      } catch {
-        verified = false;
-      }
-      if (!verified) {
+    if (!secret) {
+      return jsonResponse({ success: false, error: 'Login security is not configured.' }, 503);
+    }
+
+    let decoded: { challenge: Challenge; solution: Solution };
+    try {
+      const token = context.request.headers.get('x-altcha') || '';
+      decoded = JSON.parse(atob(token)) as { challenge: Challenge; solution: Solution };
+      const result = await verifySolution({
+        challenge: decoded.challenge,
+        solution: decoded.solution,
+        deriveKey,
+        hmacSignatureSecret: secret,
+      });
+      if (!result.verified) {
         return jsonResponse({ success: false, error: 'Pengesahan keselamatan gagal. Sila cuba lagi.' }, 403);
+      }
+    } catch {
+      return jsonResponse({ success: false, error: 'Pengesahan keselamatan gagal. Sila cuba lagi.' }, 403);
+    }
+
+    const replayGuard = context.env?.ALTCHA_REPLAY_GUARD;
+    const hostname = new URL(context.request.url).hostname;
+    const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
+    if (!replayGuard && !isLocal) {
+      return jsonResponse({ success: false, error: 'Login security is not configured.' }, 503);
+    }
+    if (replayGuard) {
+      try {
+        const signature = decoded.challenge.signature;
+        if (!signature) throw new Error('Missing signed challenge');
+        const guard = replayGuard.get(replayGuard.idFromName('altcha-replay-guard'));
+        const response = await guard.fetch('https://altcha-replay-guard/claim', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ signature }),
+        });
+        if (!response.ok) throw new Error('Replay guard unavailable');
+        const result = await response.json() as { accepted?: boolean };
+        if (!result.accepted) {
+          return jsonResponse({ success: false, error: 'Pengesahan keselamatan gagal. Sila cuba lagi.' }, 403);
+        }
+      } catch {
+        return jsonResponse({ success: false, error: 'Login security is temporarily unavailable.' }, 503);
       }
     }
   }
