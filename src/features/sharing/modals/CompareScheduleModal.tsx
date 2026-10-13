@@ -6,7 +6,7 @@ import { copyTextToClipboard, sanitizeTextForShare, openExternalUrl } from '@/sh
 import { decodeQrFromImage } from '@/shared/lib/qrDecode';
 import { compressTimetable } from '@/features/timetable/lib/scheduleMatcher';
 import { buildFullShareText } from '@/features/export/lib/shareText';
-import { Camera, ScanLine, X, Upload, FileText, Calendar, AlertTriangle, ArrowLeft, Copy, Check, Users, Plus, Maximize, Minimize, ZoomIn, ZoomOut, Link2 } from 'lucide-react';
+import { Camera, ScanLine, Square, X, Upload, FileText, Calendar, AlertTriangle, ArrowLeft, Copy, Check, Users, Plus, Maximize, Minimize, ZoomIn, ZoomOut, Link2 } from 'lucide-react';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { formatTimeFromMinutes } from '@/shared/lib/timetableTime';
 import { extractDayName } from '@/shared/lib/dayFormat';
@@ -82,10 +82,12 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
 
   const mountedRef = useRef(true);
   const activeRef = useRef(false);
+  const cameraStartIdRef = useRef(0);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const loopRef = useRef<number | null>(null);
+  const processTimerRef = useRef<number | null>(null);
   const copiedTimerRef = useRef<number | null>(null);
   const scanStateRef = useRef<ScanState>('idle');
   const prevTabRef = useRef(activeTab);
@@ -225,6 +227,8 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
         cancelAnimationFrame(raf1);
         cancelAnimationFrame(raf2);
         if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+        mountedRef.current = false;
+        stopCamera();
       };
     } else {
       stopCamera();
@@ -255,13 +259,16 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
   }
 
   function processSharedData(compressedData: string) {
+    if (processTimerRef.current !== null) window.clearTimeout(processTimerRef.current);
     setScanState('processing');
     setStatusMessage(t('compareScanAnalyzingData'));
-    setTimeout(() => {
-      if (!mountedRef.current) return;
+    processTimerRef.current = window.setTimeout(() => {
+      processTimerRef.current = null;
+      if (!mountedRef.current || !isOpen) return;
       const data = decompressTimetable(compressedData);
       if (!data || data.timetable.length === 0) {
         setIsFullscreen(false);
+        stopCamera();
         setScanState('error');
         setStatusMessage(t('compareScanInvalidQr'));
         return;
@@ -289,6 +296,13 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
     setScanState('idle');
     scanStateRef.current = 'idle';
     setScanNonce((n) => n + 1);
+  }
+
+  function stopScanning() {
+    stopCamera();
+    setScanState('idle');
+    scanStateRef.current = 'idle';
+    setStatusMessage(t(scanHintKey));
   }
 
   function removeParticipant(id: string) {
@@ -341,6 +355,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
       return;
     }
     activeRef.current = true;
+    const cameraStartId = ++cameraStartIdRef.current;
     scanAttemptsRef.current = 0;
     setScanHint(false);
     try {
@@ -352,9 +367,9 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
       });
       // Abort if unmounted, cancelled (e.g. tab switched while the permission prompt was open), or already captured.
       const video = videoRef.current;
-      if (!mountedRef.current || !video || !activeRef.current || isScanSuccess()) {
+      if (cameraStartId !== cameraStartIdRef.current || !mountedRef.current || !video || !activeRef.current || isScanSuccess()) {
         // Never leave activeRef true; later startCamera() calls would bail and the scanner looks dead.
-        activeRef.current = false;
+        if (cameraStartId === cameraStartIdRef.current) activeRef.current = false;
         stream.getTracks().forEach(t => t.stop());
         return;
       }
@@ -378,14 +393,19 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
       await video.play();
       scanLoop();
     } catch (err) {
-      if (!activeRef.current) return;
-      activeRef.current = false;
+      if (cameraStartId !== cameraStartIdRef.current) return;
+      stopCamera();
       setScanState('error');
       setStatusMessage(t('compareScanDenied'));
     }
   }
 
   function stopCamera() {
+    cameraStartIdRef.current += 1;
+    if (processTimerRef.current !== null) {
+      clearTimeout(processTimerRef.current);
+      processTimerRef.current = null;
+    }
     activeRef.current = false;
     if (loopRef.current !== null) {
       clearTimeout(loopRef.current);
@@ -425,9 +445,10 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
           canvas.height = cropH;
           context.drawImage(video, sx, sy, cropW, cropH, 0, 0, cropW, cropH);
           const imageData = context.getImageData(0, 0, cropW, cropH);
-          const code = jsQR(imageData.data, cropW, cropH, { inversionAttempts: 'attemptBoth' });
-          if (code?.data) {
-            const compareData = extractCompareData(code.data);
+          const frameData = jsQR(imageData.data, cropW, cropH, { inversionAttempts: 'attemptBoth' })?.data
+            || (scanAttemptsRef.current % 5 === 4 ? decodeQrFromImage(video, [1200]) : null);
+          if (frameData) {
+            const compareData = extractCompareData(frameData);
             if (compareData) {
               processSharedData(compareData);
               return;
@@ -574,11 +595,22 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
         <button
           type="button"
           onClick={() => setIsFullscreen((v) => !v)}
-          className="absolute right-2 top-2 rounded-lg bg-black/50 p-2 text-white/80 backdrop-blur-sm transition-colors hover:bg-black/70 hover:text-white"
+          className="absolute right-2 top-2 z-20 rounded-lg bg-black/50 p-2 text-white/80 backdrop-blur-sm transition-colors hover:bg-black/70 hover:text-white"
           aria-label={isFullscreen ? t('compareExitFullscreen') : t('compareFullscreen')}
         >
           {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
         </button>
+
+        {scanState === 'scanning' && (
+          <button
+            type="button"
+            onClick={stopScanning}
+            aria-label={t('compareStopCamera')}
+            className="absolute left-2 top-2 z-20 inline-flex items-center gap-1.5 rounded-lg bg-rose-600/80 px-2.5 py-1.5 text-xs font-semibold text-white shadow backdrop-blur-sm"
+          >
+            <Square className="h-3 w-3 fill-current" /> {t('compareStopCamera')}
+          </button>
+        )}
 
         {scanState === 'scanning' && (
           <div className={`absolute left-0 right-0 flex items-center gap-2 px-3 ${isFullscreen ? 'bottom-5' : 'bottom-2'}`}>
@@ -605,7 +637,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
         )}
 
         {scanState === 'idle' && (
-          <button type="button" onClick={startCamera} className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[#0a1428] px-6 text-white/60">
+          <button type="button" onClick={startCamera} className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-1 bg-[#0a1428] px-6 text-white/60">
             <Camera className="mb-1 h-9 w-9" />
             <p className="text-sm font-semibold text-white">{t(scanHintKey)}</p>
             <span className="mt-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-xs font-semibold text-white">{t('compareScanBtn')}</span>
