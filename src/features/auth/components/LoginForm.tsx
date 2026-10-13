@@ -232,9 +232,12 @@ export default function LoginForm() {
 
       </div>
 
-      <div className="mt-5 flex flex-wrap items-center justify-center gap-1.5 text-[10px] text-center text-slate-500">
-        <ShieldCheck className="w-3 h-3 text-emerald-500/60 flex-shrink-0" />
-        <span className="max-w-full">{t('privacyNote')}</span>
+      <div className="mt-5 flex flex-col items-center gap-1 text-[10px] text-center text-slate-500">
+        <div className="flex items-center justify-center gap-1.5">
+          <ShieldCheck className="w-3 h-3 text-emerald-500/60 flex-shrink-0" />
+          <span className="max-w-full">{t('privacyNote')}</span>
+        </div>
+        <span>{t('loginUnofficial')}</span>
       </div>
 
     </div>
