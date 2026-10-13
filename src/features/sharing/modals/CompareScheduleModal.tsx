@@ -441,7 +441,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
     try {
       const video = videoRef.current;
       const canvas = canvasRef.current;
-      if (video && canvas && video.readyState === video.HAVE_ENOUGH_DATA && video.videoWidth > 0) {
+      if (video && canvas && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.videoWidth > 0) {
         const context = canvas.getContext('2d', { willReadFrequently: true });
         if (context) {
           // Zoom by cropping the centre; keeps full sensor detail so dense QRs decode better.
