@@ -120,12 +120,13 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
   const copiedTimerRef = useRef<number | null>(null);
   const scanStateRef = useRef<ScanState>('idle');
   const prevTabRef = useRef(activeTab);
-  const pendingScanRef = useRef(false);
   const wasOpenRef = useRef(false);
   const scanAttemptsRef = useRef(0);
   const streamRef = useRef<MediaStream | null>(null);
   const zoomRef = useRef(1);
   const nativeZoomRef = useRef<{ min: number; max: number } | null>(null);
+  const [scanNonce, setScanNonce] = useState(0);
+  const [scanHintKey, setScanHintKey] = useState('compareScanReady');
 
   const hasTimetable = myTimetable.length > 0;
 
@@ -197,15 +198,14 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, isOpen]);
 
-  // Start camera after returning to scanner; the video element is remounted by add/remove friend.
+  // Restart the camera whenever add/remove-friend requests a fresh scan, even
+  // if the scan state was already 'idle' (so pressing Add Friend always reacts).
   useEffect(() => {
+    if (scanNonce === 0) return;
     if (!isOpen || activeTab !== 'scan') return;
-    if (pendingScanRef.current) {
-      pendingScanRef.current = false;
-      void startCamera();
-    }
+    void startCamera();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scanState, activeTab, isOpen]);
+  }, [scanNonce]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -314,21 +314,26 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
 
   function addMoreFriends() {
     stopCamera();
+    const hintKey = participants.length > 0 ? 'compareScanAddMore' : 'compareScanReady';
+    setScanHintKey(hintKey);
+    setStatusMessage(t(hintKey));
     setScanState('idle');
     scanStateRef.current = 'idle';
-    setStatusMessage(t('compareScanReady'));
-    pendingScanRef.current = true;
+    setScanNonce((n) => n + 1);
   }
 
   function removeParticipant(id: string) {
     const next = participants.filter((p) => p.id !== id);
     setParticipants(next);
-    // Last friend removed returns to a live scanner, not the idle prompt.
-    if (next.length === 0 && scanStateRef.current === 'success') {
+    if (next.length > 0) return;
+    // Back to zero friends: switch the hint back to the first-friend instruction.
+    setScanHintKey('compareScanReady');
+    setStatusMessage(t('compareScanReady'));
+    // Removing the last friend from the results view returns to a live scanner.
+    if (scanStateRef.current === 'success') {
       setScanState('idle');
       scanStateRef.current = 'idle';
-      setStatusMessage(t('compareScanReady'));
-      pendingScanRef.current = true;
+      setScanNonce((n) => n + 1);
     }
   }
 
@@ -371,7 +376,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
     setScanHint(false);
     try {
       setScanState('scanning');
-      setStatusMessage(t('compareScanReady'));
+      setStatusMessage(t(scanHintKey));
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: false,
@@ -637,10 +642,10 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
         )}
 
         {scanState === 'idle' && (
-          <button type="button" onClick={startCamera} className="absolute inset-0 flex flex-col items-center justify-center bg-[#0a1428] text-white/60">
-            <Camera className="mb-2 h-9 w-9" />
-            <p className="text-sm font-medium">{t('compareCameraReady')}</p>
-            <span className="mt-2 rounded-lg bg-white/10 px-3 py-1.5 text-xs font-semibold text-white">{t('compareScanBtn')}</span>
+          <button type="button" onClick={startCamera} className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[#0a1428] px-6 text-white/60">
+            <Camera className="mb-1 h-9 w-9" />
+            <p className="text-sm font-semibold text-white">{t(scanHintKey)}</p>
+            <span className="mt-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-xs font-semibold text-white">{t('compareScanBtn')}</span>
           </button>
         )}
       </div>
@@ -778,7 +783,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
                 <p className={`text-sm font-medium max-w-xs ${isLight ? 'text-slate-500' : 'text-white/50'}`}>{t('compareEmptyTimetable')}</p>
               </div>
             ) : (
-            <div data-lenis-prevent className="overflow-y-auto usas-scrollbar touch-pan-y overscroll-contain">
+            <div data-lenis-prevent className="overflow-y-auto usas-scrollbar touch-pan-y overscroll-contain pr-2">
               <div className="flex min-h-full flex-col items-center justify-center gap-4">
                 <div className="text-center w-full max-w-sm mx-auto">
                   <div className={`p-3 rounded-xl border inline-block shadow-inner ${isLight ? 'bg-slate-50 border-slate-200/80' : 'bg-white/[0.02] border-white/10'}`}>
@@ -812,7 +817,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
             </div>
             )
           ) : scanState !== 'success' ? (
-            <div className="flex flex-col overflow-y-auto usas-scrollbar touch-pan-y overscroll-contain">
+            <div className="flex flex-col overflow-y-auto usas-scrollbar touch-pan-y overscroll-contain pr-2">
               <div className="my-auto flex w-full flex-col items-center gap-3 py-1">
               <canvas ref={canvasRef} className="hidden" />
 
@@ -874,7 +879,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
               </div>
             </div>
           ) : (
-            <div data-lenis-prevent className="flex-1 min-h-0 overflow-y-auto usas-scrollbar touch-pan-y overscroll-contain space-y-4 sm:space-y-5 pr-0.5 pl-0.5">
+            <div data-lenis-prevent className="flex-1 min-h-0 overflow-y-auto usas-scrollbar touch-pan-y overscroll-contain space-y-4 sm:space-y-5 pr-2 pl-0.5">
               {participantsBar}
 
               <div className={`p-3 rounded-xl flex items-center gap-3 ${isLight ? 'bg-emerald-50 text-emerald-900 border border-emerald-100' : 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20'}`}>
