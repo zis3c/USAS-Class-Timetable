@@ -60,6 +60,8 @@ export default function TurnstileCaptcha({
   const onErrorRef = useRef(onError);
   // Theme fixed at mount; re-rendering on theme change would restart the challenge.
   const themeRef = useRef(theme);
+  // Turnstile 600010 (and friends) are often transient; force a few fresh challenges.
+  const errorRetryRef = useRef(0);
   const [isScriptReady, setIsScriptReady] = useState(() => typeof window !== 'undefined' && !!window.turnstile);
 
   useEffect(() => {
@@ -122,6 +124,7 @@ export default function TurnstileCaptcha({
         retry: 'auto',
         'refresh-expired': 'auto',
         callback: (token: string) => {
+          errorRetryRef.current = 0;
           onVerifyRef.current(token);
         },
         'expired-callback': () => {
@@ -129,6 +132,17 @@ export default function TurnstileCaptcha({
         },
         'error-callback': () => {
           onErrorRef.current?.();
+          const id = widgetIdRef.current;
+          if (id && window.turnstile && errorRetryRef.current < 3) {
+            errorRetryRef.current += 1;
+            window.setTimeout(() => {
+              try {
+                window.turnstile?.reset(id);
+              } catch {
+                // Ignore: the widget may already be gone.
+              }
+            }, 1000);
+          }
         },
       });
       widgetIdRef.current = widgetId;
