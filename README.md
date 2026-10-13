@@ -14,6 +14,9 @@
 
 USAS Class Timetable is a modern, client-side academic schedule portal designed for Universiti Sultan Azlan Shah (USAS) students. Built on React 18, TypeScript, and Vite with custom glassmorphism styling, it enables students to fetch, view, and export their class timetables directly into standard calendar feeds (.ICS), official A4 printable PDF documents, and high-resolution device lockscreen wallpapers.
 
+> [!IMPORTANT]
+> **Unofficial project.** USAS Class Timetable is an independent student project by **STEM USAS**. It is **not affiliated with, endorsed by, or operated by Universiti Sultan Azlan Shah (USAS)** and is **not the official USAS portal**. Login credentials are sent straight to the official USAS UMC API through a stateless proxy; this project does not store them.
+
 > [!NOTE]
 > Student login requests pass through a stateless Cloudflare Pages Function before reaching the official USAS UMC API. The app does not keep a project database, but the browser stores the session for the current tab and a timetable cache on the device. See the [Privacy Notice](docs/PRIVACY.md) for data flow and storage details.
 
