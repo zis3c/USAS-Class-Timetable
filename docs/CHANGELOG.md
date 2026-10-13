@@ -10,19 +10,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Security hardening and UI polish after the first release.
 
 ### Security
-* Login proxy now fails closed: if `TURNSTILE_SECRET_KEY` is not configured, login is refused instead of skipping captcha verification.
-* The client no longer falls back to Cloudflare's always-pass test site key in production builds.
-* Content-Security-Policy no longer allows inline scripts; `img-src` was narrowed to `'self' data: blob:`.
+* Cloudflare Turnstile login captcha removed after persistent **iOS/Safari failures** ("Verifying…" never completes). Abuse protection now relies on the endpoint/method allowlist, request-size limits, a recommended Cloudflare Rate Limiting rule on the login endpoint, and the in-browser login throttle.
+* Content-Security-Policy no longer allows inline scripts and drops the now-unused Turnstile origins; `img-src` was narrowed to `'self' data: blob:`.
 * Sentry strips query strings from error events and breadcrumbs so shared timetable payloads are not sent to a third party.
 * Compare-schedule payload decompression is size-capped, and `/agent-intake` plus the API proxy enforce request-size limits.
 * The proxy drops client-supplied network headers (spoofable IP/proxy headers) before forwarding upstream.
 
 ### Changed
-* The project is clearly marked as an **unofficial, independent STEM USAS project** (README, page metadata, landing footer, and login screen); the login screen also shows a privacy note and "not an official USAS portal".
+* The project is clearly marked as an **unofficial, independent STEM USAS project** (README, page metadata, landing footer, and login screen); the login screen shows one combined privacy note and "not an official USAS portal".
 * Attendance QR scanning now rejects invalid codes with a localized message and error styling instead of showing the server's message in a success (green) box.
 * The compare/share scan hint now states what to do, and differs between adding the first friend and adding more friends.
 
 ### Fixed
+* Formal PDF/PNG export text now applies the same baseline offset on iOS (previously skipped, so text dropped below the preview).
+* The full-screen export loading overlay no longer has rounded corners at the screen edges on Android.
+* Compare camera scanning now processes frames at `HAVE_CURRENT_DATA` (was too strict on some mobile browsers), and the retry/upload buttons stay on one line.
 * The compare/share schedule scroll area no longer hugs the scrollbar.
 * The prayer-times modal is more compact on mobile.
 

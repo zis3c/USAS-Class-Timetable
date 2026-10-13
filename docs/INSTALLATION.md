@@ -34,21 +34,7 @@ npm install
 
 ### 3. Environment Configuration
 
-Create a `.env` file in the project root with the Cloudflare Turnstile **Site Key** (public):
-
-```env
-VITE_TURNSTILE_SITE_KEY=0x4AAAAAA...
-```
-
-The login captcha is verified server-side by the Pages Function, which needs the Turnstile **Secret Key**. For local testing create a `.dev.vars` file in the project root (already gitignored):
-
-```env
-TURNSTILE_SECRET_KEY=0x4AAAAAA...
-```
-
-> Without `TURNSTILE_SECRET_KEY`, the server-side captcha check is skipped. Use this only for local UI work. Set a real secret in every production and preview environment. Cloudflare's testing site key `1x00000000000000000000AA` always passes on the client widget and is not suitable for production.
-
-Optionally enable client error tracking by adding a Sentry DSN:
+No environment variables are required for demo mode. Optionally enable client error tracking by adding a Sentry DSN to a `.env` file in the project root:
 
 ```env
 VITE_SENTRY_DSN=https://<key>@<org>.ingest.sentry.io/<project>
@@ -73,7 +59,7 @@ Open your browser at `http://localhost:5173`.
 | Command | Description |
 | :--- | :--- |
 | `npm run dev` | Starts Vite local development server (UI/demo only). |
-| `npm run dev:cf` | Builds and serves the app with Cloudflare Pages Functions (real API + captcha). |
+| `npm run dev:cf` | Builds and serves the app with Cloudflare Pages Functions (real USAS API). |
 | `npm run build` | Compiles and optimizes assets into `dist/` for production. |
 | `npm run preview` | Previews the production bundle locally. |
 | `npm run preview:cf` | Builds and previews with Cloudflare Pages Functions. |
@@ -126,19 +112,12 @@ npm run build
 
 ### Deploying to Cloudflare Pages
 
-The `/api/usas/*` proxy and captcha verification run as Cloudflare Pages Functions, so Cloudflare Pages is the recommended host.
+The `/api/usas/*` proxy runs as a Cloudflare Pages Function, so Cloudflare Pages is the recommended host.
 
 1. Connect your repository in the Cloudflare Pages dashboard (or deploy with `npm run deploy:cf`).
 2. Build command: `npm run build`.
 3. Output directory: `dist`.
-4. Add environment variables under **Settings → Environment variables** (Production and Preview):
-   - `VITE_TURNSTILE_SITE_KEY` — Turnstile Site Key (public, baked into the build).
-5. Add the Turnstile Secret Key as an encrypted secret:
-   ```bash
-   npx wrangler pages secret put TURNSTILE_SECRET_KEY --project-name=<your-project>
-   ```
-   Confirm `TURNSTILE_SECRET_KEY` exists in the Pages production environment. The GitHub deployment workflow deploys the Function but does not configure this Pages secret.
-6. The included `public/_headers` file automatically configures Content Security Policy (CSP) and cache headers.
+4. The included `public/_headers` file automatically configures Content Security Policy (CSP) and cache headers.
 
 #### Automated deployment (GitHub Actions)
 
@@ -146,11 +125,10 @@ The bundled `.github/workflows/deploy.yml` deploys on every push to `main`. Add 
 
 - `CLOUDFLARE_API_TOKEN`
 - `CLOUDFLARE_ACCOUNT_ID`
-- `VITE_TURNSTILE_SITE_KEY`
 
 ### Deploying to Vercel / Netlify
 
-Both hosts can serve the static `dist/` output. However, real API login depends on the Cloudflare Pages Function proxy (`/api/usas/*`) and its server-side Turnstile check, which are Cloudflare-specific. On Vercel or Netlify you must supply an equivalent serverless function that proxies `/api/usas/*` to the USAS API and verifies the Turnstile token.
+Both hosts can serve the static `dist/` output. However, real API login depends on the Cloudflare Pages Function proxy (`/api/usas/*`), which is Cloudflare-specific. On Vercel or Netlify you must supply an equivalent serverless function that proxies `/api/usas/*` to the USAS API.
 
 - **Vercel**: Framework Preset **Vite**, Output Directory `dist`.
 - **Netlify**: Build command `npm run build`, Publish directory `dist`.
@@ -161,14 +139,12 @@ Both hosts can serve the static `dist/` output. However, real API login depends 
 
 ### API rate limiting
 
-Login abuse is mitigated by server-side Cloudflare Turnstile verification. Cloudflare Pages Functions do not support Worker rate-limiting bindings, and the app's custom domain does not need to be hosted on Cloudflare DNS.
-
-If your domain is proxied through Cloudflare, you can add an additional edge limit via **Security → WAF → Rate limiting rules** matching `/api/usas/*`.
+The app ships no third-party captcha. Add a Cloudflare **WAF → Rate limiting rule** matching `POST /api/usas/student/login_student.php` (e.g. 10 requests/minute per IP) to blunt credential stuffing. The in-browser login throttle is only a convenience, not a security control.
 
 ### Monitoring
 
 - **Traffic & Web Vitals**: Cloudflare dashboard → **Web Analytics** → enable for the Pages project (privacy-first, cookieless).
-- **Function logs & errors**: the proxy emits `console.warn` entries for captcha rejections and upstream path/status failures. It does not log request bodies. View them live with:
+- **Function logs & errors**: the proxy emits `console.warn` entries for upstream path/status failures. It does not log request bodies. View them live with:
   ```bash
   npx wrangler pages deployment tail --project-name=<your-project>
   ```

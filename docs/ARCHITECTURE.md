@@ -11,9 +11,8 @@ Browser (React SPA)
   │  fetch /api/usas/*        (same origin; CSP connect-src 'self')
   ▼
 Cloudflare Pages Function      functions/api/usas/_middleware.ts
-  │  • verifies Cloudflare Turnstile on login (when configured)
-  │  • strips the one-time x-turnstile-token header
-  │  • enforces the endpoint allowlist
+  │  • enforces the endpoint allowlist and request-size limit
+  │  • drops client-supplied network headers
   ▼
 https://mobile.usas.edu.my/umc_v2   (official USAS UMC API)
 ```
@@ -21,17 +20,15 @@ https://mobile.usas.edu.my/umc_v2   (official USAS UMC API)
 ## Why a proxy
 
 - The USAS API is not CORS-enabled for browsers.
-- The Turnstile **secret key** must stay server-side.
 - All outbound endpoints are allowlisted in `src/shared/lib/usasProxy.ts`.
 - The function code does not persist credentials or session tokens to a project database or log request bodies. Cloudflare still processes requests as the hosting and proxy provider.
 
 ## Authentication
 
-1. `LoginForm` renders a Cloudflare Turnstile widget; the token is passed to `AuthProvider.login(userId, password, false, captchaToken)`.
-2. `loginStudentAPI` POSTs to `/api/usas/student/login_student.php` with the `x-turnstile-token` header.
-3. The Pages Function requires `TURNSTILE_SECRET_KEY`, verifies the token via `siteverify`, then removes the one-time token header and proxies the request upstream. If the secret is missing, login is refused (fails closed).
-4. On success, `sid_1`/`sid_2`/`sid_3` are stored in `sessionStorage` and the timetable is cached in `localStorage`. The cache can remain after the browser tab closes; logout or clearing site storage removes it.
-5. Login throttling state lives in `sessionStorage`.
+1. `LoginForm` calls `AuthProvider.login(userId, password)`.
+2. `loginStudentAPI` POSTs to `/api/usas/student/login_student.php` through the Pages Function proxy.
+3. On success, `sid_1`/`sid_2`/`sid_3` are stored in `sessionStorage` and the timetable is cached in `localStorage`. The cache can remain after the browser tab closes; logout or clearing site storage removes it.
+4. Login throttling state lives in `sessionStorage`.
 
 ## Data layer
 
@@ -68,12 +65,11 @@ https://mobile.usas.edu.my/umc_v2   (official USAS UMC API)
 ## Third parties
 
 - **Prayer times**: `https://api.waktusolat.app/v2/solat/<zone>` (JAKIM), called directly from the client.
-- **Cloudflare Turnstile**: bot protection on login.
 - **Sentry** (optional): client error tracking, enabled by `VITE_SENTRY_DSN`.
 
 ## Monitoring
 
-- The Pages Function logs captcha rejection metadata (including request IP when available) and upstream path/status errors, but not request bodies. Logs are visible in Cloudflare Functions logs / `wrangler pages deployment tail`.
+- The Pages Function logs upstream path/status errors, but not request bodies. Logs are visible in Cloudflare Functions logs / `wrangler pages deployment tail`.
 - `.github/workflows/api-schema-check.yml` runs `scripts/check-usas-schema.mjs` daily to detect upstream schema drift.
 - Cloudflare Web Analytics (traffic) and optional Sentry (errors).
 
