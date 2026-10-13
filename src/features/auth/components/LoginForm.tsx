@@ -27,6 +27,7 @@ export default function LoginForm() {
     widget.setAttribute('challenge', '/api/altcha');
     widget.setAttribute('name', 'altcha');
     widget.setAttribute('auto', 'onload');
+    widget.setAttribute('display', 'invisible');
     const onState = (event: Event) => {
       const detail = (event as CustomEvent<{ state?: string; payload?: string }>).detail;
       if (detail?.state === 'verified' && detail.payload) {
@@ -241,7 +242,7 @@ export default function LoginForm() {
 
       </div>
 
-      <div className="mt-5 flex items-start justify-center gap-1.5 text-[10px] text-center text-slate-500">
+      <div className="mt-5 flex items-start justify-center gap-1 text-[10px] text-center text-slate-500">
         <ShieldCheck className="mt-px w-3 h-3 text-emerald-500/60 flex-shrink-0" />
         <span className="max-w-full">{t('privacyNote')} {t('loginUnofficial')}</span>
       </div>
