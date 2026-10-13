@@ -270,7 +270,7 @@ export default function PrayerTimesModal({ isOpen, onClose }: PrayerTimesModalPr
           </div>
         </div>
 
-        <div data-lenis-prevent className="p-4 sm:p-6 space-y-5 flex-1 overflow-y-auto usas-scrollbar touch-pan-y overscroll-contain">
+        <div data-lenis-prevent className="p-3.5 sm:p-6 space-y-4 sm:space-y-5 flex-1 overflow-y-auto usas-scrollbar touch-pan-y overscroll-contain">
           <div className="flex items-center justify-between gap-2">
             <PrayerZoneDropdown value={zone} onChange={setZone} isLight={isLight} />
             <div className={`flex items-center gap-1.5 text-[10px] font-medium ${isLight ? 'text-slate-500' : 'text-white/50'}`}>
@@ -287,7 +287,7 @@ export default function PrayerTimesModal({ isOpen, onClose }: PrayerTimesModalPr
           ) : (
             <div className="space-y-4">
               
-              <div className={`p-5 rounded-xl border flex flex-col justify-center gap-1 shadow-sm text-center ${
+              <div className={`p-4 sm:p-5 rounded-xl border flex flex-col justify-center gap-1 shadow-sm text-center ${
                 isLight 
                   ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200/50 shadow-amber-900/5' 
                   : 'bg-gradient-to-br from-amber-500/[0.04] to-orange-500/[0.02] border-amber-500/15'
@@ -295,16 +295,16 @@ export default function PrayerTimesModal({ isOpen, onClose }: PrayerTimesModalPr
                 <div className={`text-[10px] font-bold uppercase tracking-wider mb-0.5 ${isLight ? 'text-amber-600/80' : 'text-amber-400/70'}`}>
                   {nextPrayer ? `${t('prayerNextPrefix')}: ${nextPrayer.label}` : t('prayerAllDone')}
                 </div>
-                <div className={`text-4xl font-black tabular-nums tracking-tight ${isLight ? 'text-amber-600' : 'text-amber-400'}`}>
+                <div className={`text-3xl sm:text-4xl font-black tabular-nums tracking-tight ${isLight ? 'text-amber-600' : 'text-amber-400'}`}>
                   {nextPrayer ? formatCountdown(diffSeconds) : '--:--:--'}
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-2.5">
                 {dynamicPrayers.map((prayer) => (
                   <div 
                     key={prayer.id}
-                    className={`flex flex-col items-center justify-center p-3.5 rounded-xl border transition-all ${
+                    className={`flex flex-col items-center justify-center p-2.5 sm:p-3.5 rounded-xl border transition-all ${
                       prayer.isNext
                         ? (isLight 
                             ? 'bg-amber-100 border-amber-300 shadow-sm' 
