@@ -26,6 +26,10 @@ USAS Class Timetable is a modern, client-side academic schedule portal designed 
 
 ## Core Features & Capabilities
 
+<p align="center">
+  <img src="./public/features-grid.png" alt="USAS Class Timetable feature overview" width="100%">
+</p>
+
 * **University API Integration**: Connects to official USAS UMC portal endpoints through the Cloudflare Pages Function proxy.
 * **Document & Wallpaper Exports**:
   * **Print-Ready A4 PDF & PNG**: High-resolution landscape documents formatted with student matric identity, course codes, locations, and timestamps.
