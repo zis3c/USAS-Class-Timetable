@@ -11,7 +11,7 @@ async function decodeWithZxing(img: HTMLImageElement | HTMLVideoElement): Promis
  * blank. Uses its own canvas so a running camera loop can't overwrite the frame
  * mid-decode. Returns the QR payload text, or null if none was found.
  */
-export async function decodeQrFromImage(img: HTMLImageElement | HTMLVideoElement, caps: number[] = [1200, 2000, 3000]): Promise<string | null> {
+export async function decodeQrFromImage(img: HTMLImageElement | HTMLVideoElement, caps: number[] = [1200, 2000, 3000], tryCenterCrop = true): Promise<string | null> {
   const canvas = document.createElement('canvas');
   const context = canvas.getContext('2d', { willReadFrequently: true });
   if (!context) return null;
@@ -54,6 +54,35 @@ export async function decodeQrFromImage(img: HTMLImageElement | HTMLVideoElement
     }
     const mirroredCode = jsQR(imageData.data, width, height, { inversionAttempts: 'attemptBoth' });
     if (mirroredCode?.data) return mirroredCode.data;
+  }
+
+  if (!tryCenterCrop) return decodeWithZxing(img);
+
+  const cropW = Math.round(nativeW / 2);
+  const cropH = Math.round(nativeH / 2);
+  const cropScale = Math.min(2, 1200 / Math.max(cropW, cropH));
+  const cropWidth = Math.max(1, Math.round(cropW * cropScale));
+  const cropHeight = Math.max(1, Math.round(cropH * cropScale));
+  const cropCanvas = document.createElement('canvas');
+  cropCanvas.width = cropWidth;
+  cropCanvas.height = cropHeight;
+  const cropContext = cropCanvas.getContext('2d');
+  if (!cropContext) return decodeWithZxing(img);
+  cropContext.imageSmoothingEnabled = false;
+  cropContext.drawImage(img, (nativeW - cropW) / 2, (nativeH - cropH) / 2, cropW, cropH, 0, 0, cropWidth, cropHeight);
+  try {
+    const cropData = cropContext.getImageData(0, 0, cropWidth, cropHeight);
+    const cropCode = jsQR(cropData.data, cropWidth, cropHeight, { inversionAttempts: 'attemptBoth' });
+    if (cropCode?.data) return cropCode.data;
+
+    // JPEG re-encoding softens screen moiré that can hide dense QR modules in camera photos.
+    const softened = new Image();
+    softened.src = cropCanvas.toDataURL('image/jpeg', 0.85);
+    await softened.decode();
+    const softenedCode = await decodeQrFromImage(softened, [1200], false);
+    if (softenedCode) return softenedCode;
+  } catch {
+    // Let the ZXing fallback try the original image if this crop is unreadable.
   }
 
   return decodeWithZxing(img);
