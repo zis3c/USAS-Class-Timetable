@@ -678,7 +678,7 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
             <span>{statusMessage}</span>
           </div>
 
-          <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileUpload} />
+          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
           <canvas ref={canvasRef} className="pointer-events-none absolute -left-[9999px] top-0 h-px w-px opacity-0" aria-hidden="true" />
 
         </div>

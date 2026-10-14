@@ -1,132 +1,85 @@
 import jsQR from 'jsqr';
 
-async function decodeWithZxing(img: HTMLImageElement | HTMLVideoElement): Promise<string | null> {
-  const { decodeQrWithZxing } = await import('./qrDecodeZxing');
-  return decodeQrWithZxing(img);
+type QrSource = HTMLImageElement | HTMLVideoElement;
+
+function sourceSize(source: QrSource) {
+  return source instanceof HTMLVideoElement
+    ? { width: source.videoWidth, height: source.videoHeight }
+    : { width: source.naturalWidth, height: source.naturalHeight };
 }
 
-/**
- * Decodes the first QR code found in an image or video frame. Tries a few sizes
- * because full-size phone photos can exceed mobile canvas limits and decode
- * blank. Uses its own canvas so a running camera loop can't overwrite the frame
- * mid-decode. Returns the QR payload text, or null if none was found.
- */
-export async function decodeQrFromImage(img: HTMLImageElement | HTMLVideoElement, caps: number[] = [1200, 2000, 3000], tryCenterCrop = true): Promise<string | null> {
-  const canvas = document.createElement('canvas');
+function scanRegion(
+  source: QrSource,
+  canvas: HTMLCanvasElement,
+  region: { x: number; y: number; width: number; height: number },
+  limit: number,
+  invert = true,
+): string | null {
+  const scale = Math.min(1, limit / Math.max(region.width, region.height));
+  const width = Math.max(1, Math.round(region.width * scale));
+  const height = Math.max(1, Math.round(region.height * scale));
+  if (canvas.width !== width) canvas.width = width;
+  if (canvas.height !== height) canvas.height = height;
   const context = canvas.getContext('2d', { willReadFrequently: true });
   if (!context) return null;
 
-  const nativeW = ('videoWidth' in img ? img.videoWidth : img.naturalWidth) || img.width;
-  const nativeH = ('videoHeight' in img ? img.videoHeight : img.naturalHeight) || img.height;
-  if (!nativeW || !nativeH) return null;
-
-  const longest = Math.max(nativeW, nativeH);
-  const attempted = new Set<number>();
-  for (const cap of caps) {
-    const width = Math.max(1, Math.round(nativeW * Math.min(1, cap / longest)));
-    if (attempted.has(width)) continue;
-    attempted.add(width);
-
-    const height = Math.max(1, Math.round(nativeH * (width / nativeW)));
-    canvas.width = width;
-    canvas.height = height;
-    context.clearRect(0, 0, width, height);
-    context.drawImage(img, 0, 0, width, height);
-
-    let imageData: ImageData;
-    try {
-      imageData = context.getImageData(0, 0, width, height);
-    } catch {
-      continue;
-    }
-    const code = jsQR(imageData.data, width, height, { inversionAttempts: 'attemptBoth' });
-    if (code?.data) return code.data;
-
-    context.save();
-    context.translate(width, 0);
-    context.scale(-1, 1);
-    context.drawImage(img, 0, 0, width, height);
-    context.restore();
-    try {
-      imageData = context.getImageData(0, 0, width, height);
-    } catch {
-      continue;
-    }
-    const mirroredCode = jsQR(imageData.data, width, height, { inversionAttempts: 'attemptBoth' });
-    if (mirroredCode?.data) return mirroredCode.data;
-  }
-
-  if (!tryCenterCrop) return decodeWithZxing(img);
-
-  const cropW = Math.round(nativeW / 2);
-  const cropH = Math.round(nativeH / 2);
-  const cropScale = Math.min(2, 1200 / Math.max(cropW, cropH));
-  const cropWidth = Math.max(1, Math.round(cropW * cropScale));
-  const cropHeight = Math.max(1, Math.round(cropH * cropScale));
-  const cropCanvas = document.createElement('canvas');
-  cropCanvas.width = cropWidth;
-  cropCanvas.height = cropHeight;
-  const cropContext = cropCanvas.getContext('2d');
-  if (!cropContext) return decodeWithZxing(img);
-  cropContext.imageSmoothingEnabled = false;
-  cropContext.drawImage(img, (nativeW - cropW) / 2, (nativeH - cropH) / 2, cropW, cropH, 0, 0, cropWidth, cropHeight);
   try {
-    const cropData = cropContext.getImageData(0, 0, cropWidth, cropHeight);
-    const cropCode = jsQR(cropData.data, cropWidth, cropHeight, { inversionAttempts: 'attemptBoth' });
-    if (cropCode?.data) return cropCode.data;
+    context.drawImage(source, region.x, region.y, region.width, region.height, 0, 0, width, height);
+    // WebKit can return the previous or a blank camera frame after the first draw.
+    if (source instanceof HTMLVideoElement) {
+      context.drawImage(source, region.x, region.y, region.width, region.height, 0, 0, width, height);
+    }
+    const pixels = context.getImageData(0, 0, width, height);
+    return jsQR(pixels.data, width, height, { inversionAttempts: invert ? 'attemptBoth' : 'dontInvert' })?.data ?? null;
+  } catch {
+    return null;
+  }
+}
 
-    // JPEG re-encoding softens screen moiré that can hide dense QR modules in camera photos.
+/** Scan one bounded camera region per tick so older iPhones keep receiving fresh frames. */
+export function decodeQrFromFrame(video: HTMLVideoElement, canvas: HTMLCanvasElement, scanCenter = false, zoom = 1): string | null {
+  const { width, height } = sourceSize(video);
+  if (!width || !height) return null;
+  const cropWidth = width / Math.max(1, zoom);
+  const cropHeight = height / Math.max(1, zoom);
+  const side = Math.min(cropWidth, cropHeight) * 0.75;
+  const region = scanCenter
+    ? { x: (width - side) / 2, y: (height - side) / 2, width: side, height: side }
+    : { x: (width - cropWidth) / 2, y: (height - cropHeight) / 2, width: cropWidth, height: cropHeight };
+  return scanRegion(video, canvas, region, scanCenter ? 1200 : 960, scanCenter);
+}
+
+/** Decode uploads at several useful sizes without sending a full phone photo through the live scanner. */
+export async function decodeQrFromImage(image: HTMLImageElement): Promise<string | null> {
+  const { width, height } = sourceSize(image);
+  if (!width || !height) return null;
+  const canvas = document.createElement('canvas');
+  const full = { x: 0, y: 0, width, height };
+  const side = Math.min(width, height) * 0.75;
+  const center = { x: (width - side) / 2, y: (height - side) / 2, width: side, height: side };
+  for (const [region, limit] of [[full, 1200], [center, 1200], [full, 2000], [center, 2000]] as const) {
+    const code = scanRegion(image, canvas, region, limit);
+    if (code) return code;
+  }
+  // JPEG smoothing can remove display moire from a photo of a QR on another screen.
+  try {
+    scanRegion(image, canvas, center, 1200);
     const softened = new Image();
-    // iOS Safari rejects decode() on large images; wait for load instead.
     await new Promise<void>((resolve, reject) => {
       softened.onload = () => resolve();
-      softened.onerror = () => reject(new Error('soften failed'));
-      softened.src = cropCanvas.toDataURL('image/jpeg', 0.85);
+      softened.onerror = () => reject(new Error('JPEG conversion failed'));
+      softened.src = canvas.toDataURL('image/jpeg', 0.85);
     });
-    const softenedCode = await decodeQrFromImage(softened, [1200], false);
-    if (softenedCode) return softenedCode;
+    const code = scanRegion(softened, canvas, { x: 0, y: 0, width: softened.naturalWidth, height: softened.naturalHeight }, 1200);
+    if (code) return code;
   } catch {
-    // Let the ZXing fallback try the original image if this crop is unreadable.
+    // Keep the original image for the independent decoder below.
   }
-
-  return decodeWithZxing(img);
+  const { decodeQrWithZxing } = await import('./qrDecodeZxing');
+  return decodeQrWithZxing(image);
 }
 
-/** Keeps the live pass sharp, with the heavier photo decoders retried periodically. */
-export async function decodeQrFromFrame(video: HTMLVideoElement, canvas: HTMLCanvasElement, tryHarder = false, zoom = 1): Promise<string | null> {
-  const width = video.videoWidth;
-  const height = video.videoHeight;
-  if (!width || !height) return null;
-
-  const cropWidth = Math.max(1, Math.round(width / zoom));
-  const cropHeight = Math.max(1, Math.round(height / zoom));
-  const x = (width - cropWidth) / 2;
-  const y = (height - cropHeight) / 2;
-  const scale = Math.min(1, 960 / Math.max(cropWidth, cropHeight));
-  const frameWidth = Math.max(1, Math.round(cropWidth * scale));
-  const frameHeight = Math.max(1, Math.round(cropHeight * scale));
-  if (canvas.width !== frameWidth) canvas.width = frameWidth;
-  if (canvas.height !== frameHeight) canvas.height = frameHeight;
-
-  const context = canvas.getContext('2d', { willReadFrequently: true });
-  if (!context) return null;
-  // iOS Safari can hand back a blank/black first frame for a camera video draw; a
-  // second draw paints the current frame (WebKit bug 217578). Cheap and harmless elsewhere.
-  context.drawImage(video, x, y, cropWidth, cropHeight, 0, 0, frameWidth, frameHeight);
-  context.drawImage(video, x, y, cropWidth, cropHeight, 0, 0, frameWidth, frameHeight);
-  let imageData: ImageData;
-  try {
-    imageData = context.getImageData(0, 0, frameWidth, frameHeight);
-  } catch {
-    return tryHarder ? decodeQrFromImage(video) : null;
-  }
-  const code = jsQR(imageData.data, frameWidth, frameHeight, { inversionAttempts: tryHarder ? 'attemptBoth' : 'dontInvert' });
-  if (code?.data) return code.data;
-
-  return tryHarder ? decodeQrFromImage(video, [1200]) : null;
-}
-
-/** Rough mean luminance (0-255) of a downscaled camera frame, for on-device debugging. */
+/** Small diagnostic sample for the opt-in on-device QR readout. */
 export function sampleFrameLuminance(video: HTMLVideoElement): number {
   const canvas = document.createElement('canvas');
   canvas.width = 32;
