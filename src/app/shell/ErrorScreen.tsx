@@ -66,36 +66,34 @@ export default function ErrorScreen({
   const body = message || copy.message;
   const primary = primaryLabel || copy.primary;
   const secondary = secondaryLabel || copy.secondary;
+  const eyebrow = status === 404
+    ? (lang === 'ms' ? 'Halaman tak dijumpai' : 'Page not found')
+    : (lang === 'ms' ? 'Ralat aplikasi' : 'Application error');
 
   return (
     <div
-      className={`relative min-h-[100svh] w-full overflow-hidden px-4 py-4 sm:px-6 sm:py-8 ${
+      className={`flex min-h-[100svh] w-full items-center justify-center px-4 py-6 ${
         isLight ? 'bg-[#f8fafc] text-slate-800' : 'bg-[#060E1F] text-slate-100'
       }`}
     >
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className={`absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full blur-[100px] opacity-40 ${isLight ? 'bg-amber-200' : 'bg-amber-500/10'}`} />
-        <div className={`absolute bottom-0 right-0 h-96 w-96 rounded-full blur-[120px] opacity-30 ${isLight ? 'bg-sky-200' : 'bg-sky-500/10'}`} />
-      </div>
-
-      <div className="relative z-10 mx-auto flex min-h-[calc(100svh-2rem)] w-full max-w-3xl items-center">
+      <div className="w-full max-w-md">
         <div
-          className={`w-full rounded-[28px] border p-5 shadow-2xl backdrop-blur-xl sm:p-8 ${
-            isLight ? 'bg-white border-slate-200 shadow-slate-200/60' : 'bg-[#0A1428]/95 border-white/[0.08] shadow-black/40'
+          className={`w-full rounded-2xl border p-5 shadow-xl ${
+            isLight ? 'bg-white border-slate-200 shadow-slate-200/50' : 'bg-[#0A1428] border-white/[0.08] shadow-black/30'
           }`}
         >
-          <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-bold tracking-wide shadow-sm ${
+          <div className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[10px] font-bold tracking-wide ${
             isLight
-              ? 'border-slate-200 bg-slate-100/50 text-[#0B1E43]'
+              ? 'border-slate-200 bg-slate-50 text-[#0B1E43]'
               : 'border-white/10 bg-white/5 text-slate-300'
           }`}>
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)] animate-pulse" />
+            <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
             <span>USAS Class Timetable</span>
           </div>
 
-          <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-[auto,minmax(0,1fr)] sm:items-center sm:gap-5">
+          <div className="mt-4 flex items-center gap-3">
             <div
-              className={`flex h-14 w-14 items-center justify-center rounded-2xl border sm:h-16 sm:w-16 ${
+              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${
                 offline
                   ? 'bg-sky-500/10 border-sky-400/20 text-sky-400'
                   : isLight
@@ -107,49 +105,38 @@ export default function ErrorScreen({
             </div>
 
             <div className="min-w-0">
-              <div className={`text-[10px] font-black uppercase tracking-[0.24em] ${isLight ? 'text-amber-600' : 'text-amber-400'}`}>
-                {lang === 'ms' ? 'Ralat aplikasi' : 'Application error'}
+              <div className={`text-[9px] font-bold uppercase tracking-[0.16em] ${isLight ? 'text-amber-600' : 'text-amber-400'}`}>
+                {eyebrow}
               </div>
-              <h1 className="mt-1 text-[clamp(1.75rem,4.5vw,3rem)] font-black tracking-tight text-balance">
+              <h1 className="mt-0.5 text-xl font-extrabold leading-tight tracking-tight text-balance">
                 {heading}
               </h1>
             </div>
           </div>
 
-          <p className={`mt-4 max-w-2xl text-sm leading-relaxed sm:text-base ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+          <p className={`mt-3 text-xs leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
             {body}
           </p>
 
-          <div className={`mt-6 rounded-2xl border p-4 sm:p-5 ${isLight ? 'border-slate-200 bg-slate-50' : 'border-white/[0.06] bg-white/[0.03]'}`}>
-            <p className={`text-[10px] font-semibold uppercase tracking-[0.18em] ${isLight ? 'text-slate-400' : 'text-white/30'}`}>
-              {lang === 'ms' ? 'Apa yang boleh dibuat' : 'What you can do'}
-            </p>
-            <ul className={`mt-3 space-y-2 text-sm leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
-              <li>Reload the page after the network is back.</li>
-              <li>Return to the landing page or login screen.</li>
-              <li>Check whether the requested route is correct.</li>
-            </ul>
-          </div>
-
-          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="mt-5 grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={onPrimary}
-              className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-bold transition-all ${
+              className={`inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-bold transition-colors ${
                 isLight ? 'bg-[#0B1E43] text-white hover:bg-[#152e63]' : 'bg-amber-400 text-slate-950 hover:bg-amber-300'
               }`}
             >
-              <RefreshCw className="h-4 w-4" />
+              <RefreshCw className="h-3.5 w-3.5 shrink-0" />
               {primary}
             </button>
             <button
               type="button"
               onClick={onSecondary}
-              className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-full border px-5 py-3 text-sm font-bold transition-all ${
+              className={`inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg border px-2.5 py-2 text-xs font-bold transition-colors ${
                 isLight ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50' : 'border-white/[0.08] bg-white/[0.03] text-slate-200 hover:bg-white/[0.06]'
               }`}
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-3.5 w-3.5 shrink-0" />
               {secondary}
             </button>
           </div>

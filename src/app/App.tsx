@@ -30,6 +30,7 @@ const SITE_DESCRIPTION = 'An unofficial, independent student project by STEM USA
 const SITE_IMAGE = '/seo-preview.svg';
 const SITE_IMAGE_ALT = 'USAS Class Timetable preview image';
 const SITE_KEYWORDS = 'USAS, Universiti Sultan Azlan Shah, timetable, class schedule, student portal, PDF export, wallpaper export';
+const VALID_PATHS = new Set(['/', '/login', '/app']);
 
 function ensureMetaTag(key: 'name' | 'property', value: string, content: string) {
   const selector = `meta[${key}="${value}"]`;
@@ -231,6 +232,8 @@ function MainContent() {
   }, [view]);
 
   useEffect(() => {
+    if (!VALID_PATHS.has(pathname)) return;
+
     if (session) {
       if (pathname !== '/app') {
         window.history.replaceState({}, '', '/app');
@@ -254,8 +257,7 @@ function MainContent() {
     }
   };
 
-  const validPaths = new Set(['/', '/login', '/app']);
-  if (!validPaths.has(pathname)) {
+  if (!VALID_PATHS.has(pathname)) {
     return (
       <ErrorScreen
         status={404}

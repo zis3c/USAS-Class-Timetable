@@ -9,6 +9,7 @@ import { useModalA11y } from '@/shared/lib/useModalA11y';
 import { scanAttendanceQrAPI } from '@/services/usas/Api';
 import { sanitizeSingleLine } from '@/shared/lib/security';
 import { decodeQrFromImage } from '@/shared/lib/qrDecode';
+import { playQrScanChime, prepareQrScanAudio } from '@/shared/lib/audioNotifier';
 
 type AttendanceScanModalProps = {
   isOpen: boolean;
@@ -295,6 +296,7 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
       const firstValue = code?.data?.trim() || (scanAttemptsRef.current % 5 === 0 ? decodeQrFromImage(video, [1200])?.trim() : '');
       if (firstValue) {
         processingRef.current = true;
+        playQrScanChime();
         await submitQrValue(firstValue);
         return;
       }
@@ -314,6 +316,7 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
       setStatusMessage(copy.unsupported);
       return;
     }
+    prepareQrScanAudio();
 
     activeRef.current = true;
     const cameraStartId = ++cameraStartIdRef.current;
