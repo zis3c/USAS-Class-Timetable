@@ -77,8 +77,12 @@ export async function decodeQrFromImage(img: HTMLImageElement | HTMLVideoElement
 
     // JPEG re-encoding softens screen moiré that can hide dense QR modules in camera photos.
     const softened = new Image();
-    softened.src = cropCanvas.toDataURL('image/jpeg', 0.85);
-    await softened.decode();
+    // iOS Safari rejects decode() on large images; wait for load instead.
+    await new Promise<void>((resolve, reject) => {
+      softened.onload = () => resolve();
+      softened.onerror = () => reject(new Error('soften failed'));
+      softened.src = cropCanvas.toDataURL('image/jpeg', 0.85);
+    });
     const softenedCode = await decodeQrFromImage(softened, [1200], false);
     if (softenedCode) return softenedCode;
   } catch {
@@ -106,10 +110,37 @@ export async function decodeQrFromFrame(video: HTMLVideoElement, canvas: HTMLCan
 
   const context = canvas.getContext('2d', { willReadFrequently: true });
   if (!context) return null;
+  // iOS Safari can hand back a blank/black first frame for a camera video draw; a
+  // second draw paints the current frame (WebKit bug 217578). Cheap and harmless elsewhere.
   context.drawImage(video, x, y, cropWidth, cropHeight, 0, 0, frameWidth, frameHeight);
-  const imageData = context.getImageData(0, 0, frameWidth, frameHeight);
+  context.drawImage(video, x, y, cropWidth, cropHeight, 0, 0, frameWidth, frameHeight);
+  let imageData: ImageData;
+  try {
+    imageData = context.getImageData(0, 0, frameWidth, frameHeight);
+  } catch {
+    return tryHarder ? decodeQrFromImage(video) : null;
+  }
   const code = jsQR(imageData.data, frameWidth, frameHeight, { inversionAttempts: 'attemptBoth' });
   if (code?.data) return code.data;
 
   return tryHarder ? decodeQrFromImage(video) : null;
+}
+
+/** Rough mean luminance (0-255) of a downscaled camera frame, for on-device debugging. */
+export function sampleFrameLuminance(video: HTMLVideoElement): number {
+  const canvas = document.createElement('canvas');
+  canvas.width = 32;
+  canvas.height = 32;
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  if (!context) return -1;
+  try {
+    context.drawImage(video, 0, 0, 32, 32);
+    context.drawImage(video, 0, 0, 32, 32);
+    const data = context.getImageData(0, 0, 32, 32).data;
+    let sum = 0;
+    for (let i = 0; i < data.length; i += 4) sum += (data[i] + data[i + 1] + data[i + 2]) / 3;
+    return Math.round(sum / (data.length / 4));
+  } catch {
+    return -2;
+  }
 }
