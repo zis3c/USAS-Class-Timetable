@@ -438,8 +438,6 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
         raf2 = requestAnimationFrame(() => setAnimate(true));
       });
 
-      void startCamera();
-
       return () => {
         cancelAnimationFrame(raf1);
         cancelAnimationFrame(raf2);
@@ -453,6 +451,11 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen && shouldRender) void startCamera();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, shouldRender]);
 
   useEffect(() => {
     return () => {
