@@ -15,6 +15,7 @@ import { useTheme } from '@/app/providers/ThemeProvider';
 import { useModalA11y } from '@/shared/lib/useModalA11y';
 import { decompressTimetable, calculateCommonFreeTime, parseTimeStr, reverseDayMap } from '@/features/timetable/lib/scheduleMatcher';
 import { getCardColorByScheme } from '@/shared/lib/courseCardColors';
+import { playQrScanChime, prepareQrScanAudio } from '@/shared/lib/audioNotifier';
 import type { TimetableItem } from '@/shared/types/usas';
 
 type Participant = { id: string; name: string; timetable: TimetableItem[] };
@@ -73,7 +74,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
   const [statusMessage, setStatusMessage] = useState(t('compareScanIdle'));
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [linkInput, setLinkInput] = useState('');
-  const [linkError, setLinkError] = useState<'' | 'invalid' | 'self'>('');
+  const [linkError, setLinkError] = useState<'' | 'invalid' | 'self' | 'duplicate'>('');
   const [scanHint, setScanHint] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [maxZoom, setMaxZoom] = useState(4);
@@ -91,7 +92,6 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
   const copiedTimerRef = useRef<number | null>(null);
   const scanStateRef = useRef<ScanState>('idle');
   const prevTabRef = useRef(activeTab);
-  const wasOpenRef = useRef(false);
   const scanAttemptsRef = useRef(0);
   const streamRef = useRef<MediaStream | null>(null);
   const zoomRef = useRef(1);
@@ -156,15 +156,9 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
       stopCamera();
       setIsFullscreen(false);
       prevTabRef.current = activeTab;
-      if (activeTab === 'scan' && participants.length > 0) {
-        // Returning to compare tab: show existing results.
-        setScanState('success');
-        scanStateRef.current = 'success';
-      } else {
-        setScanState('idle');
-        scanStateRef.current = 'idle';
-        setStatusMessage(t('compareScanIdle'));
-      }
+      setScanState('idle');
+      scanStateRef.current = 'idle';
+      setStatusMessage(t(scanHintKey));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, isOpen]);
@@ -179,13 +173,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
   }, [scanNonce]);
 
   useEffect(() => {
-    if (!isOpen) {
-      wasOpenRef.current = false;
-      return;
-    }
-    // On first open the tab may still be 'scan' before switching to 'share'; starting the camera there races and shows a bogus error.
-    const justOpened = !wasOpenRef.current;
-    wasOpenRef.current = true;
+    if (!isOpen) return;
     if (activeTab === 'share') {
       stopCamera();
       if (!hasTimetable) {
@@ -199,8 +187,6 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
         width: 512, margin: 4, errorCorrectionLevel: 'L',
         color: { dark: isLight ? '#0f172a' : '#ffffff', light: isLight ? '#ffffff' : '#0a1428' }
       }).then(setMyQrUrl).catch(() => setMyQrUrl(''));
-    } else if (activeTab === 'scan' && !justOpened && !isScanSuccess()) {
-      startCamera();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, isOpen, isLight, hasTimetable]);
@@ -258,6 +244,14 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
     return true;
   }
 
+  function hasParticipant(data: { studentName: string; studentId: string; timetable: TimetableItem[] }): boolean {
+    const studentId = data.studentId?.trim();
+    return participants.some((participant) => studentId
+      ? participant.id === studentId
+      : Boolean(data.studentName?.trim()) && participant.name === data.studentName.trim()
+        && JSON.stringify(participant.timetable) === JSON.stringify(data.timetable));
+  }
+
   function processSharedData(compressedData: string) {
     if (processTimerRef.current !== null) window.clearTimeout(processTimerRef.current);
     setScanState('processing');
@@ -277,6 +271,13 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
         setIsFullscreen(false);
         setScanState('error');
         setStatusMessage(t('compareScanSelf'));
+        stopCamera();
+        return;
+      }
+      if (hasParticipant(data)) {
+        setIsFullscreen(false);
+        setScanState('error');
+        setStatusMessage(t('compareAlreadyAdded'));
         stopCamera();
         return;
       }
@@ -334,6 +335,10 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
       setLinkError('self');
       return;
     }
+    if (hasParticipant(data)) {
+      setLinkError('duplicate');
+      return;
+    }
     if (!addParticipant(data)) {
       setLinkError('invalid');
       return;
@@ -354,6 +359,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
       setStatusMessage(t('compareScanDenied'));
       return;
     }
+    prepareQrScanAudio();
     activeRef.current = true;
     const cameraStartId = ++cameraStartIdRef.current;
     scanAttemptsRef.current = 0;
@@ -452,6 +458,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
           if (frameData) {
             const compareData = extractCompareData(frameData);
             if (compareData) {
+              playQrScanChime();
               processSharedData(compareData);
               return;
             }
@@ -514,7 +521,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
 
   const handleCopyLink = async () => {
     const safeName = sanitizeTextForShare(timetableData?.studentName || 'Pelajar', 80);
-    const data = compressTimetable(myTimetable, safeName);
+    const data = compressTimetable(myTimetable, safeName, session?.user_id);
     await copyTextToClipboard(`${window.location.origin}/?compare_schedule=${data}`);
     if (!mountedRef.current) return;
     setCopied(true);
@@ -870,7 +877,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
               </div>
               {linkError && (
                 <p className="text-center text-[10px] font-semibold text-red-500">
-                  {linkError === 'self' ? t('compareScanSelf') : t('compareLinkInvalid')}
+                  {linkError === 'self' ? t('compareScanSelf') : linkError === 'duplicate' ? t('compareAlreadyAdded') : t('compareLinkInvalid')}
                 </p>
               )}
               </div>

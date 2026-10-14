@@ -14,6 +14,27 @@ function getNotificationAudioContext(): AudioContext | undefined {
   }
 }
 
+export function prepareQrScanAudio(): void {
+  getNotificationAudioContext();
+}
+
+export function playQrScanChime(): void {
+  try {
+    const ctx = getNotificationAudioContext();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    gain.gain.setValueAtTime(0.16, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.16);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.18);
+  } catch {}
+}
+
 export function playClassChime(): void {
   try {
     const ctx = getNotificationAudioContext();
