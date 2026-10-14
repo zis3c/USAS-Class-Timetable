@@ -1,7 +1,10 @@
 import QrScanner from 'qr-scanner';
 
 let qrEngine: ReturnType<typeof QrScanner.createQrEngine> | undefined;
-const getQrEngine = () => qrEngine ??= QrScanner.createQrEngine();
+const getQrEngine = () => qrEngine ??= QrScanner.createQrEngine().then((engine) => {
+  if (engine instanceof Worker) engine.postMessage({ id: 0, type: 'inversionMode', data: 'both' });
+  return engine;
+});
 
 /** Nimiq's scanner runs decoding in a worker and uses BarcodeDetector where available. */
 export async function decodeQrFromFrame(video: HTMLVideoElement, canvas: HTMLCanvasElement, scanCenter = false, zoom = 1): Promise<string | null> {
