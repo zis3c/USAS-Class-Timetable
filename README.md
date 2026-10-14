@@ -65,6 +65,7 @@ Because the portal processes student academic schedules, security and privacy ar
 - [jsPDF](https://github.com/parallax/jsPDF)
 - [html2canvas](https://html2canvas.hertzen.com/)
 - [QRCode](https://github.com/soldair/node-qrcode)
+- [qr-scanner](https://github.com/nimiq/qr-scanner) (camera and image QR decoding)
 
 **Backend & Hosting**
 - [Cloudflare Pages Functions](https://developers.cloudflare.com/pages/functions/) (API proxy)

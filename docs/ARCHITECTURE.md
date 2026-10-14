@@ -55,6 +55,12 @@ https://mobile.usas.edu.my/umc_v2   (official USAS UMC API)
 - PNG rendering is performed in the browser with `html2canvas`; platform-specific clone adjustments keep exported text aligned with the preview.
 - Because `html2canvas` strips CSS `filter` during capture, the background blur is **baked into a canvas bitmap** (with an SVG `feGaussianBlur` fallback) rather than applied as a live CSS filter.
 
+## QR scanning
+
+- Attendance and schedule comparison share `src/shared/lib/qrDecode.ts` and the `qr-scanner` decoder. Camera capture, zoom, scan results, and upload state stay in their respective feature modals.
+- The scanner reuses a QR engine, tries a centered higher-detail camera crop periodically, and checks both normal and inverted QR colors. Uploads are decoded locally from bounded full-image and center-crop passes.
+- See [QR Scanning](QR_SCANNING.md) for the scan flow, iOS requirements, Content Security Policy, and debugging details.
+
 ## Landing experience & video tutorial
 
 - `LandingPage` composes the public (unauthenticated) marketing view: a hero area, a 3D tilt timetable mockup and a bento feature grid.
