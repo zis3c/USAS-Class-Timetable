@@ -58,8 +58,8 @@ https://mobile.usas.edu.my/umc_v2   (official USAS UMC API)
 ## QR scanning
 
 - Attendance and schedule comparison share `src/shared/lib/qrDecode.ts` and the `qr-scanner` decoder. Camera capture, zoom, scan results, and upload state stay in their respective feature modals.
-- The scanner reuses a QR engine, tries a centered higher-detail camera crop periodically, and checks both normal and inverted QR colors. Uploads are decoded locally from bounded full-image and center-crop passes.
-- See [QR Scanning](QR_SCANNING.md) for the scan flow, iOS requirements, Content Security Policy, and debugging details.
+- The shared worker checks both normal and inverted QR colors, scans a centered higher-detail camera crop periodically, and is reused after camera restarts. Uploads are decoded locally from bounded full-image and center-crop passes.
+- Camera startup keeps native autofocus. Preview taps request point focus only on hardware that supports it; a drawn scan guide is not required. See [QR Scanning](QR_SCANNING.md) for iOS requirements, Content Security Policy, debugging, and device validation.
 
 ## Landing experience & video tutorial
 
