@@ -497,10 +497,6 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
           muted
         />
         <div className="absolute inset-0 pointer-events-none bg-black/10" />
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-4">
-          <div className={`rounded-xl border-2 border-white/30 border-dashed ${isFullscreen ? 'w-56 h-56 sm:w-64 sm:h-64' : 'w-32 h-32 sm:w-40 sm:h-40'}`} />
-        </div>
-
         <button
           type="button"
           onClick={() => setIsFullscreen((v) => !v)}
