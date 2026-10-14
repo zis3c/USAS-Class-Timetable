@@ -283,11 +283,14 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
       const sx = (srcW - cropW) / 2;
       const sy = (srcH - cropH) / 2;
 
-      canvas.width = cropW;
-      canvas.height = cropH;
-      context.drawImage(video, sx, sy, cropW, cropH, 0, 0, cropW, cropH);
+      const frameScale = Math.min(1, 1280 / Math.max(cropW, cropH));
+      const frameW = Math.max(1, Math.round(cropW * frameScale));
+      const frameH = Math.max(1, Math.round(cropH * frameScale));
+      if (canvas.width !== frameW) canvas.width = frameW;
+      if (canvas.height !== frameH) canvas.height = frameH;
+      context.drawImage(video, sx, sy, cropW, cropH, 0, 0, frameW, frameH);
 
-      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      const imageData = context.getImageData(0, 0, frameW, frameH);
       const code = jsQR(imageData.data, imageData.width, imageData.height, {
         inversionAttempts: 'attemptBoth',
       });
@@ -665,7 +668,7 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
             <span>{statusMessage}</span>
           </div>
 
-          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
+          <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileUpload} />
           <canvas ref={canvasRef} className="pointer-events-none absolute -left-[9999px] top-0 h-px w-px opacity-0" aria-hidden="true" />
 
         </div>
