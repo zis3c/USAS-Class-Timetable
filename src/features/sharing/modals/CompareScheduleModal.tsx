@@ -462,11 +462,14 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
           const cropH = Math.max(1, Math.round(srcH / z));
           const sx = (srcW - cropW) / 2;
           const sy = (srcH - cropH) / 2;
-          canvas.width = cropW;
-          canvas.height = cropH;
-          context.drawImage(video, sx, sy, cropW, cropH, 0, 0, cropW, cropH);
-          const imageData = context.getImageData(0, 0, cropW, cropH);
-          let frameData = jsQR(imageData.data, cropW, cropH, { inversionAttempts: 'attemptBoth' })?.data || null;
+          const frameScale = Math.min(1, 1280 / Math.max(cropW, cropH));
+          const frameW = Math.max(1, Math.round(cropW * frameScale));
+          const frameH = Math.max(1, Math.round(cropH * frameScale));
+          if (canvas.width !== frameW) canvas.width = frameW;
+          if (canvas.height !== frameH) canvas.height = frameH;
+          context.drawImage(video, sx, sy, cropW, cropH, 0, 0, frameW, frameH);
+          const imageData = context.getImageData(0, 0, frameW, frameH);
+          let frameData = jsQR(imageData.data, frameW, frameH, { inversionAttempts: 'attemptBoth' })?.data || null;
           if (!frameData && scanAttemptsRef.current % 5 === 4) {
             frameData = await decodeQrFromImage(video, [1200]);
             if (!activeRef.current || !mountedRef.current) return;
@@ -873,7 +876,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
                   >
                     <Upload className="w-4 h-4 inline-block mr-1.5" /> {t('compareUploadBtn')}
                   </button>
-                  <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
+                  <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
                 </div>
 
                 <div className={`mx-auto flex w-full min-w-0 items-center gap-1.5 rounded-xl border p-1 transition-colors sm:mx-0 sm:max-w-sm sm:flex-1 ${isLight ? 'border-slate-200 bg-white focus-within:border-amber-400' : 'border-white/[0.08] bg-white/[0.02] focus-within:border-amber-400/50'}`}>
