@@ -113,7 +113,7 @@ Response:
       "group_id": 126175,
       "semester": "SEMESTER I SESI 2026/2027",
       "pelajar": "STUDENT NAME",
-      "matrik": "I00000000"
+      "matrik": "<MATRIC>"
     }
   ]
 }
