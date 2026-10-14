@@ -2,11 +2,14 @@ import QrScanner from 'qr-scanner';
 
 let qrEngine: ReturnType<typeof QrScanner.createQrEngine> | undefined;
 const getQrEngine = () => qrEngine ??= QrScanner.createQrEngine().then((engine) => {
-  if (engine instanceof Worker) engine.postMessage({ id: 0, type: 'inversionMode', data: 'both' });
+  if (engine instanceof Worker) {
+    // Reused workers skip qr-scanner's default both-color image mode; check this message when upgrading the package.
+    engine.postMessage({ id: 0, type: 'inversionMode', data: 'both' });
+  }
   return engine;
 });
 
-/** Nimiq's scanner runs decoding in a worker and uses BarcodeDetector where available. */
+/** Decode a live frame; callers use a centered crop periodically to retain QR detail on mobile. */
 export async function decodeQrFromFrame(video: HTMLVideoElement, canvas: HTMLCanvasElement, scanCenter = false, zoom = 1): Promise<string | null> {
   const width = video.videoWidth;
   const height = video.videoHeight;
@@ -40,7 +43,7 @@ async function scanImageSource(source: HTMLCanvasElement | HTMLImageElement): Pr
   }
 }
 
-/** Decode phone photos at bounded sizes, then try a softened center crop for screen moire. */
+/** Decode a selected image at bounded sizes, then soften its center crop for screen moire. */
 export async function decodeQrFromImage(image: HTMLImageElement): Promise<string | null> {
   const width = image.naturalWidth;
   const height = image.naturalHeight;
@@ -80,7 +83,7 @@ export async function decodeQrFromImage(image: HTMLImageElement): Promise<string
   }
 }
 
-/** Small diagnostic sample for the opt-in on-device QR readout. */
+/** Return average frame brightness; -1 means no canvas context and -2 means the frame could not be read. */
 export function sampleFrameLuminance(video: HTMLVideoElement): number {
   const canvas = document.createElement('canvas');
   canvas.width = 32;

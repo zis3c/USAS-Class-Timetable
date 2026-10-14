@@ -5,6 +5,14 @@ All notable changes to this project (developed by the USAS STEM Club) will be do
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+* Replaced the shared QR decode path with `qr-scanner`, configured its reused worker for light-on-dark codes, and kept camera image work off the UI thread where worker decoding is available.
+
+### Documentation
+* Documented the shared QR decoder, camera and upload flow, worker policy, and on-device diagnostics in [QR Scanning](QR_SCANNING.md).
+
 ## [1.0.10] - 2026-10-13
 
 Security hardening and UI polish after the first release.
