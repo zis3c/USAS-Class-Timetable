@@ -156,6 +156,7 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
 
       const img = new Image();
       const objUrl = URL.createObjectURL(file);
+      let firstValue: string | null;
       try {
         await new Promise<void>((resolve, reject) => {
           img.onload = () => resolve();
@@ -163,11 +164,10 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
           img.src = objUrl;
         });
         await img.decode();
+        firstValue = await decodeQrFromImage(img);
       } finally {
         URL.revokeObjectURL(objUrl);
       }
-
-      const firstValue = await decodeQrFromImage(img);
 
       if (firstValue) {
         await submitQrValue(firstValue);
@@ -671,7 +671,7 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
             <span>{statusMessage}</span>
           </div>
 
-          <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileUpload} />
+          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
           <canvas ref={canvasRef} className="pointer-events-none absolute -left-[9999px] top-0 h-px w-px opacity-0" aria-hidden="true" />
 
         </div>
