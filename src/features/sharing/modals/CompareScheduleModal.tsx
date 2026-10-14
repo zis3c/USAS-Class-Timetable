@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import QRCode from 'qrcode';
 import { copyTextToClipboard, sanitizeTextForShare, openExternalUrl } from '@/shared/lib/security';
-import { decodeQrFromFrame, decodeQrFromImage } from '@/shared/lib/qrDecode';
+import { decodeQrFromFrame, decodeQrFromImage, focusCameraAtPoint } from '@/shared/lib/qrDecode';
 import { compressTimetable } from '@/features/timetable/lib/scheduleMatcher';
 import { buildFullShareText } from '@/features/export/lib/shareText';
 import { Camera, ScanLine, Square, X, Upload, FileText, Calendar, ArrowLeft, Copy, Check, Users, Plus, Maximize, Minimize, ZoomIn, ZoomOut, Link2 } from 'lucide-react';
@@ -504,6 +504,11 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
     }
   }
 
+  function focusAtPoint(event: React.MouseEvent<HTMLVideoElement>) {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (track) focusCameraAtPoint(track, event.currentTarget, event.clientX, event.clientY, nativeZoomRef.current ? 1 : zoomRef.current);
+  }
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -607,6 +612,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
       <div className={`relative flex items-center justify-center overflow-hidden bg-black ${isFullscreen ? 'h-full w-full' : 'h-48 w-full sm:h-56'}`}>
         <video
           ref={videoRef}
+          onClick={focusAtPoint}
           className="absolute inset-0 h-full w-full object-cover transition-transform duration-150 will-change-transform"
           style={supportsNativeZoom ? undefined : { transform: `scale(${zoom})` }}
           playsInline

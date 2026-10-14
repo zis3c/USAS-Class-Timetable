@@ -9,6 +9,28 @@ const getQrEngine = () => qrEngine ??= QrScanner.createQrEngine().then((engine) 
   return engine;
 });
 
+/** Focus the camera at a preview tap only when its browser and hardware expose point focus. */
+export function focusCameraAtPoint(track: MediaStreamTrack, video: HTMLVideoElement, clientX: number, clientY: number, cssZoom: number): void {
+  const caps = track.getCapabilities?.() as (MediaTrackCapabilities & { focusMode?: string[]; pointsOfInterest?: unknown }) | undefined;
+  const focusMode = caps?.focusMode?.includes('continuous')
+    ? 'continuous'
+    : caps?.focusMode?.includes('single-shot') ? 'single-shot' : null;
+  if (!focusMode || !caps || !('pointsOfInterest' in caps) || !video.videoWidth || !video.videoHeight) return;
+
+  const rect = video.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+  const width = rect.width / cssZoom;
+  const height = rect.height / cssZoom;
+  const left = rect.left + (rect.width - width) / 2;
+  const top = rect.top + (rect.height - height) / 2;
+  // Map through the preview's CSS zoom and centered object-cover crop to camera coordinates.
+  const scale = Math.max(width / video.videoWidth, height / video.videoHeight);
+  const x = Math.max(0, Math.min(1, (clientX - left + (video.videoWidth * scale - width) / 2) / (video.videoWidth * scale)));
+  const y = Math.max(0, Math.min(1, (clientY - top + (video.videoHeight * scale - height) / 2) / (video.videoHeight * scale)));
+  type FocusConstraint = MediaTrackConstraintSet & { focusMode: string; pointsOfInterest: { x: number; y: number }[] };
+  void track.applyConstraints({ advanced: [{ focusMode, pointsOfInterest: [{ x, y }] } as FocusConstraint] }).catch(() => {});
+}
+
 /** Decode a live frame; callers use a centered crop periodically to retain QR detail on mobile. */
 export async function decodeQrFromFrame(video: HTMLVideoElement, canvas: HTMLCanvasElement, scanCenter = false, zoom = 1): Promise<string | null> {
   const width = video.videoWidth;
