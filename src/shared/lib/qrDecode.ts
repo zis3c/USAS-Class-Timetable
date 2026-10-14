@@ -1,82 +1,80 @@
-import jsQR from 'jsqr';
+import QrScanner from 'qr-scanner';
 
-type QrSource = HTMLImageElement | HTMLVideoElement;
+let qrEngine: ReturnType<typeof QrScanner.createQrEngine> | undefined;
+const getQrEngine = () => qrEngine ??= QrScanner.createQrEngine();
 
-function sourceSize(source: QrSource) {
-  return source instanceof HTMLVideoElement
-    ? { width: source.videoWidth, height: source.videoHeight }
-    : { width: source.naturalWidth, height: source.naturalHeight };
-}
-
-function scanRegion(
-  source: QrSource,
-  canvas: HTMLCanvasElement,
-  region: { x: number; y: number; width: number; height: number },
-  limit: number,
-  invert = true,
-): string | null {
-  const scale = Math.min(1, limit / Math.max(region.width, region.height));
-  const width = Math.max(1, Math.round(region.width * scale));
-  const height = Math.max(1, Math.round(region.height * scale));
-  if (canvas.width !== width) canvas.width = width;
-  if (canvas.height !== height) canvas.height = height;
-  const context = canvas.getContext('2d', { willReadFrequently: true });
-  if (!context) return null;
-
+/** Nimiq's scanner runs decoding in a worker and uses BarcodeDetector where available. */
+export async function decodeQrFromFrame(video: HTMLVideoElement, canvas: HTMLCanvasElement, scanCenter = false, zoom = 1): Promise<string | null> {
+  const width = video.videoWidth;
+  const height = video.videoHeight;
+  if (!width || !height) return null;
+  const side = Math.min(width, height) * (scanCenter ? 0.75 : 1) / Math.max(1, zoom);
+  const region = scanCenter
+    ? { x: (width - side) / 2, y: (height - side) / 2, width: side, height: side, downScaledWidth: 900, downScaledHeight: 900 }
+    : { x: 0, y: 0, width, height, downScaledWidth: Math.round(900 * width / Math.max(width, height)), downScaledHeight: Math.round(900 * height / Math.max(width, height)) };
   try {
-    context.drawImage(source, region.x, region.y, region.width, region.height, 0, 0, width, height);
-    // WebKit can return the previous or a blank camera frame after the first draw.
-    if (source instanceof HTMLVideoElement) {
-      context.drawImage(source, region.x, region.y, region.width, region.height, 0, 0, width, height);
-    }
-    const pixels = context.getImageData(0, 0, width, height);
-    return jsQR(pixels.data, width, height, { inversionAttempts: invert ? 'attemptBoth' : 'dontInvert' })?.data ?? null;
+    const result = await QrScanner.scanImage(video, {
+      qrEngine: getQrEngine(),
+      canvas,
+      scanRegion: region,
+      returnDetailedScanResult: true,
+    });
+    return result.data;
   } catch {
     return null;
   }
 }
 
-/** Scan one bounded camera region per tick so older iPhones keep receiving fresh frames. */
-export function decodeQrFromFrame(video: HTMLVideoElement, canvas: HTMLCanvasElement, scanCenter = false, zoom = 1): string | null {
-  const { width, height } = sourceSize(video);
-  if (!width || !height) return null;
-  const cropWidth = width / Math.max(1, zoom);
-  const cropHeight = height / Math.max(1, zoom);
-  const side = Math.min(cropWidth, cropHeight) * 0.75;
-  const region = scanCenter
-    ? { x: (width - side) / 2, y: (height - side) / 2, width: side, height: side }
-    : { x: (width - cropWidth) / 2, y: (height - cropHeight) / 2, width: cropWidth, height: cropHeight };
-  return scanRegion(video, canvas, region, scanCenter ? 1200 : 960, scanCenter);
+async function scanImageSource(source: HTMLCanvasElement | HTMLImageElement): Promise<string | null> {
+  try {
+    const result = await QrScanner.scanImage(source, {
+      qrEngine: getQrEngine(),
+      returnDetailedScanResult: true,
+    });
+    return result.data;
+  } catch {
+    return null;
+  }
 }
 
-/** Decode uploads at several useful sizes without sending a full phone photo through the live scanner. */
+/** Decode phone photos at bounded sizes, then try a softened center crop for screen moire. */
 export async function decodeQrFromImage(image: HTMLImageElement): Promise<string | null> {
-  const { width, height } = sourceSize(image);
+  const width = image.naturalWidth;
+  const height = image.naturalHeight;
   if (!width || !height) return null;
   const canvas = document.createElement('canvas');
-  const full = { x: 0, y: 0, width, height };
   const side = Math.min(width, height) * 0.75;
   const center = { x: (width - side) / 2, y: (height - side) / 2, width: side, height: side };
-  for (const [region, limit] of [[full, 1200], [center, 1200], [full, 2000], [center, 2000]] as const) {
-    const code = scanRegion(image, canvas, region, limit);
+
+  for (const limit of [1200, 2000]) {
+    const scale = Math.min(1, limit / Math.max(width, height));
+    canvas.width = Math.max(1, Math.round(width * scale));
+    canvas.height = Math.max(1, Math.round(height * scale));
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) return null;
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    let code = await scanImageSource(canvas);
+    if (code) return code;
+
+    const cropScale = Math.min(1, limit / side);
+    canvas.width = Math.max(1, Math.round(side * cropScale));
+    canvas.height = canvas.width;
+    context.drawImage(image, center.x, center.y, center.width, center.height, 0, 0, canvas.width, canvas.height);
+    code = await scanImageSource(canvas);
     if (code) return code;
   }
-  // JPEG smoothing can remove display moire from a photo of a QR on another screen.
+
   try {
-    scanRegion(image, canvas, center, 1200);
     const softened = new Image();
     await new Promise<void>((resolve, reject) => {
       softened.onload = () => resolve();
-      softened.onerror = () => reject(new Error('JPEG conversion failed'));
+      softened.onerror = () => reject(new Error('Image conversion failed'));
       softened.src = canvas.toDataURL('image/jpeg', 0.85);
     });
-    const code = scanRegion(softened, canvas, { x: 0, y: 0, width: softened.naturalWidth, height: softened.naturalHeight }, 1200);
-    if (code) return code;
+    return scanImageSource(softened);
   } catch {
-    // Keep the original image for the independent decoder below.
+    return null;
   }
-  const { decodeQrWithZxing } = await import('./qrDecodeZxing');
-  return decodeQrWithZxing(image);
 }
 
 /** Small diagnostic sample for the opt-in on-device QR readout. */
