@@ -7,7 +7,7 @@ import { useTheme } from '@/app/providers/ThemeProvider';
 import { useModalA11y } from '@/shared/lib/useModalA11y';
 import { scanAttendanceQrAPI } from '@/services/usas/Api';
 import { sanitizeSingleLine } from '@/shared/lib/security';
-import { decodeQrFromFrame, decodeQrFromImage, sampleFrameLuminance } from '@/shared/lib/qrDecode';
+import { decodeQrFromFrame, decodeQrFromImage, focusCameraAtPoint, sampleFrameLuminance } from '@/shared/lib/qrDecode';
 import { playQrScanChime, prepareQrScanAudio } from '@/shared/lib/audioNotifier';
 
 // Open the modal with ?qrdebug=1 to print live frame diagnostics in the status line.
@@ -420,6 +420,11 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
     }
   };
 
+  const focusAtPoint = (event: React.MouseEvent<HTMLVideoElement>) => {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (track) focusCameraAtPoint(track, event.currentTarget, event.clientX, event.clientY, nativeZoomRef.current ? 1 : zoomRef.current);
+  };
+
   useEffect(() => {
     mountedRef.current = true;
 
@@ -479,6 +484,7 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
       <div className={`relative bg-black flex items-center justify-center overflow-hidden ${isFullscreen ? 'w-full h-full' : 'h-48 sm:h-56 w-full'}`}>
         <video
           ref={videoRef}
+          onClick={focusAtPoint}
           className="absolute inset-0 h-full w-full object-cover transition-transform duration-150 will-change-transform"
           style={supportsNativeZoom ? undefined : { transform: `scale(${zoom})` }}
           playsInline
