@@ -87,3 +87,29 @@ export async function decodeQrFromImage(img: HTMLImageElement | HTMLVideoElement
 
   return decodeWithZxing(img);
 }
+
+/** Keeps the live pass sharp, with the heavier photo decoders retried periodically. */
+export async function decodeQrFromFrame(video: HTMLVideoElement, canvas: HTMLCanvasElement, tryHarder = false, zoom = 1): Promise<string | null> {
+  const width = video.videoWidth;
+  const height = video.videoHeight;
+  if (!width || !height) return null;
+
+  const cropWidth = Math.max(1, Math.round(width / zoom));
+  const cropHeight = Math.max(1, Math.round(height / zoom));
+  const x = (width - cropWidth) / 2;
+  const y = (height - cropHeight) / 2;
+  const scale = Math.min(1, 1920 / Math.max(cropWidth, cropHeight));
+  const frameWidth = Math.max(1, Math.round(cropWidth * scale));
+  const frameHeight = Math.max(1, Math.round(cropHeight * scale));
+  if (canvas.width !== frameWidth) canvas.width = frameWidth;
+  if (canvas.height !== frameHeight) canvas.height = frameHeight;
+
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  if (!context) return null;
+  context.drawImage(video, x, y, cropWidth, cropHeight, 0, 0, frameWidth, frameHeight);
+  const imageData = context.getImageData(0, 0, frameWidth, frameHeight);
+  const code = jsQR(imageData.data, frameWidth, frameHeight, { inversionAttempts: 'attemptBoth' });
+  if (code?.data) return code.data;
+
+  return tryHarder ? decodeQrFromImage(video) : null;
+}

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import jsQR from 'jsqr';
 import { Camera, AlertTriangle, QrCode, ScanLine, X, Upload, Square, Info, Maximize, Minimize, ZoomIn, ZoomOut } from 'lucide-react';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useLanguage } from '@/app/providers/LanguageProvider';
@@ -8,7 +7,7 @@ import { useTheme } from '@/app/providers/ThemeProvider';
 import { useModalA11y } from '@/shared/lib/useModalA11y';
 import { scanAttendanceQrAPI } from '@/services/usas/Api';
 import { sanitizeSingleLine } from '@/shared/lib/security';
-import { decodeQrFromImage } from '@/shared/lib/qrDecode';
+import { decodeQrFromFrame, decodeQrFromImage } from '@/shared/lib/qrDecode';
 import { playQrScanChime, prepareQrScanAudio } from '@/shared/lib/audioNotifier';
 
 type AttendanceScanModalProps = {
@@ -272,38 +271,10 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
     }
 
     try {
-      const context = canvas.getContext('2d', { willReadFrequently: true });
-      if (!context) {
-        scheduleLoop();
-        return;
-      }
-
-      const z = nativeZoomRef.current ? 1 : zoomRef.current;
-      const srcW = video.videoWidth;
-      const srcH = video.videoHeight;
-      const cropW = Math.max(1, Math.round(srcW / z));
-      const cropH = Math.max(1, Math.round(srcH / z));
-      const sx = (srcW - cropW) / 2;
-      const sy = (srcH - cropH) / 2;
-
-      const frameScale = Math.min(1, 1280 / Math.max(cropW, cropH));
-      const frameW = Math.max(1, Math.round(cropW * frameScale));
-      const frameH = Math.max(1, Math.round(cropH * frameScale));
-      if (canvas.width !== frameW) canvas.width = frameW;
-      if (canvas.height !== frameH) canvas.height = frameH;
-      context.drawImage(video, sx, sy, cropW, cropH, 0, 0, frameW, frameH);
-
-      const imageData = context.getImageData(0, 0, frameW, frameH);
-      const code = jsQR(imageData.data, imageData.width, imageData.height, {
-        inversionAttempts: 'attemptBoth',
-      });
-
       scanAttemptsRef.current += 1;
-      let firstValue = code?.data?.trim() || '';
-      if (!firstValue && scanAttemptsRef.current % 5 === 0) {
-        firstValue = (await decodeQrFromImage(video, [1200]))?.trim() || '';
-        if (!activeRef.current) return;
-      }
+      const zoom = nativeZoomRef.current ? 1 : zoomRef.current;
+      const firstValue = (await decodeQrFromFrame(video, canvas, scanAttemptsRef.current % 5 === 0, zoom))?.trim() || '';
+      if (!activeRef.current) return;
       if (firstValue) {
         processingRef.current = true;
         playQrScanChime();
