@@ -422,6 +422,8 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
       video.setAttribute('playsinline', 'true');
       video.muted = true;
       await video.play();
+      const rect = video.getBoundingClientRect();
+      focusCameraAtPoint(track, video, rect.left + rect.width / 2, rect.top + rect.height / 2, nativeZoomRef.current ? 1 : zoomRef.current);
       scanLoop();
     } catch (err) {
       if (cameraStartId !== cameraStartIdRef.current) return;

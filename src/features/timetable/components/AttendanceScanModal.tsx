@@ -383,6 +383,8 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
       if (video) {
         video.srcObject = stream;
         await video.play();
+        const rect = video.getBoundingClientRect();
+        focusCameraAtPoint(track, video, rect.left + rect.width / 2, rect.top + rect.height / 2, nativeZoomRef.current ? 1 : zoomRef.current);
       }
 
       if (!mountedRef.current || !activeRef.current) return;
