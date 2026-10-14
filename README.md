@@ -12,6 +12,10 @@
   <img src="./public/usas-logo-dark.png" alt="USAS Logo" width="100px">
 </p>
 
+<p align="center">
+  <a href="https://jadualkelas.zis3c.dev/app"><b>Try it live</b></a> | <a href="https://www.youtube.com/watch?v=zIVxJeE0GFY"><b>Video tutorial on YouTube</b></a>
+</p>
+
 USAS Class Timetable is a modern, client-side academic schedule portal designed for Universiti Sultan Azlan Shah (USAS) students. Built on React 18, TypeScript, and Vite with custom glassmorphism styling, it enables students to fetch, view, and export their class timetables directly into standard calendar feeds (.ICS), official A4 printable PDF documents, and high-resolution device lockscreen wallpapers.
 
 > [!IMPORTANT]
