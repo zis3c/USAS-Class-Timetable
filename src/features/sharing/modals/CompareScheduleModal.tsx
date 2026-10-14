@@ -89,6 +89,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const loopRef = useRef<number | null>(null);
   const processTimerRef = useRef<number | null>(null);
+  const linkErrorTimerRef = useRef<number | null>(null);
   const copiedTimerRef = useRef<number | null>(null);
   const scanStateRef = useRef<ScanState>('idle');
   const prevTabRef = useRef(activeTab);
@@ -213,6 +214,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
         cancelAnimationFrame(raf1);
         cancelAnimationFrame(raf2);
         if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+        if (linkErrorTimerRef.current !== null) clearTimeout(linkErrorTimerRef.current);
         mountedRef.current = false;
         stopCamera();
       };
@@ -306,6 +308,15 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
     setStatusMessage(t(scanHintKey));
   }
 
+  function showLinkError(error: 'invalid' | 'self' | 'duplicate') {
+    if (linkErrorTimerRef.current !== null) clearTimeout(linkErrorTimerRef.current);
+    setLinkError(error);
+    linkErrorTimerRef.current = window.setTimeout(() => {
+      setLinkError('');
+      linkErrorTimerRef.current = null;
+    }, 3000);
+  }
+
   function removeParticipant(id: string) {
     const next = participants.filter((p) => p.id !== id);
     setParticipants(next);
@@ -327,22 +338,24 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
     const payload = extractCompareData(raw);
     const data = payload ? decompressTimetable(payload) : null;
     if (!data || data.timetable.length === 0) {
-      setLinkError('invalid');
+      showLinkError('invalid');
       return;
     }
     // Same matric means the link is the user's own schedule.
     if (data.studentId && session?.user_id && data.studentId === session.user_id) {
-      setLinkError('self');
+      showLinkError('self');
       return;
     }
     if (hasParticipant(data)) {
-      setLinkError('duplicate');
+      showLinkError('duplicate');
       return;
     }
     if (!addParticipant(data)) {
-      setLinkError('invalid');
+      showLinkError('invalid');
       return;
     }
+    if (linkErrorTimerRef.current !== null) clearTimeout(linkErrorTimerRef.current);
+    linkErrorTimerRef.current = null;
     setLinkInput('');
     setLinkError('');
     stopCamera();
@@ -615,9 +628,10 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
             type="button"
             onClick={stopScanning}
             aria-label={t('compareStopCamera')}
-            className="absolute left-2 top-2 z-20 inline-flex items-center gap-1.5 rounded-lg bg-rose-600/80 px-2.5 py-1.5 text-xs font-semibold text-white shadow backdrop-blur-sm"
+            title={t('compareStopCamera')}
+            className="absolute left-2 top-2 z-20 flex h-8 w-8 items-center justify-center rounded-lg bg-rose-600/60 text-white backdrop-blur-sm transition-colors hover:bg-rose-600/80"
           >
-            <Square className="h-3 w-3 fill-current" /> {t('compareStopCamera')}
+            <Square className="h-3 w-3 fill-current" />
           </button>
         )}
 
@@ -829,10 +843,10 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
 
               {isFullscreen ? createPortal(scannerViewport, document.body) : scannerViewport}
 
-              {scanState === 'error' ? (
+              {scanState === 'error' || linkError ? (
                 <div className="flex items-center justify-center gap-2 text-center">
                   <AlertTriangle className="h-5 w-5 shrink-0 text-red-400" />
-                  <p className="text-xs font-medium text-red-500">{statusMessage}</p>
+                  <p className="text-xs font-medium text-red-500">{linkError ? t(linkError === 'self' ? 'compareScanSelf' : linkError === 'duplicate' ? 'compareAlreadyAdded' : 'compareLinkInvalid') : statusMessage}</p>
                 </div>
               ) : (
                 <p className={`text-center text-xs font-medium ${isLight ? 'text-slate-600' : 'text-white/60'}`}>
@@ -865,7 +879,12 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
                   <input
                     type="text"
                     value={linkInput}
-                    onChange={(e) => { setLinkInput(e.target.value); setLinkError(''); }}
+                    onChange={(e) => {
+                      setLinkInput(e.target.value);
+                      setLinkError('');
+                      if (linkErrorTimerRef.current !== null) clearTimeout(linkErrorTimerRef.current);
+                      linkErrorTimerRef.current = null;
+                    }}
                     onKeyDown={(e) => { if (e.key === 'Enter') addFromLink(); }}
                     placeholder={t('comparePasteLinkPlaceholder')}
                     className={`inline-input min-w-0 flex-1 bg-transparent px-0.5 py-1 text-[11px] ${isLight ? 'text-slate-800 placeholder-slate-400' : 'text-white placeholder-white/30'}`}
@@ -875,11 +894,6 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
                   </button>
                 </div>
               </div>
-              {linkError && (
-                <p className="text-center text-[10px] font-semibold text-red-500">
-                  {linkError === 'self' ? t('compareScanSelf') : linkError === 'duplicate' ? t('compareAlreadyAdded') : t('compareLinkInvalid')}
-                </p>
-              )}
               </div>
             </div>
           ) : (
