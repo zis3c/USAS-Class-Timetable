@@ -7,7 +7,7 @@ import { useTheme } from '@/app/providers/ThemeProvider';
 import { useModalA11y } from '@/shared/lib/useModalA11y';
 import { scanAttendanceQrAPI } from '@/services/usas/Api';
 import { sanitizeSingleLine } from '@/shared/lib/security';
-import { decodeQrFromFrame, decodeQrFromImage, focusCameraAtPoint, sampleFrameLuminance } from '@/shared/lib/qrDecode';
+import { decodeQrFromFrame, decodeQrFromImage, focusCameraAtPoint, prepareQrDecoder, sampleFrameLuminance } from '@/shared/lib/qrDecode';
 import { playQrScanChime, prepareQrScanAudio } from '@/shared/lib/audioNotifier';
 
 // Open the modal with ?qrdebug=1 to print live frame diagnostics in the status line.
@@ -310,6 +310,7 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
       return;
     }
     prepareQrScanAudio();
+    prepareQrDecoder();
 
     activeRef.current = true;
     const cameraStartId = ++cameraStartIdRef.current;

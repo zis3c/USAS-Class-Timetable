@@ -12,6 +12,10 @@ const getQrEngine = () => qrEngine ??= QrScanner.createQrEngine().then((engine) 
   return engine;
 });
 
+export function prepareQrDecoder(): void {
+  void getQrEngine().catch(() => {});
+}
+
 /** Focus the camera at a preview tap only when its browser and hardware expose point focus. */
 export function focusCameraAtPoint(track: MediaStreamTrack, video: HTMLVideoElement, clientX: number, clientY: number, cssZoom: number): void {
   const caps = track.getCapabilities?.() as (MediaTrackCapabilities & { focusMode?: string[]; pointsOfInterest?: unknown }) | undefined;

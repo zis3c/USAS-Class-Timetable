@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import QRCode from 'qrcode';
 import { copyTextToClipboard, sanitizeTextForShare, openExternalUrl } from '@/shared/lib/security';
-import { decodeQrFromFrame, decodeQrFromImage, focusCameraAtPoint } from '@/shared/lib/qrDecode';
+import { decodeQrFromFrame, decodeQrFromImage, focusCameraAtPoint, prepareQrDecoder } from '@/shared/lib/qrDecode';
 import { compressTimetable } from '@/features/timetable/lib/scheduleMatcher';
 import { buildFullShareText } from '@/features/export/lib/shareText';
 import { Camera, ScanLine, Square, X, Upload, FileText, Calendar, ArrowLeft, Copy, Check, Users, Plus, Maximize, Minimize, ZoomIn, ZoomOut, Link2 } from 'lucide-react';
@@ -372,6 +372,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
       return;
     }
     prepareQrScanAudio();
+    prepareQrDecoder();
     activeRef.current = true;
     const cameraStartId = ++cameraStartIdRef.current;
     scanAttemptsRef.current = 0;

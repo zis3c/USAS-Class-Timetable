@@ -11,7 +11,7 @@ Both screens keep their own camera and result handling. The decoder reads camera
 
 ## Decoder and camera flow
 
-The project uses [`qr-scanner`](https://github.com/nimiq/qr-scanner) with a shared Web Worker on all browsers. This keeps inverted-code support consistent instead of relying on each browser's native `BarcodeDetector` behavior. The shared engine is reused so camera scans do not create a new worker on every frame.
+The project uses [`qr-scanner`](https://github.com/nimiq/qr-scanner) with a shared Web Worker on all browsers. This keeps inverted-code support consistent instead of relying on each browser's native `BarcodeDetector` behavior. The worker is warmed when the camera opens, while camera permission and startup complete, and reused across frames.
 
 Camera callers pass a video element and a reusable canvas to `decodeQrFromFrame`. The decoder downsizes the full frame for a quick pass. Every fifth pass scans a centered crop for more detail. The crop follows the current digital zoom. A decode miss returns `null`; the caller keeps scanning.
 
