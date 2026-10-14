@@ -103,7 +103,7 @@ const getCopy = (lang: string) => {
     error: 'Scan failed.',
     unsupported: 'This browser does not support automatic QR camera scanning. Paste the QR value manually below.',
     manualLabel: 'Manual QR value',
-    manualHint: "Can't scan? Paste the QR code here.",
+    manualHint: "Can't scan? Paste QR.",
     startCamera: 'Start camera',
     uploadImg: 'Upload image',
     submit: 'Send QR',
