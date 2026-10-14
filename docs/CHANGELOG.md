@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.12] - 2026-10-14
+
+QR scanning refresh republished after CI cleanup.
+
+### Fixed
+* Removed an obsolete lint suppression and rewrote the frame-brightness average to avoid dynamic pixel-buffer indexing. Scan behavior is unchanged.
+
+### Changed
+* Carries the mobile QR scan and upload improvements, dark-theme QR support, tap-to-focus, and compact Share Text layout documented in [1.0.11].
+
 ## [1.0.11] - 2026-10-14
 
 QR scanning refresh and mobile reliability fixes.
@@ -152,7 +162,8 @@ First public release of the USAS Class Timetable portal.
 * The compare Share tab now shows an empty-state message instead of generating a useless QR code when the timetable has not loaded yet.
 * `decompressTimetable` now validates that the payload contains a timetable array and sanitises the embedded student name.
 
-[1.0.11]: https://github.com/zis3c/USAS-Class-Timetable/releases/tag/v1.0.11
-[1.0.10]: https://github.com/zis3c/USAS-Class-Timetable/releases/tag/v1.0.10
-[1.0.9]: https://github.com/zis3c/USAS-Class-Timetable/releases/tag/v1.0.9
+[1.0.12]: https://github.com/zis3c/USAS-Class-Timetable/releases/tag/v1.0.12
+[1.0.11]: https://github.com/zis3c/USAS-Class-Timetable/tree/v1.0.11
+[1.0.10]: https://github.com/zis3c/USAS-Class-Timetable/tree/v1.0.10
+[1.0.9]: https://github.com/zis3c/USAS-Class-Timetable/tree/v1.0.9
 

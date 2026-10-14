@@ -450,7 +450,6 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
     stopCamera();
     const timer = window.setTimeout(() => setShouldRender(false), 220);
     return () => window.clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   useEffect(() => {

@@ -124,8 +124,16 @@ export function sampleFrameLuminance(video: HTMLVideoElement): number {
     context.drawImage(video, 0, 0, 32, 32);
     const data = context.getImageData(0, 0, 32, 32).data;
     let sum = 0;
-    for (let i = 0; i < data.length; i += 4) sum += (data[i] + data[i + 1] + data[i + 2]) / 3;
-    return Math.round(sum / (data.length / 4));
+    let channel = 0;
+    let rgbChannels = 0;
+    for (const value of data) {
+      if (channel !== 3) {
+        sum += value;
+        rgbChannels += 1;
+      }
+      channel = (channel + 1) % 4;
+    }
+    return Math.round(sum / rgbChannels);
   } catch {
     return -2;
   }
