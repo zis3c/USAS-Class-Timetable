@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import jsQR from 'jsqr';
 import QRCode from 'qrcode';
 import { copyTextToClipboard, sanitizeTextForShare, openExternalUrl } from '@/shared/lib/security';
-import { decodeQrFromImage } from '@/shared/lib/qrDecode';
+import { decodeQrFromFrame, decodeQrFromImage } from '@/shared/lib/qrDecode';
 import { compressTimetable } from '@/features/timetable/lib/scheduleMatcher';
 import { buildFullShareText } from '@/features/export/lib/shareText';
 import { Camera, ScanLine, Square, X, Upload, FileText, Calendar, ArrowLeft, Copy, Check, Users, Plus, Maximize, Minimize, ZoomIn, ZoomOut, Link2 } from 'lucide-react';
@@ -456,44 +455,24 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
       const video = videoRef.current;
       const canvas = canvasRef.current;
       if (video && canvas && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.videoWidth > 0) {
-        const context = canvas.getContext('2d', { willReadFrequently: true });
-        if (context) {
-          // Zoom by cropping the centre; keeps full sensor detail so dense QRs decode better.
-          const z = nativeZoomRef.current ? 1 : zoomRef.current;
-          const srcW = video.videoWidth;
-          const srcH = video.videoHeight;
-          const cropW = Math.max(1, Math.round(srcW / z));
-          const cropH = Math.max(1, Math.round(srcH / z));
-          const sx = (srcW - cropW) / 2;
-          const sy = (srcH - cropH) / 2;
-          const frameScale = Math.min(1, 1280 / Math.max(cropW, cropH));
-          const frameW = Math.max(1, Math.round(cropW * frameScale));
-          const frameH = Math.max(1, Math.round(cropH * frameScale));
-          if (canvas.width !== frameW) canvas.width = frameW;
-          if (canvas.height !== frameH) canvas.height = frameH;
-          context.drawImage(video, sx, sy, cropW, cropH, 0, 0, frameW, frameH);
-          const imageData = context.getImageData(0, 0, frameW, frameH);
-          let frameData = jsQR(imageData.data, frameW, frameH, { inversionAttempts: 'attemptBoth' })?.data || null;
-          if (!frameData && scanAttemptsRef.current % 5 === 4) {
-            frameData = await decodeQrFromImage(video, [1200]);
-            if (!activeRef.current || !mountedRef.current) return;
+        scanAttemptsRef.current += 1;
+        const zoom = nativeZoomRef.current ? 1 : zoomRef.current;
+        const frameData = await decodeQrFromFrame(video, canvas, scanAttemptsRef.current % 5 === 0, zoom);
+        if (!activeRef.current || !mountedRef.current) return;
+        if (frameData) {
+          const compareData = extractCompareData(frameData);
+          if (compareData) {
+            playQrScanChime();
+            processSharedData(compareData);
+            return;
           }
-          if (frameData) {
-            const compareData = extractCompareData(frameData);
-            if (compareData) {
-              playQrScanChime();
-              processSharedData(compareData);
-              return;
-            }
-            // Non-timetable QR read; surface it so "can't read" is distinct from "wrong QR".
-            setStatusMessage(t('compareScanNotTimetable'));
-          }
+          // Non-timetable QR read; surface it so "can't read" is distinct from "wrong QR".
+          setStatusMessage(t('compareScanNotTimetable'));
         }
       }
     } catch {
       // Skip bad frame; the loop must never die.
     }
-    scanAttemptsRef.current += 1;
     if (scanAttemptsRef.current === 24) setScanHint(true);
     loopRef.current = window.setTimeout(scanLoop, 180);
   };
