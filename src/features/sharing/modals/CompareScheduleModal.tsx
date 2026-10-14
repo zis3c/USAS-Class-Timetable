@@ -622,10 +622,6 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
           muted
         />
         <div className="pointer-events-none absolute inset-0 bg-black/10" />
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4">
-          <div className={`rounded-xl border-2 border-dashed border-white/30 ${isFullscreen ? 'h-56 w-56 sm:h-64 sm:w-64' : 'h-32 w-32 sm:h-40 sm:w-40'}`} />
-        </div>
-
         <button
           type="button"
           onClick={() => setIsFullscreen((v) => !v)}
