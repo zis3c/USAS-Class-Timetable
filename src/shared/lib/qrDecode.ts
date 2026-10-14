@@ -1,8 +1,8 @@
 import jsQR from 'jsqr';
 
-async function decodeWithZxing(imageData: ImageData): Promise<string | null> {
+async function decodeWithZxing(img: HTMLImageElement | HTMLVideoElement): Promise<string | null> {
   const { decodeQrWithZxing } = await import('./qrDecodeZxing');
-  return decodeQrWithZxing(imageData);
+  return decodeQrWithZxing(img);
 }
 
 /**
@@ -22,8 +22,6 @@ export async function decodeQrFromImage(img: HTMLImageElement | HTMLVideoElement
 
   const longest = Math.max(nativeW, nativeH);
   const attempted = new Set<number>();
-  let lastImageData: ImageData | null = null;
-  let lastMirroredImageData: ImageData | null = null;
   for (const cap of caps) {
     const width = Math.max(1, Math.round(nativeW * Math.min(1, cap / longest)));
     if (attempted.has(width)) continue;
@@ -41,7 +39,6 @@ export async function decodeQrFromImage(img: HTMLImageElement | HTMLVideoElement
     } catch {
       continue;
     }
-    lastImageData = imageData;
     const code = jsQR(imageData.data, width, height, { inversionAttempts: 'attemptBoth' });
     if (code?.data) return code.data;
 
@@ -55,14 +52,9 @@ export async function decodeQrFromImage(img: HTMLImageElement | HTMLVideoElement
     } catch {
       continue;
     }
-    lastMirroredImageData = imageData;
     const mirroredCode = jsQR(imageData.data, width, height, { inversionAttempts: 'attemptBoth' });
     if (mirroredCode?.data) return mirroredCode.data;
   }
 
-  if (lastImageData) {
-    const code = await decodeWithZxing(lastImageData);
-    if (code) return code;
-  }
-  return lastMirroredImageData ? decodeWithZxing(lastMirroredImageData) : null;
+  return decodeWithZxing(img);
 }
