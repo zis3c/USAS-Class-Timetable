@@ -102,7 +102,7 @@ export async function decodeQrFromFrame(video: HTMLVideoElement, canvas: HTMLCan
   const cropHeight = Math.max(1, Math.round(height / zoom));
   const x = (width - cropWidth) / 2;
   const y = (height - cropHeight) / 2;
-  const scale = Math.min(1, 1920 / Math.max(cropWidth, cropHeight));
+  const scale = Math.min(1, 960 / Math.max(cropWidth, cropHeight));
   const frameWidth = Math.max(1, Math.round(cropWidth * scale));
   const frameHeight = Math.max(1, Math.round(cropHeight * scale));
   if (canvas.width !== frameWidth) canvas.width = frameWidth;
@@ -120,10 +120,10 @@ export async function decodeQrFromFrame(video: HTMLVideoElement, canvas: HTMLCan
   } catch {
     return tryHarder ? decodeQrFromImage(video) : null;
   }
-  const code = jsQR(imageData.data, frameWidth, frameHeight, { inversionAttempts: 'attemptBoth' });
+  const code = jsQR(imageData.data, frameWidth, frameHeight, { inversionAttempts: tryHarder ? 'attemptBoth' : 'dontInvert' });
   if (code?.data) return code.data;
 
-  return tryHarder ? decodeQrFromImage(video) : null;
+  return tryHarder ? decodeQrFromImage(video, [1200]) : null;
 }
 
 /** Rough mean luminance (0-255) of a downscaled camera frame, for on-device debugging. */
