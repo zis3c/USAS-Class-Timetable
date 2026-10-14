@@ -342,22 +342,28 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
       zoomRef.current = 1;
 
       const track = stream.getVideoTracks()[0];
-      const caps = track?.getCapabilities?.() as (MediaTrackCapabilities & { zoom?: { min: number; max: number; step?: number }; focusMode?: string[] }) | undefined;
+      const caps = track?.getCapabilities?.() as (MediaTrackCapabilities & { zoom?: { min: number; max: number; step?: number } }) | undefined;
       if (caps?.zoom && typeof caps.zoom.max === 'number' && caps.zoom.max > caps.zoom.min) {
-        nativeZoomRef.current = caps.zoom;
-        setSupportsNativeZoom(true);
-        setMaxZoom(Math.max(3, Math.round(caps.zoom.max)));
         type ZoomConstraint = MediaTrackConstraintSet & { zoom: number };
-        void track.applyConstraints({ advanced: [{ zoom: caps.zoom.min } as ZoomConstraint] }).catch(() => {});
+        try {
+          await track.applyConstraints({ advanced: [{ zoom: caps.zoom.min } as ZoomConstraint] });
+          nativeZoomRef.current = caps.zoom;
+          setSupportsNativeZoom(true);
+          setMaxZoom(Math.max(3, Math.round(caps.zoom.max)));
+        } catch {
+          nativeZoomRef.current = null;
+          setSupportsNativeZoom(false);
+          setMaxZoom(4);
+        }
       } else {
         nativeZoomRef.current = null;
         setSupportsNativeZoom(false);
         setMaxZoom(4);
       }
 
-      if (caps?.focusMode?.includes('continuous') && track) {
-        type FocusConstraint = MediaTrackConstraintSet & { focusMode: 'continuous' };
-        void track.applyConstraints({ advanced: [{ focusMode: 'continuous' } as FocusConstraint] }).catch(() => {});
+      if (cameraStartId !== cameraStartIdRef.current || !mountedRef.current || !activeRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
       }
 
       const video = videoRef.current;
@@ -391,7 +397,14 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
       const ratio = maxZoom > 1 ? (clamped - 1) / (maxZoom - 1) : 0;
       const nativeValue = native.min + (native.max - native.min) * ratio;
       type ZoomConstraint = MediaTrackConstraintSet & { zoom: number };
-      track.applyConstraints({ advanced: [{ zoom: nativeValue }] as ZoomConstraint[] }).catch(() => {});
+      track.applyConstraints({ advanced: [{ zoom: nativeValue }] as ZoomConstraint[] }).catch(() => {
+        nativeZoomRef.current = null;
+        setSupportsNativeZoom(false);
+        setMaxZoom(4);
+        const fallbackZoom = Math.min(4, clamped);
+        zoomRef.current = fallbackZoom;
+        setZoom(fallbackZoom);
+      });
     }
   };
 
