@@ -156,13 +156,16 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
 
       const img = new Image();
       const objUrl = URL.createObjectURL(file);
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-        img.src = objUrl;
-      });
-
-      URL.revokeObjectURL(objUrl);
+      try {
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = () => reject(new Error('Image load failed'));
+          img.src = objUrl;
+        });
+        await img.decode();
+      } finally {
+        URL.revokeObjectURL(objUrl);
+      }
 
       const firstValue = await decodeQrFromImage(img);
 

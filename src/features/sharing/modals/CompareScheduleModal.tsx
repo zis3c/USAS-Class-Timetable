@@ -519,6 +519,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
       const objUrl = URL.createObjectURL(file);
       try {
         await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; img.src = objUrl; });
+        await img.decode();
       } finally {
         URL.revokeObjectURL(objUrl);
       }
