@@ -164,7 +164,7 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
 
       URL.revokeObjectURL(objUrl);
 
-      const firstValue = decodeQrFromImage(img);
+      const firstValue = await decodeQrFromImage(img);
 
       if (firstValue) {
         await submitQrValue(firstValue);
@@ -293,7 +293,11 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
       });
 
       scanAttemptsRef.current += 1;
-      const firstValue = code?.data?.trim() || (scanAttemptsRef.current % 5 === 0 ? decodeQrFromImage(video, [1200])?.trim() : '');
+      let firstValue = code?.data?.trim() || '';
+      if (!firstValue && scanAttemptsRef.current % 5 === 0) {
+        firstValue = (await decodeQrFromImage(video, [1200]))?.trim() || '';
+        if (!activeRef.current) return;
+      }
       if (firstValue) {
         processingRef.current = true;
         playQrScanChime();
