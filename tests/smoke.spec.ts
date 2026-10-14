@@ -742,7 +742,7 @@ test('wallpaper class blocks stay centered at maximum position', async ({ page }
 test('unknown route shows branded 404 screen', async ({ page }) => {
   await page.goto('/does-not-exist');
 
-  await expect(page.getByText(/page not found|halaman tidak dijumpai/i)).toBeVisible();
+  await expect(page.getByRole('heading', { name: /page not found|halaman tidak dijumpai/i })).toBeVisible();
   await expect(page.getByText(/usas class timetable/i)).toBeVisible();
 });
 
