@@ -41,6 +41,6 @@ If a browser cannot read a code, first check camera permission and HTTPS, then m
 
 ## Device validation
 
-- iPhone XS: the user confirmed camera and uploaded-photo scanning worked, including dark-theme QR codes. The latest startup-focus adjustment still needs a physical-device retest.
+- iPhone XS: the user tested the latest release after the startup-focus change and confirmed it works as expected. Camera and uploaded-photo scans, including dark-theme QR codes, had also been confirmed.
 - Android Tab A8: the user previously confirmed camera scanning worked; the camera sometimes needed movement to settle focus.
 - Desktop camera behavior has not been confirmed on physical hardware. Camera choice, focus controls, and permissions vary by device.
