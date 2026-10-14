@@ -381,7 +381,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
       setScanState('scanning');
       setStatusMessage(t(scanHintKey));
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920, max: 1920 }, height: { ideal: 1080, max: 1080 } },
         audio: false,
       });
       // Abort if unmounted, cancelled (e.g. tab switched while the permission prompt was open), or already captured.

@@ -354,8 +354,8 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: 'environment' },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
+          width: { ideal: 1920, max: 1920 },
+          height: { ideal: 1080, max: 1080 },
         },
         audio: false,
       });
