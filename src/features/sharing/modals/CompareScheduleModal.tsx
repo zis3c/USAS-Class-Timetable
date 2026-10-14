@@ -516,7 +516,6 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
       let codeData: string | null;
       try {
         await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; img.src = objUrl; });
-        await img.decode();
         codeData = await decodeQrFromImage(img);
       } finally {
         URL.revokeObjectURL(objUrl);

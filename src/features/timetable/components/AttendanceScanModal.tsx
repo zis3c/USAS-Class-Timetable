@@ -7,8 +7,11 @@ import { useTheme } from '@/app/providers/ThemeProvider';
 import { useModalA11y } from '@/shared/lib/useModalA11y';
 import { scanAttendanceQrAPI } from '@/services/usas/Api';
 import { sanitizeSingleLine } from '@/shared/lib/security';
-import { decodeQrFromFrame, decodeQrFromImage } from '@/shared/lib/qrDecode';
+import { decodeQrFromFrame, decodeQrFromImage, sampleFrameLuminance } from '@/shared/lib/qrDecode';
 import { playQrScanChime, prepareQrScanAudio } from '@/shared/lib/audioNotifier';
+
+// Open the modal with ?qrdebug=1 to print live frame diagnostics in the status line.
+const QR_DEBUG = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('qrdebug');
 
 type AttendanceScanModalProps = {
   isOpen: boolean;
@@ -129,6 +132,7 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
   const [zoom, setZoom] = useState(1);
   const [maxZoom, setMaxZoom] = useState(3);
   const [supportsNativeZoom, setSupportsNativeZoom] = useState(false);
+  const [debugText, setDebugText] = useState('');
 
   const mountedRef = useRef(true);
   const activeRef = useRef(false);
@@ -162,7 +166,6 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
           img.onerror = () => reject(new Error('Image load failed'));
           img.src = objUrl;
         });
-        await img.decode();
         firstValue = await decodeQrFromImage(img);
       } finally {
         URL.revokeObjectURL(objUrl);
@@ -270,6 +273,8 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
       return;
     }
 
+    let errName = '';
+    const started = performance.now();
     try {
       scanAttemptsRef.current += 1;
       const zoom = nativeZoomRef.current ? 1 : zoomRef.current;
@@ -281,8 +286,15 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
         await submitQrValue(firstValue);
         return;
       }
-    } catch {
+    } catch (e) {
       // A transient bad frame should not end the whole camera scan.
+      errName = e instanceof Error ? e.name : String(e);
+    }
+
+    if (QR_DEBUG) {
+      const track = streamRef.current?.getVideoTracks()[0];
+      const settings = track?.getSettings?.() as (MediaTrackSettings & { facingMode?: string }) | undefined;
+      setDebugText(`stream=${settings?.width ?? '?'}x${settings?.height ?? '?'} (${settings?.facingMode ?? '?'}) video=${video.videoWidth}x${video.videoHeight} canvas=${canvas.width}x${canvas.height} lum=${sampleFrameLuminance(video)} ms=${Math.round(performance.now() - started)} n=${scanAttemptsRef.current} ${errName}`);
     }
 
     scheduleLoop();
@@ -575,6 +587,12 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
             </div>
           </div>
         </div>
+
+        {QR_DEBUG && (
+          <div className="flex-shrink-0 bg-black text-lime-400 font-mono text-xs leading-snug px-3 py-2 break-all border-b border-lime-900">
+            {debugText || 'dbg: waiting for camera…'}
+          </div>
+        )}
 
         <div data-lenis-prevent className="p-4 flex-1 overflow-y-auto min-h-0 flex flex-col gap-4 touch-pan-y overscroll-contain">
 
