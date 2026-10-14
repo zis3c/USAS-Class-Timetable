@@ -7,11 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.11] - 2026-10-14
+
+QR scanning refresh and mobile reliability fixes.
+
+### Security
+* Replaced Cloudflare Turnstile with the self-hosted ALTCHA proof-of-work challenge, removing the third-party login challenge. Reused proofs are rejected.
+
+### Changed
+* Rebuilt attendance and schedule comparison around a shared `qr-scanner` worker for camera scans and image uploads. It checks normal and light-on-dark codes, including codes shown in dark theme.
+* Preview taps request focus where the camera supports it. Startup leaves autofocus to the browser and hardware, avoiding a forced refocus on every camera start.
+* Removed the drawn guide frame from both camera previews. Successful scans stop the camera stream; the shared decoder worker stays warm for the next scan.
+* Compare Schedule upload accepts screenshots and camera photos. The mobile Share Text view is shorter, and the manual QR hint uses less space.
+
 ### Fixed
-* Replaced the shared QR decode path with `qr-scanner`, configured its reused worker for light-on-dark codes, and kept camera image work off the UI thread where worker decoding is available.
+* Improved live-frame decoding and photo upload reliability on iOS Safari and mobile browsers, using bounded image sizes, center crops, and a reusable worker.
+* Stabilized camera startup, zoom fallback, repeated scan cleanup, and recovery after unreadable frames.
+* Fixed iOS formal-export text alignment and rounded edges on the full-screen export overlay.
 
 ### Documentation
-* Documented the shared QR decoder, camera and upload flow, worker policy, and on-device diagnostics in [QR Scanning](QR_SCANNING.md).
+* Updated the [README](../README.md), [QR Scanning](QR_SCANNING.md), and [Architecture](ARCHITECTURE.md) with camera focus, upload flow, device limits, privacy, and deployment requirements.
 
 ## [1.0.10] - 2026-10-13
 
@@ -137,6 +152,7 @@ First public release of the USAS Class Timetable portal.
 * The compare Share tab now shows an empty-state message instead of generating a useless QR code when the timetable has not loaded yet.
 * `decompressTimetable` now validates that the payload contains a timetable array and sanitises the embedded student name.
 
+[1.0.11]: https://github.com/zis3c/USAS-Class-Timetable/releases/tag/v1.0.11
 [1.0.10]: https://github.com/zis3c/USAS-Class-Timetable/releases/tag/v1.0.10
 [1.0.9]: https://github.com/zis3c/USAS-Class-Timetable/releases/tag/v1.0.9
 
