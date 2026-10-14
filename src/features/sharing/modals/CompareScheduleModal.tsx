@@ -6,7 +6,7 @@ import { copyTextToClipboard, sanitizeTextForShare, openExternalUrl } from '@/sh
 import { decodeQrFromImage } from '@/shared/lib/qrDecode';
 import { compressTimetable } from '@/features/timetable/lib/scheduleMatcher';
 import { buildFullShareText } from '@/features/export/lib/shareText';
-import { Camera, ScanLine, Square, X, Upload, FileText, Calendar, AlertTriangle, ArrowLeft, Copy, Check, Users, Plus, Maximize, Minimize, ZoomIn, ZoomOut, Link2 } from 'lucide-react';
+import { Camera, ScanLine, Square, X, Upload, FileText, Calendar, ArrowLeft, Copy, Check, Users, Plus, Maximize, Minimize, ZoomIn, ZoomOut, Link2 } from 'lucide-react';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { formatTimeFromMinutes } from '@/shared/lib/timetableTime';
 import { extractDayName } from '@/shared/lib/dayFormat';
@@ -446,7 +446,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
     }
   }
 
-  function scanLoop() {
+  async function scanLoop() {
     if (!activeRef.current || !mountedRef.current || isScanSuccess()) return;
     try {
       const video = videoRef.current;
@@ -466,8 +466,11 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
           canvas.height = cropH;
           context.drawImage(video, sx, sy, cropW, cropH, 0, 0, cropW, cropH);
           const imageData = context.getImageData(0, 0, cropW, cropH);
-          const frameData = jsQR(imageData.data, cropW, cropH, { inversionAttempts: 'attemptBoth' })?.data
-            || (scanAttemptsRef.current % 5 === 4 ? decodeQrFromImage(video, [1200]) : null);
+          let frameData = jsQR(imageData.data, cropW, cropH, { inversionAttempts: 'attemptBoth' })?.data || null;
+          if (!frameData && scanAttemptsRef.current % 5 === 4) {
+            frameData = await decodeQrFromImage(video, [1200]);
+            if (!activeRef.current || !mountedRef.current) return;
+          }
           if (frameData) {
             const compareData = extractCompareData(frameData);
             if (compareData) {
@@ -516,7 +519,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
       } finally {
         URL.revokeObjectURL(objUrl);
       }
-      const codeData = decodeQrFromImage(img);
+      const codeData = await decodeQrFromImage(img);
       const compareData = codeData ? extractCompareData(codeData) : null;
       if (compareData) {
         processSharedData(compareData);
@@ -845,7 +848,6 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
 
               {scanState === 'error' || linkError ? (
                 <div className="flex items-center justify-center gap-2 text-center">
-                  <AlertTriangle className="h-5 w-5 shrink-0 text-red-400" />
                   <p className="text-xs font-medium text-red-500">{linkError ? t(linkError === 'self' ? 'compareScanSelf' : linkError === 'duplicate' ? 'compareAlreadyAdded' : 'compareLinkInvalid') : statusMessage}</p>
                 </div>
               ) : (
