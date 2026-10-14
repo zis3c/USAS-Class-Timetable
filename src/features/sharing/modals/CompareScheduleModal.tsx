@@ -582,7 +582,11 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
 
   // Short tabs hug content to avoid an empty gap; longer views keep a fixed scrollable height.
   const isCompactTab = activeTab === 'share' || (activeTab === 'scan' && scanState !== 'success');
-  const modalHeight = isCompactTab ? 'h-auto max-h-[min(34rem,88vh)]' : 'h-[85vh] sm:h-[34rem] max-h-[800px]';
+  const modalHeight = isCompactTab
+    ? 'h-auto max-h-[min(34rem,88vh)]'
+    : activeTab === 'whatsapp'
+      ? 'h-[min(34rem,88vh)] max-h-[800px]'
+      : 'h-[85vh] sm:h-[34rem] max-h-[800px]';
 
   const participantsBar = participants.length > 0 ? (
     <div className="flex flex-wrap items-center gap-1.5">
