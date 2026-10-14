@@ -1,5 +1,8 @@
 import QrScanner from 'qr-scanner';
 
+// Keep inverted QR support consistent across browsers; recheck this package-private flag on upgrades.
+(QrScanner as unknown as { _disableBarcodeDetector: boolean })._disableBarcodeDetector = true;
+
 let qrEngine: ReturnType<typeof QrScanner.createQrEngine> | undefined;
 const getQrEngine = () => qrEngine ??= QrScanner.createQrEngine().then((engine) => {
   if (engine instanceof Worker) {
