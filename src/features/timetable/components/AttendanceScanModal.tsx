@@ -371,7 +371,7 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
       zoomRef.current = 1;
 
       const track = stream.getVideoTracks()[0];
-      const caps = track?.getCapabilities?.() as (MediaTrackCapabilities & { zoom?: { min: number; max: number; step?: number } }) | undefined;
+      const caps = track?.getCapabilities?.() as (MediaTrackCapabilities & { zoom?: { min: number; max: number; step?: number }; focusMode?: string[] }) | undefined;
       if (caps?.zoom && typeof caps.zoom.max === 'number' && caps.zoom.max > caps.zoom.min) {
         nativeZoomRef.current = caps.zoom;
         setSupportsNativeZoom(true);
@@ -382,6 +382,11 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
         nativeZoomRef.current = null;
         setSupportsNativeZoom(false);
         setMaxZoom(4);
+      }
+
+      if (caps?.focusMode?.includes('continuous') && track) {
+        type FocusConstraint = MediaTrackConstraintSet & { focusMode: 'continuous' };
+        void track.applyConstraints({ advanced: [{ focusMode: 'continuous' } as FocusConstraint] }).catch(() => {});
       }
 
       const video = videoRef.current;
@@ -671,7 +676,7 @@ export default function AttendanceScanModal({ isOpen, onClose, onSuccessfulScan 
             <span>{statusMessage}</span>
           </div>
 
-          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
+          <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileUpload} />
           <canvas ref={canvasRef} className="pointer-events-none absolute -left-[9999px] top-0 h-px w-px opacity-0" aria-hidden="true" />
 
         </div>

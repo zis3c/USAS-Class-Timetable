@@ -396,7 +396,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
       setZoom(1);
       zoomRef.current = 1;
       const track = stream.getVideoTracks()[0];
-      const caps = track?.getCapabilities?.() as (MediaTrackCapabilities & { zoom?: { min: number; max: number } }) | undefined;
+      const caps = track?.getCapabilities?.() as (MediaTrackCapabilities & { zoom?: { min: number; max: number }; focusMode?: string[] }) | undefined;
       if (caps?.zoom && typeof caps.zoom.max === 'number' && caps.zoom.max > caps.zoom.min) {
         nativeZoomRef.current = caps.zoom;
         setSupportsNativeZoom(true);
@@ -407,6 +407,10 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
         nativeZoomRef.current = null;
         setSupportsNativeZoom(false);
         setMaxZoom(4);
+      }
+      if (caps?.focusMode?.includes('continuous') && track) {
+        type FocusConstraint = MediaTrackConstraintSet & { focusMode: 'continuous' };
+        void track.applyConstraints({ advanced: [{ focusMode: 'continuous' } as FocusConstraint] }).catch(() => {});
       }
       video.srcObject = stream;
       video.setAttribute('playsinline', 'true');
@@ -878,7 +882,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
                   >
                     <Upload className="w-4 h-4 inline-block mr-1.5" /> {t('compareUploadBtn')}
                   </button>
-                  <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
+                  <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
                 </div>
 
                 <div className={`mx-auto flex w-full min-w-0 items-center gap-1.5 rounded-xl border p-1 transition-colors sm:mx-0 sm:max-w-sm sm:flex-1 ${isLight ? 'border-slate-200 bg-white focus-within:border-amber-400' : 'border-white/[0.08] bg-white/[0.02] focus-within:border-amber-400/50'}`}>
