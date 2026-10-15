@@ -79,6 +79,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
   const [maxZoom, setMaxZoom] = useState(4);
   const [supportsNativeZoom, setSupportsNativeZoom] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [qrFullscreen, setQrFullscreen] = useState(false);
 
   const mountedRef = useRef(true);
   const activeRef = useRef(false);
@@ -163,6 +164,11 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, isOpen]);
 
+  // Exit the QR fullscreen view when the modal closes or leaves the Share tab.
+  useEffect(() => {
+    if (!isOpen || activeTab !== 'share') setQrFullscreen(false);
+  }, [isOpen, activeTab]);
+
   // Restart the camera whenever add/remove-friend requests a fresh scan, even
   // if the scan state was already 'idle' (so pressing Add Friend always reacts).
   useEffect(() => {
@@ -183,9 +189,10 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
       const safeName = sanitizeTextForShare(timetableData?.studentName || 'Pelajar', 80);
       const data = compressTimetable(myTimetable, safeName, session?.user_id);
       // Raw payload (no URL) with low error correction keeps the QR sparse and easier to scan; the scanner accepts both forms.
+      // Always dark-on-light (ISO/IEC 18004): inverted codes scan unreliably on some cameras, so theme never changes the QR colors.
       QRCode.toDataURL(data, {
         width: 512, margin: 4, errorCorrectionLevel: 'L',
-        color: { dark: isLight ? '#0f172a' : '#ffffff', light: isLight ? '#ffffff' : '#0a1428' }
+        color: { dark: '#0f172a', light: '#ffffff' }
       }).then(setMyQrUrl).catch(() => setMyQrUrl(''));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -680,6 +687,27 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
     </div>
   );
 
+  // Fullscreen QR: portal to <body> so the modal's backdrop-blur/transform does not clip it.
+  const qrFullscreenView = (
+    <div
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-4 bg-[#070F22]/95 p-4 backdrop-blur-md"
+      onClick={() => setQrFullscreen(false)}
+    >
+      <div className="rounded-2xl bg-white p-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <img src={myQrUrl} alt="QR Code" className="h-[78vmin] w-[78vmin] object-contain" />
+      </div>
+      <p className="text-xs font-semibold text-white/60">{t('compareShowFriend')}</p>
+      <button
+        type="button"
+        onClick={() => setQrFullscreen(false)}
+        className="absolute right-4 top-4 rounded-lg bg-white/10 p-2 text-white/80 transition-colors hover:bg-white/20 hover:text-white"
+        aria-label={t('compareExitFullscreen')}
+      >
+        <Minimize className="h-5 w-5" />
+      </button>
+    </div>
+  );
+
   return (
     <div ref={modalRef} role="dialog" aria-modal="true" aria-label="Banding Jadual" className={`fixed inset-0 z-[60] flex items-center justify-center p-2.5 sm:p-4 backdrop-blur-md transition-all duration-200 touch-none ${
       animate ? 'bg-slate-900/30 opacity-100' : 'bg-slate-900/0 opacity-0 pointer-events-none'
@@ -760,7 +788,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
           </div>
         )}
 
-        <div className={`overflow-hidden p-4 sm:p-6 flex flex-col ${isCompactTab ? '' : 'flex-1 min-h-0'}`}>
+        <div className={`overflow-hidden pt-4 px-4 sm:pt-6 sm:px-6 flex flex-col ${isCompactTab ? '' : 'flex-1 min-h-0'} ${activeTab === 'whatsapp' ? 'pb-2 sm:pb-3' : 'pb-4 sm:pb-6'}`}>
           {activeTab === 'whatsapp' ? (
             <div className="flex flex-col space-y-4 py-2 w-full flex-1 min-h-0">
               <div data-lenis-prevent className={`flex-1 min-h-0 rounded-xl p-3 border overflow-y-auto text-left usas-scrollbar touch-pan-y overscroll-contain ${
@@ -814,7 +842,14 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
             <div data-lenis-prevent className="overflow-y-auto usas-scrollbar touch-pan-y overscroll-contain pr-2">
               <div className="flex min-h-full flex-col items-center justify-center gap-4">
                 <div className="text-center w-full max-w-sm mx-auto">
-                  <div className={`p-3 rounded-xl border inline-block shadow-inner ${isLight ? 'bg-slate-50 border-slate-200/80' : 'bg-white/[0.02] border-white/10'}`}>
+                  <button
+                    type="button"
+                    disabled={!myQrUrl}
+                    onClick={() => setQrFullscreen(true)}
+                    aria-label={t('compareFullscreen')}
+                    title={myQrUrl ? t('compareFullscreen') : undefined}
+                    className={`p-3 rounded-xl border inline-block shadow-inner ${isLight ? 'bg-slate-50 border-slate-200/80' : 'bg-white border-white/10'} ${myQrUrl ? 'cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400' : ''}`}
+                  >
                     <div className="relative w-52 h-52 sm:w-56 sm:h-56 mx-auto">
                       {myQrUrl ? (
                         <img src={myQrUrl} alt="QR Code" className="w-full h-full object-contain rounded-lg" />
@@ -824,7 +859,7 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
                         </div>
                       )}
                     </div>
-                  </div>
+                  </button>
                   <div className="mt-2.5">
                     <h3 className={`text-sm font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>{timetableData?.studentName || 'Pelajar'}</h3>
                     <p className={`text-xs font-semibold truncate mt-0.5 ${isLight ? 'text-blue-600' : 'text-blue-400'}`}>{t('compareShowFriend')}</p>
@@ -1007,6 +1042,8 @@ export default function CompareScheduleModal({ isOpen, onClose, initialSharedDat
           )}
         </div>
       </div>
+
+      {qrFullscreen && myQrUrl ? createPortal(qrFullscreenView, document.body) : null}
     </div>
   );
 }

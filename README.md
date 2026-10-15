@@ -42,7 +42,7 @@ USAS Class Timetable is a modern, client-side academic schedule portal designed 
   * **Lecturer Directory Lookup**: Tap a lecturer to load their official e-mail, position and extension from the USAS staff directory.
 * **Calendar Sync & Social Sharing**:
   * **Universal .ICS Export**: One-click calendar sync compatible with Google Calendar, Apple iCal, and Microsoft Outlook.
-  * **WhatsApp & QR Share**: Share timetable text or QR codes; scan or upload a QR to compare schedules or submit attendance.
+  * **WhatsApp & QR Share**: Share timetable text or QR codes; tap a QR for a fullscreen view to show a friend, and scan or upload a QR to compare schedules or submit attendance. Share QRs are always rendered dark-on-light so they scan reliably on any device.
 * **Multi-Language & Theme Support**:
   * **4 Supported Languages**: English (Default), Bahasa Melayu, Simplified Chinese (简体中文), and Tamil (தமிழ்).
   * **5 Color Themes**: Dark Theme (Default), Light Theme, OLED Pure Black, Islamic Emerald Green, and Warm Amber.
