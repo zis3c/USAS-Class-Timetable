@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.13] - 2026-10-15
+
+Share QR reliability and fullscreen view.
+
+### Added
+* Tapping the share QR in Compare Schedule opens a fullscreen view for a friend to scan. Tap the backdrop or the minimize button to close it; it also closes when the modal closes or the tab changes.
+
+### Changed
+* Compare/share QRs are now always rendered dark-on-light (ISO/IEC 18004) instead of following the theme, so they scan reliably on cameras that struggle with inverted (light-on-dark) codes. The decoder still reads inverted codes from external sources.
+* The Share Text tab uses less vertical spacing below its WhatsApp/Telegram/Copy actions.
+
 ## [1.0.12] - 2026-10-14
 
 QR scanning refresh republished after CI cleanup.
