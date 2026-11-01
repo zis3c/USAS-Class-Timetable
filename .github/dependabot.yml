@@ -20,3 +20,10 @@ updates:
       npm:
         patterns: ["*"]
         update-types: ["minor", "patch"]
+      react:
+        patterns: ["react", "react-dom", "@types/react", "@types/react-dom"]
+      vite:
+        patterns: ["vite", "@vitejs/*", "vitest", "@vitest/*"]
+    ignore:
+      - dependency-name: "typescript"
+        versions: [">= 6.1.0"]
