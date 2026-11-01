@@ -9,9 +9,9 @@ Welcome to the detailed installation guide for the **USAS Class Timetable** port
 Before you begin, ensure your system meets the following requirements:
 
 ### Frontend Environment
-* **Node.js**: `v18.x` or higher (v20+ recommended)
-* **NPM**: `v9.x` or higher (or `pnpm` / `yarn`)
-* **Modern Web Browser**: Chrome 111+, Safari 16.4+, or Firefox 128+. These are Tailwind CSS 4's minimum supported browser versions.
+- **Node.js**: `v18.x` or higher (v20+ recommended)
+- **NPM**: `v9.x` or higher (or `pnpm` / `yarn`)
+- **Modern Web Browser**: Chrome 111+, Safari 16.4+, or Firefox 128+. These are Tailwind CSS 4's minimum supported browser versions.
 
 ---
 

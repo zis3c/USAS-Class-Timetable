@@ -37,9 +37,9 @@ npm run test:unit
 ## Implement your fix or feature
 
 At this point, you are ready to make your changes:
-* Maintain clean TypeScript types and avoid `any` where possible.
-* Ensure responsive layouts render cleanly across mobile and desktop viewports.
-* Add unit test coverage in `tests/` for any new utility logic.
+- Maintain clean TypeScript types and avoid `any` where possible.
+- Ensure responsive layouts render cleanly across mobile and desktop viewports.
+- Add unit test coverage in `tests/` for any new utility logic.
 
 ---
 

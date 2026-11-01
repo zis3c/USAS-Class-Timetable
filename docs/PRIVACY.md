@@ -6,7 +6,7 @@ This notice describes data handling in USAS Class Timetable. The app has no proj
 
 ## Data flow
 
-```
+```text
 Browser (student device)
   │  HTTPS POST /api/usas/*
   ▼
