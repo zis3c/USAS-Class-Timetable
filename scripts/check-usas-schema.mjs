@@ -1,6 +1,5 @@
-// Monitors the USAS UMC API response shape so schema changes/outages surface before they break the client.
-// Login is always checked (dummy matric works); when USAS_MONITOR_USER/PASS secrets are set, it also
-// validates the timetable and course-list schemas.
+// Checks the USAS UMC API response shape so schema changes surface before breaking the client.
+// Login is always checked; timetable and course-list schemas run when USAS_MONITOR_USER/PASS are set.
 
 const API_ORIGIN = 'https://mobile.usas.edu.my/umc_v2';
 const UMC_VERSION = '2.0.3';

@@ -77,9 +77,8 @@ export function useWallpaperBackground({
     return URL.createObjectURL(blob);
   };
 
-  // Cap the sharp cover layer to the blur asset's resolution ceiling; 10MP+ photos
-  // make html2canvas drop the layer on low-memory devices, leaving it blank.
-  // shortcut: fixed 2048px ceiling, raise it (or size to the preset x scale) if desktop needs more detail.
+  // Cap the cover layer to 2048px; 10MP+ photos make html2canvas drop the layer on low-memory devices.
+  // shortcut: fixed 2048px ceiling; raise or scale by preset if desktop exports need more detail.
   const MAX_BACKGROUND_DIMENSION = 2048;
   const renderCoverUrl = async (image: HTMLImageElement): Promise<string | null> => {
     const maxDimension = Math.max(image.naturalWidth, image.naturalHeight);
