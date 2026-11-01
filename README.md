@@ -62,6 +62,7 @@ Because the portal processes student academic schedules, security and privacy ar
 ## Tech Stack
 
 **Frontend**
+
 - [React 18](https://react.dev/)
 - [TypeScript 6](https://www.typescriptlang.org/)
 - [Vite 8](https://vitejs.dev/)
@@ -70,21 +71,25 @@ Because the portal processes student academic schedules, security and privacy ar
 - [Lenis](https://lenis.darkroom.engineering/)
 
 **Document & Media Engines**
+
 - [jsPDF](https://github.com/parallax/jsPDF)
 - [html2canvas](https://html2canvas.hertzen.com/)
 - [QRCode](https://github.com/soldair/node-qrcode)
 - [qr-scanner](https://github.com/nimiq/qr-scanner) (camera and image QR decoding)
 
 **Backend & Hosting**
+
 - [Cloudflare Pages Functions](https://developers.cloudflare.com/pages/functions/) (API proxy)
 - [Wrangler](https://developers.cloudflare.com/workers/wrangler/)
 
 **Testing & Quality Assurance**
+
 - [Vitest](https://vitest.dev/)
 - [Playwright](https://playwright.dev/)
 - [ESLint](https://eslint.org/)
 
 **Monitoring**
+
 - [Sentry](https://sentry.io/) (optional client error tracking)
 
 ## Getting Started
@@ -101,23 +106,28 @@ Follow these quick steps to get a local development copy running.
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/zis3c/USAS-Class-Timetable.git
    cd "USAS Class Timetable"
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Start development server**
+
    ```bash
    npm run dev
    ```
+
    > **Real API login:** `npm run dev` serves the UI (and demo mode) only. The `/api/usas` proxy is a Cloudflare Pages Function. For local API login, run `npx wrangler dev --config cloudflare/altcha-replay-guard/wrangler.toml` in one terminal, then `npm run dev:cf` in another.
 
 4. **Run unit tests and type checks**
+
    ```bash
    npm run typecheck
    npm run test:unit

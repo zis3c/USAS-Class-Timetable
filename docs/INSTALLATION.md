@@ -9,6 +9,7 @@ Welcome to the detailed installation guide for the **USAS Class Timetable** port
 Before you begin, ensure your system meets the following requirements:
 
 ### Frontend Environment
+
 - **Node.js**: `v18.x` or higher (v20+ recommended)
 - **NPM**: `v9.x` or higher (or `pnpm` / `yarn`)
 - **Modern Web Browser**: Chrome 111+, Safari 16.4+, or Firefox 128+. These are Tailwind CSS 4's minimum supported browser versions.
@@ -20,14 +21,18 @@ Before you begin, ensure your system meets the following requirements:
 Follow these steps to get a full development environment running on your local machine.
 
 ### 1. Clone the Repository
+
 Clone the project and navigate into the application directory:
+
 ```bash
 git clone https://github.com/zis3c/USAS-Class-Timetable.git
 cd "USAS Class Timetable"
 ```
 
 ### 2. Install Dependencies
+
 Install the required Node.js packages:
+
 ```bash
 npm install
 ```
@@ -118,6 +123,7 @@ ffmpeg -i input.mp4 \
 The build output consists of static HTML, CSS, and JavaScript files generated in `dist/`.
 
 ### Building for Production
+
 ```bash
 npm run build
 ```
@@ -130,9 +136,11 @@ The `/api/usas/*` proxy runs as a Cloudflare Pages Function, so Cloudflare Pages
 2. Build command: `npm run build`.
 3. Output directory: `dist`.
 4. Add the ALTCHA secret under **Settings → Environment variables** (Production and Preview), or as an encrypted secret:
+
    ```bash
    npx wrangler pages secret put ALTCHA_HMAC_KEY --project-name=<your-project>
    ```
+
 5. Keep the `ALTCHA_REPLAY_GUARD` binding from `wrangler.toml` enabled for Production and Preview. The Worker is defined in `cloudflare/altcha-replay-guard` and must be deployed before Pages.
 6. The included `public/_headers` file automatically configures Content Security Policy (CSP) and cache headers.
 
@@ -162,9 +170,11 @@ The app ships no third-party captcha. Add a Cloudflare **WAF → Rate limiting r
 
 - **Traffic & Web Vitals**: Cloudflare dashboard → **Web Analytics** → enable for the Pages project (privacy-first, cookieless).
 - **Function logs & errors**: the proxy emits `console.warn` entries for upstream path/status failures. It does not log request bodies. View them live with:
+
   ```bash
   npx wrangler pages deployment tail --project-name=<your-project>
   ```
+
   or via the Pages project → **Functions → Logs** in the dashboard.
 - **Client error tracking (optional)**: the app initialises Sentry automatically when `VITE_SENTRY_DSN` is set.
   1. Create a Sentry project (platform **React**) and copy its DSN.

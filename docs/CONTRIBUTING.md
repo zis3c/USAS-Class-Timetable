@@ -37,6 +37,7 @@ npm run test:unit
 ## Implement your fix or feature
 
 At this point, you are ready to make your changes:
+
 - Maintain clean TypeScript types and avoid `any` where possible.
 - Ensure responsive layouts render cleanly across mobile and desktop viewports.
 - Add unit test coverage in `tests/` for any new utility logic.
@@ -67,6 +68,7 @@ Finally, go to GitHub and create a Pull Request.
 ## Code formatting
 
 Please run the full lint, security lint, type, unit, build, bundle-size, and browser test suite:
+
 ```sh
 npm run test:all
 ```
