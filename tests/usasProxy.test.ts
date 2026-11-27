@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getUsasProxyPath, isAllowedUsasMethod } from '../src/shared/lib/usasProxy';
+import { getUsasProxyPath, hasAllowedBodySize, isAllowedUsasMethod } from '../src/shared/lib/usasProxy';
 
 describe('usas proxy allowlist', () => {
   it('allows only the explicit endpoint set', () => {
@@ -16,5 +16,13 @@ describe('usas proxy allowlist', () => {
     expect(isAllowedUsasMethod('POST')).toBe(true);
     expect(isAllowedUsasMethod('GET')).toBe(false);
     expect(isAllowedUsasMethod('DELETE')).toBe(false);
+  });
+
+  it('requires a bounded content length', () => {
+    expect(hasAllowedBodySize('1024')).toBe(true);
+    expect(hasAllowedBodySize('0')).toBe(false);
+    expect(hasAllowedBodySize(null)).toBe(false);
+    expect(hasAllowedBodySize('70000')).toBe(false);
+    expect(hasAllowedBodySize('not-a-number')).toBe(false);
   });
 });

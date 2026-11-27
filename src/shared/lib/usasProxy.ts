@@ -19,3 +19,12 @@ export function getUsasProxyPath(pathname: string): string | null {
 export function isAllowedUsasMethod(method: string): boolean {
   return method.toUpperCase() === 'POST';
 }
+
+export const MAX_USAS_BODY_BYTES = 64 * 1024;
+
+// Reject missing Content-Length too: a chunked request without it would bypass
+// a size check based only on the header value.
+export function hasAllowedBodySize(rawContentLength: string | null): boolean {
+  const length = Number(rawContentLength ?? '');
+  return Number.isFinite(length) && length > 0 && length <= MAX_USAS_BODY_BYTES;
+}

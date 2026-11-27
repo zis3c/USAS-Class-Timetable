@@ -1,10 +1,9 @@
-import { getUsasProxyPath, isAllowedUsasMethod } from '../../../src/shared/lib/usasProxy';
+import { getUsasProxyPath, hasAllowedBodySize, isAllowedUsasMethod } from '../../../src/shared/lib/usasProxy';
 import { verifySolution, type Challenge, type Solution } from 'altcha-lib';
 import { deriveKey } from 'altcha-lib/algorithms/pbkdf2';
 
 const API_ORIGIN = 'https://mobile.usas.edu.my/umc_v2';
 const LOGIN_PATH = '/student/login_student.php';
-const MAX_BODY_BYTES = 64 * 1024;
 // Client-supplied network/proxy headers are dropped before forwarding so they
 // cannot spoof the upstream caller identity.
 const STRIPPED_UPSTREAM_HEADERS = [
@@ -80,7 +79,7 @@ export async function onRequest(context: PagesContext) {
     return jsonResponse({ success: false, error: 'Not found.' }, 404);
   }
 
-  if (Number(context.request.headers.get('content-length') || '0') > MAX_BODY_BYTES) {
+  if (!hasAllowedBodySize(context.request.headers.get('content-length'))) {
     return jsonResponse({ success: false, error: 'Payload too large.' }, 413);
   }
 
